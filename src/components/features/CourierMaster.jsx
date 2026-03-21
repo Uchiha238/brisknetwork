@@ -83,10 +83,10 @@ export function CourierMaster() {
       <div className="mt-8 border-t border-slate-100 pb-8 px-4">
         <div className="max-w-7xl mx-auto text-center space-y-2 py-6">
           <p className="text-[11px] font-black text-slate-800 uppercase tracking-widest">
-            COPYRIGHT © 2026 LOGISTICS SOFTWARE SVP INFOTECH. ALL RIGHTS RESERVED. FOR SUPPORT CALL <span className="text-red-600">+91-9022062666</span>
+            COPYRIGHT © 2026 BRISK NETWORK. ALL RIGHTS RESERVED.
           </p>
           <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter leading-relaxed">
-            FOR LOGISTICS SOFTWARE, MOBILE APPS, WEBSITE DESIGNING, CUSTOM SOFTWARE, ECOMMERCE WEBSITE, MLM SOFTWARE, COLLEGE ADMISSION SOFTWARE CALL 9022062666 EMAIL: INFO@SVPINFOTECH.COM, SVPINFOTECH@GMAIL.COM
+            PREMIUM LOGISTICS SOLUTIONS & MANAGEMENT SYSTEMS
           </p>
         </div>
       </div>

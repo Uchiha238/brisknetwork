@@ -1,6 +1,6 @@
-# Om Courier Admin Portal
+# Brisk Network Admin Portal
 
-A premium, modern logistics management dashboard built with React, Vite, and Tailwind CSS. This portal is designed to replicate and enhance a legacy administrative system with advanced data visualization and streamlined workflows.
+A premium, modern logistics management dashboard built with React, Vite, and Tailwind CSS. This portal is designed to streamline administrative workflows with advanced data visualization and a high-density management interface.
 
 ## 🚀 Features
 
@@ -49,4 +49,4 @@ A premium, modern logistics management dashboard built with React, Vite, and Tai
 
 ## 📄 License
 
-Copyright © 2026 LOGISTICS SOFTWARE SVP INFOTECH. All rights reserved.
+Copyright © 2026 BRISK NETWORK. All rights reserved.
