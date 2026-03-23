@@ -1,0 +1,70 @@
+import { useState, useEffect } from "react"
+import { DashboardLayout } from "./components/layout/DashboardLayout"
+import { AddShipmentForm } from "./components/features/AddShipmentForm"
+import { AdminDashboard } from "./components/features/AdminDashboard"
+import { GstSetting } from "./components/features/GstSetting"
+import { CustomerDetails } from "./components/features/CustomerDetails"
+import { CourierMaster } from "./components/features/CourierMaster"
+import { ModeMaster } from "./components/features/ModeMaster"
+import { InternationalZone } from "./components/features/InternationalZone"
+import { DomesticZone } from "./components/features/DomesticZone"
+import { DomesticRate } from "./components/features/DomesticRate"
+import { ColoaderMaster } from "./components/features/ColoaderMaster"
+import { ViewBranches } from "./components/features/ViewBranches"
+import { ListUser } from "./components/features/ListUser"
+import { ViewCnode } from "./components/features/ViewCnode"
+import { BranchWiseCnode } from "./components/features/BranchWiseCnode"
+import { RateGroup } from "./components/features/RateGroup"
+import { FuelGroup } from "./components/features/FuelGroup"
+import { AddInternationalShipment } from "./components/features/AddInternationalShipment"
+import { Login } from "./components/features/Login"
+
+function App() {
+  const [user, setUser] = useState(null)
+  const [currentPage, setCurrentPage] = useState("dashboard")
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('om-courier-user');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+  }, []);
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+    localStorage.setItem('om-courier-user', JSON.stringify(userData));
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    localStorage.removeItem('om-courier-user');
+  };
+
+  if (!user) {
+    return <Login onLogin={handleLogin} />;
+  }
+
+  return (
+    <DashboardLayout currentPage={currentPage} setCurrentPage={setCurrentPage} user={user} onLogout={handleLogout}>
+      {currentPage === "dashboard" && <AdminDashboard />}
+      {currentPage === "add-shipment" && <AddShipmentForm />}
+      {currentPage === "gst-setting" && <GstSetting />}
+      {currentPage === "view-customer" && <CustomerDetails />}
+      {currentPage === "courier-master" && <CourierMaster />}
+      {currentPage === "mode-master" && <ModeMaster />}
+      {currentPage === "int-zone" && <InternationalZone />}
+      {currentPage === "dom-zone" && <DomesticZone />}
+      {currentPage === "dom-rate" && <DomesticRate />}
+      {currentPage === "coloader-master" && <ColoaderMaster />}
+      {currentPage === "view-branches" && <ViewBranches />}
+      {currentPage === "list-user" && <ListUser />}
+      {currentPage === "view-cnode" && <ViewCnode />}
+      {currentPage === "view-branch-cnode" && <BranchWiseCnode />}
+      {currentPage === "rate-group" && <RateGroup />}
+      {currentPage === "fuel-group" && <FuelGroup />}
+      {currentPage === "add-international" && <AddInternationalShipment />}
+    </DashboardLayout>
+  )
+}
+
+export default App

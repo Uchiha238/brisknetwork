@@ -1,11 +1,12 @@
 import { useState } from "react"
+import logo from "@/assets/logo.png"
 import { 
   Home, Settings, LayoutGrid, Globe, Truck, 
   CreditCard, MapPin, FileCode, FileText, BarChart3, 
   User, ChevronDown, Package, Search, Menu, X, LogOut, Bell
 } from "lucide-react"
 
-export function DashboardLayout({ children, currentPage, setCurrentPage }) {
+export function DashboardLayout({ children, currentPage, setCurrentPage, user, onLogout }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const [activeDropdown, setActiveDropdown] = useState(null);
@@ -35,12 +36,39 @@ export function DashboardLayout({ children, currentPage, setCurrentPage }) {
         { label: 'Fuel Group', id: 'fuel-group' }
       ]
     },
-    { id: 'international', label: 'International', icon: Globe },
-    { id: 'domestic', label: 'Domestic', icon: Truck },
+    { 
+      id: 'international', 
+      label: 'International', 
+      icon: Globe,
+      dropdownItems: [
+        { label: 'Add Shipment', id: 'add-international' },
+        { label: 'List Shipment', id: 'list-international' },
+        { label: 'Unbill Shipment', id: 'unbill-international' },
+        { label: 'Pending Forwarder', id: 'pending-forwarder' },
+        { label: 'Freight Invoice', id: 'freight-invoice' },
+        { label: 'Export Invoice', id: 'export-invoice' },
+        { label: 'Export Invoice Perform', id: 'export-invoice-perform' },
+        { label: 'Export Final invoice', id: 'export-final-invoice' },
+        { label: 'Import Invoice', id: 'import-invoice' },
+        { label: 'Import Invoice Perform', id: 'import-invoice-perform' },
+        { label: 'Import Final invoice', id: 'import-final-invoice' },
+        { label: 'International Label Print', id: 'int-label-print' },
+        { label: 'Manage International Delivery Status', id: 'manage-int-status' }
+      ]
+    },
+    { 
+      id: 'domestic', 
+      label: 'Domestic', 
+      icon: Truck,
+      dropdownItems: [
+        { label: 'Add Shipment', id: 'add-domestic' },
+        { label: 'List Shipment', id: 'list-domestic' }
+      ]
+    },
     { id: 'payment', label: 'Payment', icon: CreditCard },
     { id: 'location', label: 'Location', icon: MapPin },
     { id: 'cms', label: 'CMS Management', icon: FileCode },
-    { id: 'add-shipment', label: 'Manifest', icon: FileText },
+    { id: 'add-shipment', label: 'Menifest', icon: FileText },
     { id: 'reports', label: 'Reports', icon: BarChart3 },
   ];
 
@@ -52,21 +80,20 @@ export function DashboardLayout({ children, currentPage, setCurrentPage }) {
         
         {/* Left Side: Logo & Branidng */}
         <div className="flex items-center gap-8">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setCurrentPage('dashboard')}>
-            <div className="bg-orange-500 p-1.5 rounded-lg">
-              <Package className="h-6 w-6 text-white" />
-            </div>
-            <div className="flex flex-col leading-none">
-              <span className="text-lg font-black text-slate-800 tracking-tighter">OM</span>
-              <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Courier</span>
-            </div>
+          <div className="flex items-center cursor-pointer" onClick={() => setCurrentPage('dashboard')}>
+            <img 
+              src={logo} 
+              alt="OM Courier Logo" 
+              className="h-[68px] w-auto object-contain py-0.5"
+            />
           </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = currentPage === item.id;
+              const isSubItemActive = item.dropdownItems?.some(sub => sub.id === currentPage);
+              const isActive = currentPage === item.id || isSubItemActive;
               const hasDropdown = item.dropdownItems && item.dropdownItems.length > 0;
               
               return (
@@ -107,7 +134,11 @@ export function DashboardLayout({ children, currentPage, setCurrentPage }) {
                             setCurrentPage(subItem.id);
                             setActiveDropdown(null);
                           }}
-                          className="w-full text-left px-5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors"
+                          className={`w-full text-left px-5 py-2 text-xs font-semibold transition-colors ${
+                            currentPage === subItem.id 
+                            ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600' 
+                            : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600'
+                          }`}
                         >
                           {subItem.label}
                         </button>
@@ -134,11 +165,20 @@ export function DashboardLayout({ children, currentPage, setCurrentPage }) {
 
           <div className="flex items-center gap-3 pl-4 border-l border-slate-100">
             <div className="flex flex-col items-end hidden sm:flex">
-              <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">RATNAKAR</span>
-              <span className="text-[10px] text-slate-400 font-medium tracking-tight">Admin Account</span>
+              <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest">{user?.username || 'Guest'}</span>
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{user?.role === 'admin' ? 'Admin Controller' : 'Staff Member'}</span>
             </div>
-            <div className="h-10 w-10 rounded-full bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center overflow-hidden">
-               <User className="h-6 w-6 text-slate-400" />
+            <div className="flex items-center gap-2">
+              <div className="h-10 w-10 rounded-full bg-blue-50 border-2 border-blue-100 shadow-sm flex items-center justify-center overflow-hidden">
+                 <User className="h-5 w-5 text-blue-600" />
+              </div>
+              <button 
+                onClick={onLogout}
+                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                title="Logout"
+              >
+                <LogOut className="h-5 w-5" />
+              </button>
             </div>
           </div>
 

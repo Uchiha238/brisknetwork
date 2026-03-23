@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LineChart, Line, ResponsiveContainer, 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   PieChart, Pie, Cell 
 } from 'recharts';
-import { ShoppingCart, Users, UserCheck, LayoutGrid, MoreHorizontal, Settings } from 'lucide-react';
+import { ShoppingCart, Users, UserCheck, LayoutGrid, MoreHorizontal, Settings, Package } from 'lucide-react';
 
 const sparklineData = [
   { value: 40 }, { value: 60 }, { value: 45 }, { value: 70 }, 
@@ -31,15 +31,34 @@ const monthlyData = [
   { month: 'Jul', value: 30 },
 ];
 
-const pieData = [
-  { name: 'International', value: 400 },
-  { name: 'Domestic', value: 300 },
-  { name: 'Other', value: 200 },
+const pieDataDefault = [
+  { name: 'Booked', value: 1 },
+  { name: 'In Transit', value: 1 },
+  { name: 'Delivered', value: 1 },
 ];
 
-const COLORS = ['#4f46e5', '#f59e0b', '#10b981'];
+const COLORS = ['#4f46e5', '#f59e0b', '#10b981', '#ef4444'];
 
 export function AdminDashboard() {
+  const [stats, setStats] = useState({
+    totalCustomers: 0,
+    totalShipments: 0,
+    statusDistribution: []
+  });
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/dashboard')
+      .then(res => res.json())
+      .then(data => setStats(data))
+      .catch(err => console.error('Dashboard fetch error:', err));
+  }, []);
+
+  const pieData = stats.statusDistribution.length > 0 
+    ? stats.statusDistribution.map(s => ({ name: s.status.charAt(0).toUpperCase() + s.status.slice(1).replace('_', ' '), value: s.count }))
+    : pieDataDefault;
+
+  const totalStatusCount = pieData.reduce((acc, curr) => acc + curr.value, 0);
+
   return (
     <div className="flex flex-col gap-6 p-4 md:p-8 bg-[#f8fafc] min-h-screen">
       
@@ -47,7 +66,7 @@ export function AdminDashboard() {
       <div className="flex justify-between items-end mb-2">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
-          <p className="text-sm text-slate-500">Welcome to admin panel</p>
+          <p className="text-sm text-slate-500">Welcome to OM Courier Admin</p>
         </div>
         <div className="text-xs font-medium text-slate-500">
           Home / <span className="text-slate-800">Dashboard</span>
@@ -57,15 +76,15 @@ export function AdminDashboard() {
       {/* Top Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         
-        {/* Total Company Card */}
+        {/* Total Shipments Card (Replaces Total Company) */}
         <div className="bg-[#1e3a8a] rounded-xl shadow-sm overflow-hidden flex flex-col h-40 group hover:shadow-lg transition-all">
           <div className="p-5 flex justify-between items-start">
             <div className="text-white">
-              <div className="text-3xl font-bold mb-1">1</div>
-              <div className="text-xs font-medium uppercase tracking-wider opacity-80">Total Company</div>
+              <div className="text-3xl font-bold mb-1">{stats.totalShipments}</div>
+              <div className="text-xs font-medium uppercase tracking-wider opacity-80">Total Shipments</div>
             </div>
             <div className="p-2 bg-white/10 rounded-lg text-white">
-              <ShoppingCart className="h-5 w-5" />
+              <Package className="h-5 w-5" />
             </div>
           </div>
           <div className="mt-auto h-16 w-full">
@@ -84,15 +103,15 @@ export function AdminDashboard() {
           </div>
         </div>
 
-        {/* Total User Card */}
+        {/* Total User Card (Placeholder) */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col h-40 hover:shadow-lg transition-all">
           <div className="p-5 flex justify-between items-start">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-3xl font-bold text-slate-800">8</span>
-                <span className="bg-blue-100 text-blue-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">+4.8%</span>
+                <span className="text-3xl font-bold text-slate-800">1</span>
+                <span className="bg-blue-100 text-blue-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full">LIVE</span>
               </div>
-              <div className="text-xs font-medium uppercase tracking-wider text-slate-500">Total User</div>
+              <div className="text-xs font-medium uppercase tracking-wider text-slate-500">Active Users</div>
             </div>
             <div className="p-2 bg-slate-50 rounded-lg text-slate-400">
               <Users className="h-5 w-5" />
@@ -117,7 +136,7 @@ export function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col h-40 hover:shadow-lg transition-all">
           <div className="p-5 flex justify-between items-start">
             <div>
-              <div className="text-3xl font-bold text-slate-800 mb-1">202</div>
+              <div className="text-3xl font-bold text-slate-800 mb-1">{stats.totalCustomers}</div>
               <div className="text-xs font-medium uppercase tracking-wider text-slate-500">Total Customer</div>
             </div>
             <div className="p-2 bg-slate-50 rounded-lg text-slate-400">
@@ -143,8 +162,8 @@ export function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col h-40 hover:shadow-lg transition-all">
           <div className="p-5 flex justify-between items-start">
             <div>
-              <div className="text-3xl font-bold text-slate-800 mb-1">2</div>
-              <div className="text-xs font-medium uppercase tracking-wider text-slate-500">Total Branch</div>
+              <div className="text-3xl font-bold text-slate-800 mb-1">1</div>
+              <div className="text-xs font-medium uppercase tracking-wider text-slate-500">Active Branches</div>
             </div>
             <div className="p-2 bg-slate-50 rounded-lg text-slate-400">
                 <LayoutGrid className="h-5 w-5" />
@@ -211,7 +230,7 @@ export function AdminDashboard() {
         {/* Donut Chart (takes 1 column) */}
         <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex flex-col">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-800">Shipment Distribution</h3>
+            <h3 className="font-bold text-slate-800">Shipment Status Distribution</h3>
             <Settings className="h-4 w-4 text-slate-400" />
           </div>
           <div className="flex-1 flex items-center justify-center">
@@ -236,14 +255,14 @@ export function AdminDashboard() {
                 </ResponsiveContainer>
              </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 mt-4">
+          <div className="grid grid-cols-2 gap-2 mt-4">
             {pieData.map((item, i) => (
               <div key={item.name} className="flex flex-col items-center">
                 <div className="flex items-center gap-1.5 mb-1">
                   <div className="h-2 w-2 rounded-full" style={{backgroundColor: COLORS[i]}}></div>
-                  <span className="text-[10px] text-slate-500 font-medium truncate max-w-[60px]">{item.name}</span>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase truncate max-w-[80px]">{item.name}</span>
                 </div>
-                <span className="text-xs font-bold text-slate-800">{Math.round((item.value/900)*100)}%</span>
+                <span className="text-xs font-black text-slate-800">{item.value} ({Math.round((item.value/totalStatusCount)*100)}%)</span>
               </div>
             ))}
           </div>
