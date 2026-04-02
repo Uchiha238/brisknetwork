@@ -104,7 +104,16 @@ export function DashboardLayout({ children, currentPage, setCurrentPage, user, o
                   onMouseLeave={() => setActiveDropdown(null)}
                 >
                   <button
-                    onClick={() => !hasDropdown && setCurrentPage(item.id)}
+                    onClick={() => {
+                        if (hasDropdown) {
+                            if (item.id === 'international') setCurrentPage('add-international');
+                            if (item.id === 'domestic') setCurrentPage('add-domestic');
+                            if (item.id === 'master') setCurrentPage('view-customer');
+                        } else {
+                            setCurrentPage(item.id);
+                        }
+                        setActiveDropdown(null);
+                    }}
                     className={`h-[70px] relative flex flex-col items-center justify-center gap-1.5 px-4 transition-all group ${
                       isActive 
                       ? 'text-blue-700 font-black border-b-4 border-blue-600' 

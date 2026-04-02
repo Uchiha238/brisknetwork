@@ -5,6 +5,7 @@ import {
   PieChart, Pie, Cell 
 } from 'recharts';
 import { ShoppingCart, Users, UserCheck, LayoutGrid, MoreHorizontal, Settings, Package } from 'lucide-react';
+import { api } from '../../services/api';
 
 const sparklineData = [
   { value: 40 }, { value: 60 }, { value: 45 }, { value: 70 }, 
@@ -47,8 +48,7 @@ export function AdminDashboard() {
   });
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/dashboard')
-      .then(res => res.json())
+    api.getDashboardStats()
       .then(data => setStats(data))
       .catch(err => console.error('Dashboard fetch error:', err));
   }, []);

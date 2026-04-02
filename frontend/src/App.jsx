@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "./components/layout/DashboardLayout"
-import { AddShipmentForm } from "./components/features/AddShipmentForm"
+import { AddUnifiedShipmentForm } from "./components/features/AddUnifiedShipmentForm"
 import { AdminDashboard } from "./components/features/AdminDashboard"
 import { GstSetting } from "./components/features/GstSetting"
 import { CustomerDetails } from "./components/features/CustomerDetails"
@@ -16,11 +16,11 @@ import { ViewCnode } from "./components/features/ViewCnode"
 import { BranchWiseCnode } from "./components/features/BranchWiseCnode"
 import { RateGroup } from "./components/features/RateGroup"
 import { FuelGroup } from "./components/features/FuelGroup"
-import { AddInternationalShipment } from "./components/features/AddInternationalShipment"
+import { AddCustomer } from "./components/features/AddCustomer"
 import { Login } from "./components/features/Login"
 
 function App() {
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState({ name: 'Admin', role: 'admin' })
   const [currentPage, setCurrentPage] = useState("dashboard")
 
   useEffect(() => {
@@ -47,9 +47,10 @@ function App() {
   return (
     <DashboardLayout currentPage={currentPage} setCurrentPage={setCurrentPage} user={user} onLogout={handleLogout}>
       {currentPage === "dashboard" && <AdminDashboard />}
-      {currentPage === "add-shipment" && <AddShipmentForm />}
+      {(currentPage === "add-shipment" || currentPage === "add-domestic") && <AddUnifiedShipmentForm initialType="domestic" />}
+      {currentPage === "add-international" && <AddUnifiedShipmentForm initialType="international" />}
       {currentPage === "gst-setting" && <GstSetting />}
-      {currentPage === "view-customer" && <CustomerDetails />}
+      {currentPage === "view-customer" && <CustomerDetails setCurrentPage={setCurrentPage} />}
       {currentPage === "courier-master" && <CourierMaster />}
       {currentPage === "mode-master" && <ModeMaster />}
       {currentPage === "int-zone" && <InternationalZone />}
@@ -62,7 +63,8 @@ function App() {
       {currentPage === "view-branch-cnode" && <BranchWiseCnode />}
       {currentPage === "rate-group" && <RateGroup />}
       {currentPage === "fuel-group" && <FuelGroup />}
-      {currentPage === "add-international" && <AddInternationalShipment />}
+      {currentPage === "add-customer" && <AddCustomer onBack={() => setCurrentPage('view-customer')} onSuccess={() => setCurrentPage('view-customer')} />}
+
     </DashboardLayout>
   )
 }

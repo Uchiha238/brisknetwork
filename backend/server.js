@@ -53,8 +53,32 @@ app.get('/api/customers', async (req, res) => {
 
 app.post('/api/customers', async (req, res) => {
   try {
-    const { code, name, phone, email, city, gst_no } = req.body;
-    const result = await db.runAsync('INSERT INTO customers (code, name, phone, email, city, gst_no) VALUES (?, ?, ?, ?, ?, ?)', [code, name, phone, email, city, gst_no]);
+    const { 
+      code, name, phone, email, city, gst_no,
+      password, address, staff_allotment, pincode, state,
+      gst_charges, api_access, sac_code, credit_days, cft,
+      domestic_rate_group, international_rate_group,
+      domestic_fuel_group, international_fuel_group,
+      mis_emails, mis_format
+    } = req.body;
+    
+    const result = await db.runAsync(`
+      INSERT INTO customers (
+        code, name, phone, email, city, gst_no,
+        password, address, staff_allotment, pincode, state,
+        gst_charges, api_access, sac_code, credit_days, cft,
+        domestic_rate_group, international_rate_group,
+        domestic_fuel_group, international_fuel_group,
+        mis_emails, mis_format
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      code, name, phone, email, city, gst_no,
+      password, address, staff_allotment, pincode, state,
+      gst_charges === 'Yes' ? 1 : 0, api_access, sac_code, credit_days, cft,
+      domestic_rate_group, international_rate_group,
+      domestic_fuel_group, international_fuel_group,
+      mis_emails, mis_format
+    ]);
     res.json({ success: true, id: result.lastID });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -63,8 +87,33 @@ app.post('/api/customers', async (req, res) => {
 
 app.put('/api/customers/:id', async (req, res) => {
   try {
-    const { code, name, phone, email, city, gst_no } = req.body;
-    await db.runAsync('UPDATE customers SET code = ?, name = ?, phone = ?, email = ?, city = ?, gst_no = ? WHERE id = ?', [code, name, phone, email, city, gst_no, req.params.id]);
+    const { 
+      code, name, phone, email, city, gst_no,
+      password, address, staff_allotment, pincode, state,
+      gst_charges, api_access, sac_code, credit_days, cft,
+      domestic_rate_group, international_rate_group,
+      domestic_fuel_group, international_fuel_group,
+      mis_emails, mis_format
+    } = req.body;
+    
+    await db.runAsync(`
+      UPDATE customers SET 
+        code = ?, name = ?, phone = ?, email = ?, city = ?, gst_no = ?,
+        password = ?, address = ?, staff_allotment = ?, pincode = ?, state = ?,
+        gst_charges = ?, api_access = ?, sac_code = ?, credit_days = ?, cft = ?,
+        domestic_rate_group = ?, international_rate_group = ?,
+        domestic_fuel_group = ?, international_fuel_group = ?,
+        mis_emails = ?, mis_format = ?
+      WHERE id = ?
+    `, [
+      code, name, phone, email, city, gst_no,
+      password, address, staff_allotment, pincode, state,
+      gst_charges === 'Yes' ? 1 : 0, api_access, sac_code, credit_days, cft,
+      domestic_rate_group, international_rate_group,
+      domestic_fuel_group, international_fuel_group,
+      mis_emails, mis_format,
+      req.params.id
+    ]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -111,6 +160,10 @@ app.post('/api/shipments', async (req, res) => {
 
       pcs, actual_weight, volumetric_weight, chargeable_weight,
       bill_amount, fuel_amount, gst_amount, freight_ch, total_charges,
+      
+      forward_no, forwarder, description, bill_type, type_of_doc, doc_number,
+      destination_ch, ess_ch, oda_ch, transport_ch, clearance_ch, other_ch, ddp_ch,
+      charges_date,
 
       packages, items 
     } = req.body;
@@ -130,8 +183,12 @@ app.post('/api/shipments', async (req, res) => {
         consignee_city, consignee_state, consignee_zip, consignee_country, consignee_phone, consignee_email,
 
         pcs, actual_weight, volumetric_weight, chargeable_weight,
-        bill_amount, fuel_amount, gst_amount, freight_charges, total_charges
-      ) VALUES (?, ?, ?, ?, 'booked', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        bill_amount, fuel_amount, gst_amount, freight_charges, total_charges,
+        
+        forward_no, forwarder, description, bill_type, type_of_doc, doc_number,
+        destination_ch, ess_ch, oda_ch, transport_ch, clearance_ch, other_ch, ddp_ch,
+        charges_date
+      ) VALUES (?, ?, ?, ?, 'booked', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       customer_id, user_id, airway_no, type,
       booking_date, booking_time, product, origin_hub, origin_zone,
@@ -146,7 +203,11 @@ app.post('/api/shipments', async (req, res) => {
       consignee_city, consignee_state, consignee_zip, consignee_country, consignee_phone, consignee_email,
       
       pcs, actual_weight, volumetric_weight, chargeable_weight,
-      bill_amount, fuel_amount, gst_amount, freight_ch, total_charges
+      bill_amount, fuel_amount, gst_amount, freight_ch, total_charges,
+      
+      forward_no, forwarder, description, bill_type, type_of_doc, doc_number,
+      destination_ch, ess_ch, oda_ch, transport_ch, clearance_ch, other_ch, ddp_ch,
+      charges_date
     ]);
 
     const shipmentId = result.lastID;
@@ -156,9 +217,9 @@ app.post('/api/shipments', async (req, res) => {
       for (const pkg of packages) {
         await db.runAsync(`
           INSERT INTO packages (
-            shipment_id, box_no, actual_wt, length, breadth, height, vol_wt, chargeable_wt
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `, [shipmentId, pkg.box_no || '1', pkg.actual_wt || 0, pkg.length || 0, pkg.breadth || 0, pkg.height || 0, pkg.vol_wt || 0, pkg.chargeable_wt || 0]);
+            shipment_id, box_no, actual_wt, length, breadth, height, vol_wt, chargeable_wt, per_box_wt
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [shipmentId, pkg.box_no || '1', pkg.actual_wt || 0, pkg.length || 0, pkg.breadth || 0, pkg.height || 0, pkg.vol_wt || 0, pkg.chargeable_wt || 0, pkg.per_box_wt || 0]);
       }
     }
 
@@ -212,6 +273,52 @@ app.get('/api/reports/export', async (req, res) => {
       JOIN customers c ON s.customer_id = c.id
     `);
     res.json(report);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// --- Masters ---
+app.get('/api/masters/states', async (req, res) => {
+  try {
+    const states = await db.allAsync('SELECT * FROM states ORDER BY name ASC');
+    res.json(states);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/masters/cities', async (req, res) => {
+  try {
+    const { state_id } = req.query;
+    const sql = state_id ? 'SELECT * FROM cities WHERE state_id = ? ORDER BY name ASC' : 'SELECT * FROM cities ORDER BY name ASC';
+    const params = state_id ? [state_id] : [];
+    const cities = await db.allAsync(sql, params);
+    res.json(cities);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/masters/rate-groups', async (req, res) => {
+  try {
+    const { type } = req.query;
+    const sql = type ? 'SELECT * FROM rate_groups WHERE type = ?' : 'SELECT * FROM rate_groups';
+    const params = type ? [type] : [];
+    const groups = await db.allAsync(sql, params);
+    res.json(groups);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/masters/fuel-groups', async (req, res) => {
+  try {
+    const { type } = req.query;
+    const sql = type ? 'SELECT * FROM fuel_groups WHERE type = ?' : 'SELECT * FROM fuel_groups';
+    const params = type ? [type] : [];
+    const groups = await db.allAsync(sql, params);
+    res.json(groups);
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

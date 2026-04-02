@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button"
 import { Save, Plus, Search, MapPin, User, Package, Clock, ShieldCheck, FileText, RotateCcw, Trash2 } from "lucide-react"
+import { api } from '../../services/api';
 
 export function AddShipmentForm() {
   const [customers, setCustomers] = useState([]);
@@ -75,44 +76,131 @@ export function AddShipmentForm() {
     create_invoice: false,
     invoice_type: 'INVOICE',
     note: 'GIFT',
-    items: [{ box_no: '1', sr_no: 1, description: '', hs_code: '', unit_type: 'PCS', quantity: 1, unit_weight: 0, igst: 0, unit_rate: 0, amount: 0 }]
+    items: [{ box_no: '1', sr_no: 1, description: '', hs_code: '', unit_type: 'PCS', quantity: 1, unit_weight: 0, igst: 0, unit_rate: 0, amount: 0 }],
+
+    // Detailed Charges
+    freight_ch: 0,
+    transport_ch: 0,
+    destination_ch: 0,
+    clearance_ch: 0,
+    ess_ch: 0,
+    other_ch: 0,
+    oda_ch: 0,
+    ddp_ch: 0,
+    fuel_ch: 0,
+    charges_date: new Date().toISOString().split('T')[0],
+
+    // Final Billing
+    sub_total: 0,
+    cgst_ch: 0,
+    sgst_ch: 0,
+    igst_ch: 0,
+    grand_total: 0
+  });
+
+  const [masters, setMasters] = useState({
+      states: [],
+      shipperCities: [],
+      consigneeCities: []
   });
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/customers')
-      .then(res => res.json())
+    api.getCustomers()
       .then(data => {
         setCustomers(data);
         if (data.length > 0) {
-            setSelectedCustomerId(data[0].id);
-            setFormData(prev => ({
-                ...prev,
-                contact_no: data[0].phone || '',
-                shipper_company: data[0].name || '',
-                shipper_name: data[0].name || '',
-                shipper_email: data[0].email || '',
-                shipper_city: data[0].city || ''
-            }));
+            handleCustomerChange({ target: { value: data[0].id.toString() } }, data);
         }
       })
       .catch(err => console.error('Fetch customers error:', err));
+
+    fetch('/api/masters/states')
+      .then(res => res.json())
+      .then(data => setMasters(prev => ({ ...prev, states: data })))
+      .catch(err => console.error(err));
   }, []);
+
+  useEffect(() => {
+      if (formData.shipper_state) {
+          const stateObj = masters.states.find(s => s.name === formData.shipper_state);
+          if (stateObj) {
+              fetch(`/api/masters/cities?state_id=${stateObj.id}`)
+                .then(res => res.json())
+                .then(data => setMasters(prev => ({ ...prev, shipperCities: data })))
+                .catch(err => console.error(err));
+          }
+      }
+  }, [formData.shipper_state, masters.states]);
+
+  useEffect(() => {
+    if (formData.consignee_state) {
+        const stateObj = masters.states.find(s => s.name === formData.consignee_state);
+        if (stateObj) {
+            fetch(`/api/masters/cities?state_id=${stateObj.id}`)
+              .then(res => res.json())
+              .then(data => setMasters(prev => ({ ...prev, consigneeCities: data })))
+              .catch(err => console.error(err));
+        }
+    }
+  }, [formData.consignee_state, masters.states]);
+
+  const handleCustomerChange = (e, customerList = customers) => {
+    const customerId = e.target.value;
+    setSelectedCustomerId(customerId);
+    const customer = customerList.find(c => c.id.toString() === customerId);
+    
+    if (customer) {
+        setFormData(prev => ({
+            ...prev,
+            contact_no: customer.phone || '',
+            shipper_code: customer.code || '',
+            shipper_company: customer.name || '',
+            shipper_name: customer.name || '',
+            shipper_address1: customer.address || '',
+            shipper_city: customer.city || '',
+            shipper_state: customer.state || '',
+            shipper_zip: customer.pincode || '',
+            shipper_email: customer.email || '',
+            shipper_phone: customer.phone || '+91',
+            account_code: customer.code || ''
+        }));
+    }
+  };
 
   useEffect(() => {
     const totalActualWt = formData.packages.reduce((sum, pkg) => sum + (parseFloat(pkg.actual_wt) || 0), 0);
     const totalVolWt = formData.packages.reduce((sum, pkg) => sum + (parseFloat(pkg.vol_wt) || 0), 0);
     const totalChargeableWt = formData.packages.reduce((sum, pkg) => sum + (parseFloat(pkg.chargeable_wt) || 0), 0);
-    const totalAmount = (parseFloat(formData.bill_amount) || 0) + (parseFloat(formData.fuel_amount) || 0) + (parseFloat(formData.gst_amount) || 0);
 
     setFormData(prev => ({
         ...prev,
         actual_weight: totalActualWt,
         volumetric_weight: totalVolWt,
         chargeable_weight: totalChargeableWt,
-        total_charges: totalAmount,
         pcs: formData.packages.length
     }));
-  }, [formData.packages, formData.bill_amount, formData.fuel_amount, formData.gst_amount]);
+  }, [formData.packages]);
+
+  // Billing Calculation
+  useEffect(() => {
+    const subTotal = [
+        formData.freight_ch, formData.destination_ch, formData.ess_ch, 
+        formData.oda_ch, formData.transport_ch, formData.clearance_ch, 
+        formData.other_ch, formData.ddp_ch, formData.fuel_ch
+    ].reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+
+    const taxes = [formData.cgst_ch, formData.sgst_ch, formData.igst_ch].reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+    
+    setFormData(prev => ({
+        ...prev,
+        sub_total: subTotal,
+        grand_total: subTotal + taxes
+    }));
+  }, [
+    formData.freight_ch, formData.destination_ch, formData.ess_ch, formData.oda_ch,
+    formData.transport_ch, formData.clearance_ch, formData.other_ch, formData.ddp_ch,
+    formData.fuel_ch, formData.cgst_ch, formData.sgst_ch, formData.igst_ch
+  ]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -120,6 +208,40 @@ export function AddShipmentForm() {
       ...prev,
       [name]: type === 'checkbox' ? checked : (type === 'number' ? parseFloat(value) || 0 : value.toUpperCase())
     }));
+  };
+
+  const fillMockData = () => {
+    const customer = customers.find(c => c.name.includes("BRISK")) || customers[0];
+    setFormData(prev => ({
+        ...prev,
+        airway_no: 'BRK' + Math.floor(100000 + Math.random() * 900000),
+        product: 'PARCEL',
+        service: 'EXPRESS',
+        duty: 'SENDER',
+        ref_no: 'REF-' + Math.floor(1000 + Math.random() * 9000),
+        shipment_value: 5000,
+        invoice_no: 'INV-' + Math.floor(10000 + Math.random() * 90000),
+        
+        // Consignee
+        consignee_name: 'PRIYA SHARMA',
+        consignee_company: 'HOME DELIVERY',
+        consignee_address1: '45, MARINE DRIVE, FLAT 202',
+        consignee_zip: '400020',
+        consignee_city: 'MUMBAI',
+        consignee_state: 'MAHARASHTRA',
+        consignee_country: 'INDIA',
+        consignee_phone: '9876543210',
+        consignee_email: 'priya@example.com',
+
+        packages: [{ box_no: '1', actual_wt: 2.5, length: 20, breadth: 15, height: 10, vol_wt: 0.6, chargeable_wt: 2.5 }],
+        bill_amount: 350,
+        fuel_amount: 50,
+        gst_amount: 72
+    }));
+    if (customer) {
+        setSelectedCustomerId(customer.id);
+        handleCustomerChange({ target: { value: customer.id.toString() } }, customers);
+    }
   };
 
   const handleArrayChange = (arrayName, index, field, value) => {
@@ -166,16 +288,15 @@ export function AddShipmentForm() {
     const payload = { ...formData, customer_id: selectedCustomerId, user_id: 1, type: 'domestic' };
     
     try {
-      const res = await fetch('http://localhost:5000/api/shipments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        alert('AWB Created Successfully!');
+      const data = await api.createShipment(payload);
+      if (data.success) {
+        alert('AWB Created Successfully! ID: ' + data.id);
+      } else {
+        alert('Error: ' + data.error);
       }
     } catch (err) {
       console.error(err);
+      alert('Failed to save shipment. Please check the backend.');
     }
   };
 
@@ -224,6 +345,9 @@ export function AddShipmentForm() {
           <h1 className="text-xl font-bold text-[#1a2f4c] tracking-tight">ADD AWB</h1>
         </div>
         <div className="flex gap-2">
+            <Button onClick={fillMockData} className="bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold px-6 h-9 rounded shadow-md uppercase tracking-wider">
+                FILL MOCK DATA
+            </Button>
             <Button onClick={handleSubmit} className="bg-[#3b82f6] hover:bg-[#2563eb] text-white text-[11px] font-bold px-6 h-9 rounded shadow-md uppercase tracking-wider">
                 CREATE AWB AND PRINT LABEL
             </Button>
@@ -253,8 +377,9 @@ export function AddShipmentForm() {
                   <select 
                       className="w-full h-8 px-2 bg-white border border-slate-300 rounded text-[11px] font-semibold"
                       value={selectedCustomerId}
-                      onChange={(e) => setSelectedCustomerId(e.target.value)}
+                      onChange={handleCustomerChange}
                   >
+                      <option value="">SELECT CUSTOMER...</option>
                       {customers.map(c => <option key={c.id} value={c.id}>{c.code} - {c.name}</option>)}
                   </select>
                 </FormField>
@@ -356,8 +481,20 @@ export function AddShipmentForm() {
                    <Button className="h-8 px-3 bg-[#eab308] hover:bg-[#ca8a04] text-white text-[10px] font-black uppercase tracking-wider">SEARCH</Button>
                 </div>
 
-                <FormField label="CITY" name="shipper_city" value={formData.shipper_city} />
-                <FormField label="STATE/COUNTY" name="shipper_state" value={formData.shipper_state} />
+                <FormField label="CITY">
+                    <select name="shipper_city" value={formData.shipper_city} onChange={handleChange} className="w-full h-8 px-2 border border-slate-300 rounded text-[11px] font-bold outline-none">
+                        <option value="">SELECT CITY...</option>
+                        {[...new Set([...masters.shipperCities.map(c => c.name), formData.shipper_city])].filter(Boolean).map(name => (
+                            <option key={name} value={name}>{name}</option>
+                        ))}
+                    </select>
+                </FormField>
+                <FormField label="STATE/COUNTY">
+                    <select name="shipper_state" value={formData.shipper_state} onChange={handleChange} className="w-full h-8 px-2 border border-slate-300 rounded text-[11px] font-bold outline-none">
+                        <option value="">SELECT STATE...</option>
+                        {masters.states.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                    </select>
+                </FormField>
                 
                 <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
                   <FormField label="COUNTRY" name="shipper_country" value={formData.shipper_country} />
@@ -418,8 +555,20 @@ export function AddShipmentForm() {
                    <Button className="h-8 px-3 bg-[#eab308] hover:bg-[#ca8a04] text-white text-[10px] font-black uppercase tracking-wider">SEARCH</Button>
                 </div>
 
-                <FormField label="CITY" name="consignee_city" value={formData.consignee_city} />
-                <FormField label="STATE/COUNTY" name="consignee_state" value={formData.consignee_state} />
+                <FormField label="CITY">
+                    <select name="consignee_city" value={formData.consignee_city} onChange={handleChange} className="w-full h-8 px-2 border border-slate-300 rounded text-[11px] font-bold outline-none">
+                        <option value="">SELECT CITY...</option>
+                        {[...new Set([...masters.consigneeCities.map(c => c.name), formData.consignee_city])].filter(Boolean).map(name => (
+                            <option key={name} value={name}>{name}</option>
+                        ))}
+                    </select>
+                </FormField>
+                <FormField label="STATE/COUNTY">
+                    <select name="consignee_state" value={formData.consignee_state} onChange={handleChange} className="w-full h-8 px-2 border border-slate-300 rounded text-[11px] font-bold outline-none">
+                        <option value="">SELECT STATE...</option>
+                        {masters.states.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                    </select>
+                </FormField>
                 <FormField label="COUNTRY" name="consignee_country" value={formData.consignee_country} />
                 <FormField label="PHONE NUMBER" name="consignee_phone" value={formData.consignee_phone} />
                 <FormField label="EMAIL ADDRESS" name="consignee_email" value={formData.consignee_email} />
@@ -498,31 +647,65 @@ export function AddShipmentForm() {
                     </tbody>
                 </table>
             </div>
-            <div className="p-4 bg-slate-50 flex items-center justify-between">
+            <div className="p-3 bg-slate-50 flex items-center justify-between border-t border-slate-200">
                 <Button onClick={() => addArrayItem('packages', { box_no: '', actual_wt: 0, length: 0, breadth: 0, height: 0, vol_wt: 0, chargeable_wt: 0 })} className="h-8 bg-white border border-slate-300 text-slate-600 hover:bg-slate-100 text-[10px] font-bold uppercase gap-2 shadow-sm">
                     <Plus className="h-3 w-3" /> ADD PACKAGE
                 </Button>
-                
-                <div className="flex gap-4">
-                    <div className="flex flex-col items-end">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">BILL AMOUNT</span>
-                        <input type="number" name="bill_amount" value={formData.bill_amount} onChange={handleChange} className="h-10 w-32 px-3 bg-slate-100 border border-slate-300 rounded text-base font-black text-right" />
+                <div className="text-[10px] font-bold text-slate-400 uppercase">Brisk Network - Weight Management System</div>
+            </div>
+        </div>
+
+        {/* Detailed Charges & Billing Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Charges */}
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+                <div className="bg-[#1a2f4c] px-4 py-2 text-white flex justify-between items-center rounded-t-lg">
+                    <span className="text-[11px] font-bold uppercase tracking-wider">Charges</span>
+                    <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-bold text-slate-300">Charges date :</span>
+                        <input type="date" name="charges_date" value={formData.charges_date} onChange={handleChange} className="h-6 px-1 text-slate-900 text-[10px] font-bold rounded" />
                     </div>
-                    <div className="flex flex-col items-end">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">FUEL AMOUNT</span>
-                        <input type="number" name="fuel_amount" value={formData.fuel_amount} onChange={handleChange} className="h-10 w-24 px-3 bg-slate-100 border border-slate-300 rounded text-base font-black text-right" />
+                </div>
+                <div className="p-4 grid grid-cols-2 gap-x-8 gap-y-3">
+                    <FormField label="Freight" name="freight_ch" type="number" value={formData.freight_ch} />
+                    <FormField label="Transport" name="transport_ch" type="number" value={formData.transport_ch} />
+                    
+                    <FormField label="Destination" name="destination_ch" type="number" value={formData.destination_ch} />
+                    <FormField label="Clearance" name="clearance_ch" type="number" value={formData.clearance_ch} />
+                    
+                    <FormField label="ESS" name="ess_ch" type="number" value={formData.ess_ch} />
+                    <FormField label="OtherCh." name="other_ch" type="number" value={formData.other_ch} />
+                    
+                    <FormField label="ODA" name="oda_ch" type="number" value={formData.oda_ch} />
+                    <FormField label="DDP." name="ddp_ch" type="number" value={formData.ddp_ch} />
+                    
+                    <div className="grid grid-cols-[120px_1fr] items-center gap-2">
+                         <label className="text-[10px] font-bold uppercase text-slate-500">Total</label>
+                         <div className="h-7 px-2 border border-slate-200 rounded text-[11px] font-black bg-slate-100 flex items-center">{formData.sub_total.toFixed(2)}</div>
                     </div>
-                    <div className="flex flex-col items-end">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">GST AMOUNT</span>
-                        <input type="number" name="gst_amount" value={formData.gst_amount} onChange={handleChange} className="h-10 w-24 px-3 bg-slate-100 border border-slate-300 rounded text-base font-black text-right" />
+                    <FormField label="Fuel Surcharge" name="fuel_ch" type="number" value={formData.fuel_ch} />
+                </div>
+            </div>
+
+            {/* Final Billing */}
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 flex flex-col">
+                <div className="bg-slate-50 px-4 py-2 text-slate-800 text-[11px] font-black uppercase border-b border-slate-200 rounded-t-lg">Final Billing Summary</div>
+                <div className="p-4 space-y-3 flex-1">
+                    <div className="grid grid-cols-[120px_1fr] items-center gap-2">
+                         <label className="text-[10px] font-bold uppercase text-slate-500 text-right">Sub Total</label>
+                         <div className="h-9 px-3 border border-slate-200 rounded text-[14px] font-black bg-slate-100 flex items-center text-slate-700">{formData.sub_total.toFixed(2)}</div>
                     </div>
-                    <div className="flex flex-col items-end">
-                        <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest">TOTAL AMOUNT</span>
-                        <div className="h-10 w-44 flex items-center justify-end px-4 bg-blue-600 rounded text-white text-xl font-black shadow-lg shadow-blue-200">
-                           ₹{(formData.bill_amount + formData.fuel_amount + formData.gst_amount).toFixed(2)}
+
+                    <FormField label="CGST Tax" name="cgst_ch" type="number" value={formData.cgst_ch} className="justify-items-end" />
+                    <FormField label="SGST Tax" name="sgst_ch" type="number" value={formData.sgst_ch} />
+                    <FormField label="IGST Tax" name="igst_ch" type="number" value={formData.igst_ch} />
+
+                    <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">
+                        <label className="text-[14px] font-black uppercase text-[#1a2f4c]">Grand Total</label>
+                        <div className="h-12 px-6 border-2 border-[#1a2f4c] rounded-lg text-[22px] font-black bg-[#f8fafc] flex items-center text-[#1a2f4c] shadow-sm tabular-nums">
+                            ₹ {formData.grand_total.toFixed(2)}
                         </div>
                     </div>
-                    <Button className="h-10 bg-blue-500 hover:bg-blue-600 text-white font-black text-[12px] uppercase px-6 self-end shadow-lg shadow-blue-100 tracking-wider">CHECK RATE</Button>
                 </div>
             </div>
         </div>

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Download, Plus, ArrowUpDown, Filter, Pencil, Trash2, X } from "lucide-react";
+import { Plus, Search, FileText, LayoutGrid, CheckCircle2, AlertCircle, Edit2, Trash2, Download, Filter, MoreHorizontal, X, Pencil } from "lucide-react"
+import { api } from '../../services/api';
 
-export function CustomerDetails() {
+export function CustomerDetails({ setCurrentPage }) {
   const [customers, setCustomers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [formData, setFormData] = useState({
     code: '', name: '', phone: '', email: '', city: '', gst_no: ''
@@ -14,8 +14,7 @@ export function CustomerDetails() {
 
   const fetchCustomers = async () => {
     try {
-      const response = await fetch(' http://localhost:5000/api/customers');
-      const data = await response.json();
+      const data = await api.getCustomers();
       setCustomers(data);
     } catch (err) {
       console.error('Fetch customers error:', err);
@@ -29,7 +28,7 @@ export function CustomerDetails() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this customer?')) return;
     try {
-      await fetch(`http://localhost:5000/api/customers/${id}`, { method: 'DELETE' });
+      await api.deleteCustomer(id);
       fetchCustomers();
     } catch (err) {
       console.error('Delete error:', err);
@@ -38,18 +37,13 @@ export function CustomerDetails() {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    const method = editingCustomer ? 'PUT' : 'POST';
-    const url = editingCustomer 
-      ? `http://localhost:5000/api/customers/${editingCustomer.id}` 
-      : 'http://localhost:5000/api/customers';
-
     try {
-      await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      setIsModalOpen(false);
+      if (editingCustomer) {
+        await api.updateCustomer(editingCustomer.id, formData);
+      } else {
+        await api.createCustomer(formData);
+      }
+      // setIsModalOpen(false); // Removed as modal is removed
       setEditingCustomer(null);
       setFormData({ code: '', name: '', phone: '', email: '', city: '', gst_no: '' });
       fetchCustomers();
@@ -68,7 +62,7 @@ export function CustomerDetails() {
       city: customer.city,
       gst_no: customer.gst_no
     });
-    setIsModalOpen(true);
+    // setIsModalOpen(true); // Removed as modal is removed
   };
 
   const filteredCustomers = customers.filter(c => 
@@ -87,7 +81,7 @@ export function CustomerDetails() {
           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Master Management / View Records</p>
         </div>
         <Button 
-          onClick={() => { setEditingCustomer(null); setFormData({ code: '', name: '', phone: '', email: '', city: '', gst_no: '' }); setIsModalOpen(true); }}
+          onClick={() => setCurrentPage('add-customer')}
           className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-5 rounded shadow-lg font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
         >
           <Plus className="h-4 w-4 stroke-[3px]" />
@@ -165,56 +159,6 @@ export function CustomerDetails() {
         </div>
       </div>
 
-      {/* Add/Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="bg-[#1e3a8a] p-5 flex justify-between items-center">
-              <h2 className="text-white font-black uppercase tracking-widest text-sm">
-                {editingCustomer ? 'Edit Customer Details' : 'Add New Customer'}
-              </h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-white/70 hover:text-white transition-colors">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <form onSubmit={handleSave} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Customer Code</label>
-                  <Input value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} required className="h-10 border-2 focus:border-blue-600" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">GST No</label>
-                  <Input value={formData.gst_no} onChange={e => setFormData({...formData, gst_no: e.target.value})} required className="h-10 border-2 focus:border-blue-600" />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Customer Name</label>
-                <Input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required className="h-10 border-2 focus:border-blue-600" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Phone Number</label>
-                  <Input value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} required className="h-10 border-2 focus:border-blue-600" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">City</label>
-                  <Input value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} required className="h-10 border-2 focus:border-blue-600" />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Email Address</label>
-                <Input value={formData.email} type="email" onChange={e => setFormData({...formData, email: e.target.value})} required className="h-10 border-2 focus:border-blue-600" />
-              </div>
-              <div className="pt-4 flex gap-3">
-                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1 h-12 uppercase font-black text-xs tracking-widest">Cancel</Button>
-                <Button type="submit" className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 uppercase font-black text-xs tracking-widest">Save Record</Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Footer Branding */}
       <div className="mt-8 border-t border-slate-100 pt-8 pb-4 text-center space-y-2 opacity-60">
         <p className="text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">
@@ -224,7 +168,6 @@ export function CustomerDetails() {
           PREMIUM LOGISTICS SOLUTIONS & MANAGEMENT SYSTEMS
         </p>
       </div>
-
     </div>
   );
 }
