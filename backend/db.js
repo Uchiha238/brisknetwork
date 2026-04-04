@@ -91,6 +91,76 @@ const init = async () => {
         type TEXT
       );
 
+      CREATE TABLE IF NOT EXISTS fuel_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        fuel_courier TEXT DEFAULT 'All',
+        fuel_price_pct REAL,
+        company_type TEXT DEFAULT 'Domestic',
+        docket_charge REAL,
+        customer TEXT DEFAULT 'All',
+        fov_min REAL,
+        fov_above REAL,
+        fov_below REAL,
+        fov_base REAL,
+        appointment_min REAL,
+        appointment_per_kg REAL,
+        fuel_from_date TEXT,
+        fuel_to_date TEXT,
+        cft REAL,
+        air_cft REAL,
+        calculate_on TEXT DEFAULT 'Freight',
+        cod_fixed REAL,
+        topay_fixed REAL,
+        rate_slabs TEXT DEFAULT '[]',
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS company_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        company_name TEXT NOT NULL,
+        logo TEXT,
+        gst_no TEXT,
+        email TEXT,
+        address TEXT,
+        pan TEXT,
+        export_invoice_series TEXT,
+        import_invoice_series TEXT,
+        domestic_invoice_series TEXT,
+        contact_no TEXT,
+        website TEXT,
+        branch_wise_invoice INTEGER DEFAULT 0,
+        invoice_terms TEXT,
+        account_name TEXT,
+        account_number TEXT,
+        ifsc TEXT,
+        branch_name TEXT,
+        bank_name TEXT,
+        bank_terms TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS mail_config (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        port_no TEXT,
+        host TEXT,
+        username TEXT,
+        password TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS company_branches (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        company_id INTEGER NOT NULL,
+        branch_name TEXT NOT NULL,
+        branch_code TEXT UNIQUE,
+        email TEXT,
+        contact_no TEXT,
+        address TEXT,
+        city TEXT,
+        state TEXT,
+        pincode TEXT,
+        contact_person TEXT,
+        FOREIGN KEY (company_id) REFERENCES company_settings(id)
+      );
+
       CREATE TABLE IF NOT EXISTS states (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT UNIQUE
@@ -292,6 +362,68 @@ const init = async () => {
       await db.runAsync('INSERT OR IGNORE INTO fuel_groups (name, type) VALUES (?, ?)', ['Group A', 'domestic']);
       await db.runAsync('INSERT OR IGNORE INTO fuel_groups (name, type) VALUES (?, ?)', ['Group A', 'international']);
     }
+
+    // Migrate company_settings columns if table already existed with fewer columns
+    const companyInfo = await db.allAsync("PRAGMA table_info(company_settings)");
+    const cCols = companyInfo.map(c => c.name);
+    if (!cCols.includes('gst_no')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN gst_no TEXT");
+    if (!cCols.includes('pan')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN pan TEXT");
+    if (!cCols.includes('export_invoice_series')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN export_invoice_series TEXT");
+    if (!cCols.includes('import_invoice_series')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN import_invoice_series TEXT");
+    if (!cCols.includes('domestic_invoice_series')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN domestic_invoice_series TEXT");
+    if (!cCols.includes('website')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN website TEXT");
+    if (!cCols.includes('branch_wise_invoice')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN branch_wise_invoice INTEGER DEFAULT 0");
+    if (!cCols.includes('invoice_terms')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN invoice_terms TEXT");
+    if (!cCols.includes('account_name')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN account_name TEXT");
+    if (!cCols.includes('account_number')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN account_number TEXT");
+    if (!cCols.includes('ifsc')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN ifsc TEXT");
+    if (!cCols.includes('branch_name')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN branch_name TEXT");
+    if (!cCols.includes('bank_name')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN bank_name TEXT");
+    if (!cCols.includes('bank_terms')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN bank_terms TEXT");
+
+    // Seed default companies (idempotent — uses name check)
+    const seedCompany = async (name, gst_no, email, address, pan, contact_no, website, domestic_invoice_series) => {
+      const exists = await db.getAsync('SELECT id FROM company_settings WHERE company_name = ?', [name]);
+      if (!exists) {
+        await db.runAsync(`
+          INSERT INTO company_settings
+            (company_name, gst_no, email, address, pan, contact_no, website, branch_wise_invoice, domestic_invoice_series)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)
+        `, [name, gst_no, email, address, pan, contact_no, website, domestic_invoice_series]);
+      }
+    };
+
+    await seedCompany(
+      'OM COURIER SERVICES',
+      '27AADCO1234A1Z5', 'csdomcourier@gmail.com',
+      'SHOP NO 1, OM DEEP SAI POOJA CHS, NEAR ALMEIDA SIGNAL, CHARAI NAKA, THANE(W)-400601',
+      'AADCO1234A', '9324120237', 'www.omcourier.net', 'OM/DOM/'
+    );
+    await seedCompany(
+      'OM COURIER CHARAI BRANCH',
+      '27AADCO1234A1Z5', 'charai@omcourier.net',
+      'SHOP NO 2, CHARAI NAKA, THANE(W)-400601',
+      'AADCO1234A', '9324120238', 'www.omcourier.net', 'OM/CHR/'
+    );
+    await seedCompany(
+      'OM COURIER WAGLE',
+      '27AADCO1234A1Z6', 'wagle@omcourier.net',
+      'WAGLE INDUSTRIAL ESTATE, THANE(W)-400604',
+      'AADCO1234B', '9324120239', 'www.omcourier.net', 'OM/WAG/'
+    );
+    await seedCompany(
+      'SUPERJET LOGISTICS',
+      '27ASJL5678B1Z3', 'info@superjetlogistics.com',
+      'OFFICE 301, EXCEL PLAZA, THANE(W)-400601',
+      'ASJL5678B', '9022062666', 'www.superjetlogistics.com', 'SJ/DOM/'
+    );
+    await seedCompany(
+      'BRISK NETWORK',
+      '27ABNW9012C1Z4', 'info@brisknetwork.com',
+      'BRISK HOUSE, MULUND WEST, MUMBAI-400080',
+      'ABNW9012C', '9022062667', 'www.brisknetwork.com', 'BN/DOM/'
+    );
+
 
     const custCount = (await db.getAsync('SELECT count(*) as count FROM customers')).count;
     if (custCount === 0) {

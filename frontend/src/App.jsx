@@ -17,7 +17,10 @@ import { BranchWiseCnode } from "./components/features/BranchWiseCnode"
 import { RateGroup } from "./components/features/RateGroup"
 import { FuelGroup } from "./components/features/FuelGroup"
 import { AddCustomer } from "./components/features/AddCustomer"
+import { InternationalRate } from "./components/features/InternationalRate"
 import { Login } from "./components/features/Login"
+import { CompanySetting } from "./components/features/CompanySetting"
+import { MailConfig } from "./components/features/MailConfig"
 
 function App() {
   const [user, setUser] = useState({ name: 'Admin', role: 'admin' })
@@ -56,6 +59,7 @@ function App() {
       {currentPage === "int-zone" && <InternationalZone />}
       {currentPage === "dom-zone" && <DomesticZone />}
       {currentPage === "dom-rate" && <DomesticRate />}
+      {currentPage === "int-rate" && <InternationalRate />}
       {currentPage === "coloader-master" && <ColoaderMaster />}
       {currentPage === "view-branches" && <ViewBranches />}
       {currentPage === "list-user" && <ListUser />}
@@ -64,6 +68,8 @@ function App() {
       {currentPage === "rate-group" && <RateGroup />}
       {currentPage === "fuel-group" && <FuelGroup />}
       {currentPage === "add-customer" && <AddCustomer onBack={() => setCurrentPage('view-customer')} onSuccess={() => setCurrentPage('view-customer')} />}
+      {currentPage === "company-setting" && <CompanySetting />}
+      {currentPage === "mail-config" && <MailConfig />}
 
     </DashboardLayout>
   )

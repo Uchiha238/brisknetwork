@@ -13,27 +13,30 @@ export function DashboardLayout({ children, currentPage, setCurrentPage, user, o
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
-    { id: 'setting', label: 'Setting', icon: Settings },
+    {
+      id: 'setting',
+      label: 'Setting',
+      icon: Settings,
+      dropdownItems: [
+        { label: 'Company Setting', id: 'company-setting' },
+        { label: 'Mail Config',     id: 'mail-config'     },
+      ]
+    },
     { 
       id: 'master', 
       label: 'Master', 
       icon: LayoutGrid,
       dropdownItems: [
-        { label: 'Gst Setting', id: 'gst-setting' },
-        { label: 'View Customer', id: 'view-customer' },
-        { label: 'Courier Master', id: 'courier-master' },
-        { label: 'Mode Master', id: 'mode-master' }, 
-        { label: 'International Zone', id: 'int-zone' },
-        { label: 'International Rate', id: 'int-rate' },
-        { label: 'Domestic zone', id: 'dom-zone' },
-        { label: 'Domestic Rate', id: 'dom-rate' },
-        { label: 'Coloader Master', id: 'coloader-master' },
-        { label: 'View Branches', id: 'view-branches' },
-        { label: 'list User', id: 'list-user' },
-        { label: 'View Cnode', id: 'view-cnode' },
-        { label: 'View Branch Wise Cnode', id: 'view-branch-cnode' },
-        { label: 'Rate Group', id: 'rate-group' },
-        { label: 'Fuel Group', id: 'fuel-group' }
+        { label: 'Gst Setting',        id: 'gst-setting'     },
+        { label: 'View Customer',      id: 'view-customer'   },
+        { label: 'Courier Master',     id: 'courier-master'  },
+        { label: 'Mode Master',        id: 'mode-master'     },
+        { label: 'Coloader Master',    id: 'coloader-master' },
+        { label: 'Fuel Group',         id: 'fuel-group'      },
+        { label: 'Domestic Zone',      id: 'dom-zone'        },
+        { label: 'Domestic Rate',      id: 'dom-rate'        },
+        { label: 'International Zone', id: 'int-zone'        },
+        { label: 'International Rate', id: 'int-rate'        },
       ]
     },
     { 

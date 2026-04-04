@@ -69,7 +69,12 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
     actual_weight: 0,
     volumetric_weight: 0,
     chargeable_weight: 0,
-    packages: [{ box_no: '1', actual_wt: 0, length: 0, breadth: 0, height: 0, vol_wt: 0, chargeable_wt: 0, per_box_wt: 0 }],
+    packages: [
+      { box_no: '1', actual_wt: 0, length: 0, breadth: 0, height: 0, vol_wt: 0, chargeable_wt: 0 },
+      { box_no: '2', actual_wt: 0, length: 0, breadth: 0, height: 0, vol_wt: 0, chargeable_wt: 0 },
+      { box_no: '3', actual_wt: 0, length: 0, breadth: 0, height: 0, vol_wt: 0, chargeable_wt: 0 },
+      { box_no: '4', actual_wt: 0, length: 0, breadth: 0, height: 0, vol_wt: 0, chargeable_wt: 0 },
+    ],
 
     // Billing / Charges
     freight_ch: 0,
@@ -187,13 +192,14 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
     const totalActualWt = formData.packages.reduce((sum, pkg) => sum + (parseFloat(pkg.actual_wt) || 0), 0);
     const totalVolWt = formData.packages.reduce((sum, pkg) => sum + (parseFloat(pkg.vol_wt) || 0), 0);
     const totalChargeableWt = formData.packages.reduce((sum, pkg) => sum + (parseFloat(pkg.chargeable_wt) || 0), 0);
+    const activePcs = formData.packages.filter(p => (parseFloat(p.actual_wt) || 0) > 0).length;
 
     setFormData(prev => ({
         ...prev,
         actual_weight: totalActualWt,
         volumetric_weight: totalVolWt,
         chargeable_weight: totalChargeableWt,
-        pcs: formData.packages.length
+        pcs: activePcs || prev.pcs
     }));
   }, [formData.packages]);
 
@@ -351,18 +357,18 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
     }
   };
 
-  const SectionHeader = ({ title, className = "" }) => (
-    <div className={`flex items-center justify-between px-2 py-1 bg-green-800 text-white text-[10px] font-bold border-b border-slate-300 ${className}`}>
-      <span className="uppercase">{title}</span>
+  const SectionHeader = ({ title, className = "", isWhite = false }) => (
+    <div className={`flex items-center justify-between px-2 py-1.5 ${isWhite ? "bg-white border-t border-slate-300" : "bg-green-800 text-white"} text-[10px] font-black border-b border-slate-200 ${className}`}>
+      <span className="uppercase tracking-widest">{title}</span>
     </div>
   );
 
-  const FormField = ({ label, name, type = "text", value, placeholder, required = false, children, className = "", labelWidth = "100px", isRed = false }) => (
-    <div className={`grid grid-cols-[${labelWidth}_1fr] items-center gap-1 leading-none ${className}`}>
-      <label className={`text-[9px] font-bold uppercase truncate ${isRed || required ? "text-red-500" : "text-slate-600"}`}>
+  const FormField = ({ label, name, type = "text", value, placeholder, required = false, children, className = "", labelWidth = "100px", isRed = false, inputMaxWidth = "none" }) => (
+    <div className={`grid items-center gap-1 leading-none ${className}`} style={{ gridTemplateColumns: `${labelWidth} 1fr` }}>
+      <label className={`text-[10px] font-black uppercase truncate ${isRed || required ? "text-red-600" : "text-slate-700"}`}>
         {label}
       </label>
-      <div className="relative flex items-center h-5">
+      <div className="relative flex items-center h-[22px]" style={{ maxWidth: inputMaxWidth }}>
         {children ? children : (
             <input
                 type={type}
@@ -370,7 +376,7 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
                 value={value}
                 onChange={handleChange}
                 placeholder={placeholder}
-                className="w-full h-full px-1 bg-[#f8f9fa] border border-slate-300 text-[10px] font-semibold text-slate-800 focus:bg-white outline-none transition-colors"
+                className="w-full h-full px-2 bg-[#fcfcfc] border border-slate-300 text-[12px] font-bold text-slate-900 focus:bg-white outline-none transition-colors placeholder:text-slate-300 placeholder:font-normal"
             />
         )}
       </div>
@@ -404,7 +410,7 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
             <div className="px-2 py-1 border-b border-slate-300 bg-slate-50">
                 <h3 className="text-[10px] font-bold text-blue-800 uppercase">Air Waybill Information</h3>
             </div>
-            <div className="p-1.5 space-y-1">
+            <div className="p-1.5 space-y-0.5">
                 <FormField label="AWB Number" name="airway_no" isRed labelWidth="85px">
                    <div className="flex gap-1 w-full h-full">
                       <input name="airway_no" value={formData.airway_no} onChange={handleChange} className="flex-1 h-full px-1 bg-slate-100 border border-slate-300 text-[10px] font-bold outline-none" />
@@ -590,82 +596,221 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
                 </div>
             </div>
             <div className="p-1.5 space-y-1">
-                <FormField label="Search Address Book" labelWidth="105px">
+                <FormField label="Search Address Book" labelWidth="105px" inputMaxWidth="320px">
                    <input className="w-full h-full px-1 border border-slate-300" />
                 </FormField>
 
                 <div className="grid grid-cols-[1fr_85px] gap-1">
-                   <FormField label="Code" name="consignee_code" labelWidth="105px" value={formData.consignee_code} />
+                   <FormField label="Code" name="consignee_code" labelWidth="105px" value={formData.consignee_code} inputMaxWidth="320px" />
                    <div className="flex items-center gap-1">
                       <input type="checkbox" name="consignee_update" checked={formData.consignee_update} onChange={handleChange} className="h-2.5 w-2.5" />
                       <span className="text-[7px] font-bold text-slate-500 uppercase leading-none">Update address book?</span>
                    </div>
                 </div>
 
-                <FormField label="Company" name="consignee_company" labelWidth="105px" value={formData.consignee_company} />
-                <FormField label="Person Name" name="consignee_name" isRed labelWidth="105px" value={formData.consignee_name} />
-                <FormField label="Address 1" name="consignee_address1" isRed labelWidth="105px" value={formData.consignee_address1} />
-                <FormField label="Apartment# / Floor#" name="consignee_address2" labelWidth="105px" value={formData.consignee_address2} />
-                <FormField label="Address 3" name="consignee_address3" labelWidth="105px" value={formData.consignee_address3} />
+                <FormField label="Company" name="consignee_company" labelWidth="105px" value={formData.consignee_company} inputMaxWidth="320px" />
+                <FormField label="Person Name" name="consignee_name" isRed labelWidth="105px" value={formData.consignee_name} inputMaxWidth="320px" />
+                <FormField label="Address 1" name="consignee_address1" isRed labelWidth="105px" value={formData.consignee_address1} inputMaxWidth="320px" />
+                <FormField label="Apartment# / Floor#" name="consignee_address2" labelWidth="105px" value={formData.consignee_address2} inputMaxWidth="320px" />
+                <FormField label="Address 3" name="consignee_address3" labelWidth="105px" value={formData.consignee_address3} inputMaxWidth="320px" />
 
-                <div className="grid grid-cols-[1fr_50px] gap-1">
-                   <FormField label="Post / Zip Code" name="consignee_zip" isRed labelWidth="105px" value={formData.consignee_zip} />
-                   <button className="bg-yellow-500 hover:bg-yellow-600 text-[8px] font-bold text-white uppercase h-5">Search</button>
+                <div className="grid grid-cols-[1fr_50px] gap-1 max-w-[425px]">
+                   <FormField label="Post / Zip Code" name="consignee_zip" isRed labelWidth="105px" value={formData.consignee_zip} inputMaxWidth="320px" />
+                   <button className="bg-yellow-500 hover:bg-yellow-600 text-[8px] font-bold text-white uppercase h-[22px]">Search</button>
                 </div>
 
-                <FormField label="City" name="consignee_city" isRed labelWidth="105px" value={formData.consignee_city} />
-                <FormField label="State / County" name="consignee_state" labelWidth="105px" value={formData.consignee_state} />
+                <FormField label="City" name="consignee_city" isRed labelWidth="105px" value={formData.consignee_city} inputMaxWidth="320px" />
+                <FormField label="State / County" name="consignee_state" labelWidth="105px" value={formData.consignee_state} inputMaxWidth="320px" />
 
-                <div className="grid grid-cols-[105px_1fr_1fr] gap-1 items-center">
+                <div className="grid grid-cols-[105px_1fr_1fr] gap-1 items-center max-w-[425px]">
                    <label className="text-[9px] font-bold text-slate-600 uppercase">Country</label>
-                   <input className="h-5 px-1 text-[10px] font-bold border border-slate-300 uppercase" />
-                   <input className="h-5 px-1 text-[10px] font-bold border border-slate-300 uppercase" />
+                   <input className="h-[22px] px-1 text-[11px] font-bold border border-slate-300 uppercase" />
+                   <input className="h-[22px] px-1 text-[11px] font-bold border border-slate-300 uppercase" />
                 </div>
 
-                <div className="grid grid-cols-[105px_1fr_1fr] gap-1 items-center">
+                <div className="grid grid-cols-[105px_1fr_1fr] gap-1 items-center max-w-[425px]">
                    <label className="text-[9px] font-bold text-red-500 uppercase">Phone Number</label>
-                   <input className="h-5 px-1 text-[10px] font-bold border border-slate-300" />
-                   <input className="h-5 px-1 text-[10px] font-bold border border-slate-300" />
+                   <input className="h-[22px] px-1 text-[11px] font-bold border border-slate-300" />
+                   <input className="h-[22px] px-1 text-[11px] font-bold border border-slate-300" />
                 </div>
 
-                <FormField label="Email Address" name="consignee_email" labelWidth="105px" value={formData.consignee_email} />
+                <FormField label="Email Address" name="consignee_email" labelWidth="105px" value={formData.consignee_email} inputMaxWidth="320px" />
             </div>
         </div>
       </div>
 
       {/* Bottom Section: Weights and Dimensions */}
-      <div className="mt-1 border border-slate-300 bg-slate-50">
-          <SectionHeader title="Weights and Dimensions" />
-          <div className="p-1 flex divide-x divide-slate-300 items-center overflow-x-auto">
-             <div className="px-2 py-0.5 flex items-center gap-2 whitespace-nowrap">
-                <label className="text-[9px] font-bold text-slate-500 uppercase">PCS</label>
-                <input type="number" value={formData.pcs} className="w-10 h-5 px-1 border border-slate-300 text-[10px] font-bold bg-white" readOnly />
+      <div className="mt-1 border border-slate-300 bg-white">
+          <SectionHeader title="Weights and Dimensions" isWhite />
+          
+          {/* Summary Row */}
+          <div className="p-1 flex items-center gap-6 border-b border-slate-200 bg-slate-50/50">
+             <div className="flex items-center gap-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase">PCS</label>
+                <input type="number" name="pcs" value={formData.pcs} onChange={handleChange} className="w-16 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-white text-slate-900" />
              </div>
-             <div className="px-2 py-0.5 flex items-center gap-2 whitespace-nowrap">
-                <label className="text-[9px] font-bold text-slate-500 uppercase">Actual Weight</label>
-                <div className="flex items-center gap-1 h-5">
-                   <input type="number" value={formData.actual_weight} className="w-14 h-full px-1 border border-slate-300 text-[10px] font-bold bg-white" readOnly />
-                   <span className="text-[8px] font-bold">KG</span>
-                </div>
+             <div className="flex items-center gap-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase">Actual Weight</label>
+                <input type="number" value={formData.actual_weight} className="w-20 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-slate-100 text-slate-900" readOnly />
              </div>
-             <div className="px-2 py-0.5 flex items-center gap-2 whitespace-nowrap">
-                <label className="text-[9px] font-bold text-slate-500 uppercase">Volumetric</label>
-                <input type="number" value={formData.volumetric_weight} className="w-14 h-5 px-1 border border-slate-300 text-[10px] font-bold bg-white" readOnly />
+             <div className="flex items-center gap-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase">Volumetric Weight</label>
+                <input type="number" value={formData.volumetric_weight} className="w-20 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-black text-white" readOnly />
              </div>
-             <div className="px-2 py-0.5 flex items-center gap-2 whitespace-nowrap">
-                <label className="text-[9px] font-bold text-slate-500 uppercase">Chargeable</label>
-                <input type="number" value={formData.chargeable_weight} className="w-14 h-5 px-1 border border-slate-300 text-[10px] font-bold bg-white" readOnly />
+             <div className="flex items-center gap-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase">Chargeable Weight</label>
+                <input type="number" value={formData.chargeable_weight} className="w-20 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-slate-100 text-slate-900" readOnly />
              </div>
-             {/* This section would normally have a button to open the detailed weight popup or shows the first row */}
-             <div className="px-2 py-0.5 flex-1 flex justify-end">
-                <button onClick={() => addArrayItem('packages', {})} className="bg-slate-200 text-[8px] font-bold px-2 py-0.5 uppercase border border-slate-300">Detailed Weights</button>
+          </div>
+
+          {/* Parcel Detail Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-[9px] font-black text-slate-500 uppercase">
+                  <th className="px-2 py-1.5 border-r border-slate-200 w-24">Parcel No.</th>
+                  <th className="px-2 py-1.5 border-r border-slate-200 w-20">Box No</th>
+                  <th className="px-2 py-1.5 border-r border-slate-200 text-red-600">Actual Wt.(KG.)</th>
+                  <th className="px-2 py-1.5 border-r border-slate-200">L(CM)</th>
+                  <th className="px-2 py-1.5 border-r border-slate-200">B(CM)</th>
+                  <th className="px-2 py-1.5 border-r border-slate-200">H(CM)</th>
+                  <th className="px-2 py-1.5 border-r border-slate-200">Volumetric Wt.(KG.)</th>
+                  <th className="px-2 py-1.5">Chargeable Wt.(KG.)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {formData.packages.map((pkg, idx) => (
+                  <tr key={idx} className="bg-white">
+                    <td className="px-2 py-1 border-r border-slate-200">
+                       <input value={idx + 1} className="w-full h-[22px] bg-slate-50 text-[11px] font-bold px-1 border-none focus:outline-none" readOnly />
+                    </td>
+                    <td className="px-2 py-1 border-r border-slate-200">
+                       <input 
+                         value={pkg.box_no} 
+                         onChange={(e) => handleArrayChange('packages', idx, 'box_no', e.target.value)}
+                         className="w-full h-[22px] text-[11px] font-bold px-1 border border-slate-200 focus:border-blue-500 outline-none" 
+                       />
+                    </td>
+                    <td className="px-2 py-1 border-r border-slate-200">
+                       <input 
+                         type="number"
+                         value={pkg.actual_wt} 
+                         onChange={(e) => handleArrayChange('packages', idx, 'actual_wt', e.target.value)}
+                         className="w-full h-[22px] text-[11px] font-bold px-1 border border-slate-200 focus:border-blue-500 outline-none" 
+                       />
+                    </td>
+                    <td className="px-2 py-1 border-r border-slate-200">
+                       <input 
+                         type="number"
+                         value={pkg.length} 
+                         onChange={(e) => handleArrayChange('packages', idx, 'length', e.target.value)}
+                         className="w-full h-[22px] text-[11px] font-bold px-1 border border-slate-200 focus:border-blue-500 outline-none" 
+                       />
+                    </td>
+                    <td className="px-2 py-1 border-r border-slate-200">
+                       <input 
+                         type="number"
+                         value={pkg.breadth} 
+                         onChange={(e) => handleArrayChange('packages', idx, 'breadth', e.target.value)}
+                         className="w-full h-[22px] text-[11px] font-bold px-1 border border-slate-200 focus:border-blue-500 outline-none" 
+                       />
+                    </td>
+                    <td className="px-2 py-1 border-r border-slate-200">
+                       <input 
+                         type="number"
+                         value={pkg.height} 
+                         onChange={(e) => handleArrayChange('packages', idx, 'height', e.target.value)}
+                         className="w-full h-[22px] text-[11px] font-bold px-1 border border-slate-200 focus:border-blue-500 outline-none" 
+                       />
+                    </td>
+                    <td className="px-2 py-1 border-r border-slate-200">
+                       <input value={pkg.vol_wt?.toFixed(2) || '0'} className="w-full h-[22px] bg-slate-50 text-[11px] font-bold px-1 border-none focus:outline-none" readOnly />
+                    </td>
+                    <td className="px-2 py-1">
+                       <input value={pkg.chargeable_wt?.toFixed(2) || '0'} className="w-full h-[22px] bg-slate-50 text-[11px] font-bold px-1 border-none focus:outline-none" readOnly />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Financial Footer */}
+          <div className="p-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center gap-4">
+             <div className="flex items-center gap-2">
+                <label className="text-[9px] font-black text-slate-500 uppercase">Bill Amount</label>
+                <input type="number" name="freight_ch" value={formData.freight_ch} onChange={handleChange} className="w-24 h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-white text-slate-900" />
              </div>
+             <div className="flex items-center gap-2">
+                <label className="text-[9px] font-black text-slate-500 uppercase">Fuel Amount</label>
+                <input type="number" name="fuel_surcharge" value={formData.fuel_surcharge} onChange={handleChange} className="w-24 h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-white text-slate-900" />
+             </div>
+             <div className="flex items-center gap-2">
+                <label className="text-[9px] font-black text-slate-500 uppercase">Gst Amount</label>
+                <input type="number" name="igst_ch" value={formData.igst_ch} onChange={handleChange} className="w-24 h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-white text-slate-900" />
+             </div>
+             <div className="flex items-center gap-2">
+                <label className="text-[9px] font-black text-slate-500 uppercase">Total Amount</label>
+                <input type="number" value={formData.grand_total} className="w-28 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-slate-100 text-slate-900" readOnly />
+             </div>
+             <button type="button" className="ml-auto bg-[#3b82f6] hover:bg-[#2563eb] text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded shadow-sm transition-all">
+                Check Rate
+             </button>
           </div>
       </div>
 
-      <div className="mt-1 flex justify-center opacity-70">
-          <p className="text-[8px] font-bold text-slate-400">ITD POWERED BY ITD SERVICES PVT. LTD.</p>
+      {/* Shipment Invoice Toggle Section */}
+      <div className="mt-2 p-2">
+         <div className="flex items-center gap-2 mb-3">
+            <input 
+              type="checkbox" 
+              name="create_invoice" 
+              checked={formData.create_invoice} 
+              onChange={handleChange} 
+              className="h-4 w-4 accent-green-800" 
+            />
+            <span className="text-[13px] font-black text-slate-700 uppercase">Create Shipment Invoice?</span>
+         </div>
+
+         {formData.create_invoice && (
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+               <div className="grid grid-cols-4 gap-3">
+                  <FormField label="Invoice Type ?" name="invoice_type">
+                     <select name="invoice_type" value={formData.invoice_type} onChange={handleChange} className="w-full h-full px-2 border border-slate-300 text-[11px] font-bold uppercase">
+                        <option>INVOICE</option>
+                        <option>PROFORMA</option>
+                     </select>
+                  </FormField>
+                  <FormField label="Note" name="note" value={formData.note} />
+                  <FormField label="Currency" name="currency">
+                     <select name="currency" value={formData.currency} onChange={handleChange} className="w-full h-full px-2 border border-slate-300 text-[11px] font-bold uppercase">
+                        <option>INR</option>
+                        <option>USD</option>
+                        <option>EUR</option>
+                     </select>
+                  </FormField>
+                  <FormField label="Incoterms" name="incoterms">
+                     <select className="w-full h-full px-2 border border-slate-300 text-[11px] font-bold uppercase">
+                        <option>CFR</option>
+                        <option>FOB</option>
+                        <option>CIF</option>
+                     </select>
+                  </FormField>
+               </div>
+               <div className="p-2 bg-slate-50 border border-slate-200 rounded text-center">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                     UNSOLICITED GIFT SENT TO MY FRIENDS & FAMILY MEMBERS FOR THERE PERSONAL USE ONLY
+                  </span>
+               </div>
+            </div>
+         )}
       </div>
+
+      {/* Shipment Invoice Items Table Section Header */}
+      <div className="mt-1 bg-[#1a2f4c] text-white px-2 py-1 text-[10px] font-bold uppercase tracking-wider">
+         Shipment Invoice Items
+      </div>
+
     </div>
   );
 }
