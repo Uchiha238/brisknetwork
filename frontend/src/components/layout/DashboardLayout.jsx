@@ -40,38 +40,27 @@ export function DashboardLayout({ children, currentPage, setCurrentPage, user, o
       ]
     },
     { 
-      id: 'international', 
-      label: 'International', 
-      icon: Globe,
+      id: 'shipments', 
+      label: 'Shipments', 
+      icon: Package,
       dropdownItems: [
-        { label: 'Add Shipment', id: 'add-international' },
-        { label: 'List Shipment', id: 'list-international' },
-        { label: 'Unbill Shipment', id: 'unbill-international' },
+        { label: 'Add Shipment', id: 'add-shipment' },
+        { label: 'List Shipments', id: 'list-shipments' },
+        { label: 'Unbill Shipment', id: 'unbill-shipment' },
         { label: 'Pending Forwarder', id: 'pending-forwarder' },
         { label: 'Freight Invoice', id: 'freight-invoice' },
         { label: 'Export Invoice', id: 'export-invoice' },
-        { label: 'Export Invoice Perform', id: 'export-invoice-perform' },
         { label: 'Export Final invoice', id: 'export-final-invoice' },
         { label: 'Import Invoice', id: 'import-invoice' },
-        { label: 'Import Invoice Perform', id: 'import-invoice-perform' },
         { label: 'Import Final invoice', id: 'import-final-invoice' },
-        { label: 'International Label Print', id: 'int-label-print' },
-        { label: 'Manage International Delivery Status', id: 'manage-int-status' }
-      ]
-    },
-    { 
-      id: 'domestic', 
-      label: 'Domestic', 
-      icon: Truck,
-      dropdownItems: [
-        { label: 'Add Shipment', id: 'add-domestic' },
-        { label: 'List Shipment', id: 'list-domestic' }
+        { label: 'Label Print', id: 'label-print' },
+        { label: 'Manage Delivery Status', id: 'manage-status' }
       ]
     },
     { id: 'payment', label: 'Payment', icon: CreditCard },
     { id: 'location', label: 'Location', icon: MapPin },
     { id: 'cms', label: 'CMS Management', icon: FileCode },
-    { id: 'add-shipment', label: 'Menifest', icon: FileText },
+    { id: 'manifest', label: 'Manifest', icon: FileText },
     { id: 'reports', label: 'Reports', icon: BarChart3 },
   ];
 
@@ -109,8 +98,7 @@ export function DashboardLayout({ children, currentPage, setCurrentPage, user, o
                   <button
                     onClick={() => {
                         if (hasDropdown) {
-                            if (item.id === 'international') setCurrentPage('add-international');
-                            if (item.id === 'domestic') setCurrentPage('add-domestic');
+                            if (item.id === 'shipments') setCurrentPage('add-shipment');
                             if (item.id === 'master') setCurrentPage('view-customer');
                         } else {
                             setCurrentPage(item.id);

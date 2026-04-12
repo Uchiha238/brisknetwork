@@ -50,8 +50,7 @@ function App() {
   return (
     <DashboardLayout currentPage={currentPage} setCurrentPage={setCurrentPage} user={user} onLogout={handleLogout}>
       {currentPage === "dashboard" && <AdminDashboard />}
-      {(currentPage === "add-shipment" || currentPage === "add-domestic") && <AddUnifiedShipmentForm initialType="domestic" />}
-      {currentPage === "add-international" && <AddUnifiedShipmentForm initialType="international" />}
+      {currentPage === "add-shipment" && <AddUnifiedShipmentForm initialType="domestic" />}
       {currentPage === "gst-setting" && <GstSetting />}
       {currentPage === "view-customer" && <CustomerDetails setCurrentPage={setCurrentPage} />}
       {currentPage === "courier-master" && <CourierMaster />}

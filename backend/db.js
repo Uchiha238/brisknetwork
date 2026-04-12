@@ -166,6 +166,12 @@ const init = async () => {
         name TEXT UNIQUE
       );
 
+      CREATE TABLE IF NOT EXISTS modes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE,
+        type TEXT DEFAULT 'Domestic'
+      );
+
       CREATE TABLE IF NOT EXISTS cities (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         state_id INTEGER,
@@ -285,6 +291,12 @@ const init = async () => {
         event_time TEXT,
         FOREIGN KEY (shipment_id) REFERENCES shipments(id)
       );
+
+      CREATE TABLE IF NOT EXISTS countries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE,
+        code TEXT UNIQUE
+      );
     `);
 
     // 2. Migrations for existing database
@@ -361,6 +373,33 @@ const init = async () => {
       await db.runAsync('INSERT OR IGNORE INTO rate_groups (name, type) VALUES (?, ?)', ['CO COURIER 1', 'international']);
       await db.runAsync('INSERT OR IGNORE INTO fuel_groups (name, type) VALUES (?, ?)', ['Group A', 'domestic']);
       await db.runAsync('INSERT OR IGNORE INTO fuel_groups (name, type) VALUES (?, ?)', ['Group A', 'international']);
+    }
+
+    const countryCount = (await db.getAsync('SELECT count(*) as count FROM countries')).count;
+    if (countryCount === 0) {
+      const globalCountries = [
+        ['INDIA', 'IN'], ['UNITED STATES', 'US'], ['UNITED KINGDOM', 'GB'], ['UNITED ARAB EMIRATES', 'AE'],
+        ['CANADA', 'CA'], ['AUSTRALIA', 'AU'], ['GERMANY', 'DE'], ['FRANCE', 'FR'], ['JAPAN', 'JP'],
+        ['SINGAPORE', 'SG'], ['CHINA', 'CN'], ['MALAYSIA', 'MY'], ['HONG KONG', 'HK'], ['OMAN', 'OM'],
+        ['QATAR', 'QA'], ['SAUDI ARABIA', 'SA'], ['KUWAIT', 'KW'], ['BAHRAIN', 'BH'], ['SOUTH AFRICA', 'ZA']
+      ];
+      for (const [name, code] of globalCountries) {
+        await db.runAsync('INSERT OR IGNORE INTO countries (name, code) VALUES (?, ?)', [name, code]);
+      }
+    }
+
+    const modeCount = (await db.getAsync('SELECT count(*) as count FROM modes')).count;
+    if (modeCount === 0) {
+      const defaultModes = [['AIR', 'Both'], ['EXPRESS', 'Domestic'], ['SURFACE', 'Domestic'], ['PRIORITY', 'International']];
+      for (const [name, type] of defaultModes) {
+        await db.runAsync('INSERT OR IGNORE INTO modes (name, type) VALUES (?, ?)', [name, type]);
+      }
+    }
+
+    // Migrate modes table — add type column if missing
+    const modeInfo = await db.allAsync("PRAGMA table_info(modes)");
+    if (!modeInfo.map(c => c.name).includes('type')) {
+      await db.execAsync("ALTER TABLE modes ADD COLUMN type TEXT DEFAULT 'Domestic'");
     }
 
     // Migrate company_settings columns if table already existed with fewer columns

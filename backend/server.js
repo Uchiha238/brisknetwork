@@ -8,6 +8,57 @@ const PORT = 5000;
 app.use(cors());
 app.use(express.json());
 
+// --- Pincode Route ---
+app.get('/api/pincode/:pincode', async (req, res) => {
+  try {
+    const { pincode } = req.params;
+    const row = await db.getAsync('SELECT * FROM local_pincodes WHERE pincode = ?', [pincode]);
+    if (row) {
+      res.json({
+        success: true,
+        data: {
+            city: row.area,
+            state: row.state_desc,
+            zone: row.zone
+        }
+      });
+    } else {
+      res.status(404).json({ success: false, error: 'Pincode not found' });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// --- Modes Routes ---
+app.get('/api/modes', async (req, res) => {
+  try {
+    const modes = await db.allAsync('SELECT * FROM modes ORDER BY id');
+    res.json(modes);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/modes', async (req, res) => {
+  try {
+    const { name, type } = req.body;
+    const result = await db.runAsync('INSERT INTO modes (name, type) VALUES (?, ?)', [name.toUpperCase(), type || 'Domestic']);
+    res.json({ success: true, id: result.lastID });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/modes/:id', async (req, res) => {
+  try {
+    await db.runAsync('DELETE FROM modes WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- Auth Routes ---
 app.post('/api/login', async (req, res) => {
   try {
@@ -295,6 +346,15 @@ app.get('/api/masters/cities', async (req, res) => {
     const params = state_id ? [state_id] : [];
     const cities = await db.allAsync(sql, params);
     res.json(cities);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/masters/countries', async (req, res) => {
+  try {
+    const countries = await db.allAsync('SELECT * FROM countries ORDER BY name ASC');
+    res.json(countries);
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
