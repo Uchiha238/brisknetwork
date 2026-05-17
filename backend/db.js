@@ -344,6 +344,8 @@ const init = async () => {
     if (!sCols.includes('shipper_kyc_file1')) await db.execAsync("ALTER TABLE shipments ADD COLUMN shipper_kyc_file1 TEXT");
     if (!sCols.includes('shipper_kyc_file2')) await db.execAsync("ALTER TABLE shipments ADD COLUMN shipper_kyc_file2 TEXT");
     if (!sCols.includes('shipper_image')) await db.execAsync("ALTER TABLE shipments ADD COLUMN shipper_image TEXT");
+    if (!sCols.includes('branch')) await db.execAsync("ALTER TABLE shipments ADD COLUMN branch TEXT");
+    if (!sCols.includes('eway_bill_no')) await db.execAsync("ALTER TABLE shipments ADD COLUMN eway_bill_no TEXT");
 
     const packageInfo = await db.allAsync("PRAGMA table_info(packages)");
     if (!packageInfo.map(c => c.name).includes('per_box_wt')) await db.execAsync("ALTER TABLE packages ADD COLUMN per_box_wt REAL");

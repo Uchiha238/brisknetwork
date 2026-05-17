@@ -8,6 +8,26 @@ const PORT = 5000;
 app.use(cors());
 app.use(express.json());
 
+// Middleware to force uppercase for all string inputs except specified exclusions
+app.use((req, res, next) => {
+  if (req.body && typeof req.body === 'object') {
+    const exclusions = ['password', 'email', 'website', 'logo'];
+    const convertToCaps = (obj) => {
+      for (const key in obj) {
+        if (exclusions.includes(key)) continue;
+        
+        if (typeof obj[key] === 'string') {
+          obj[key] = obj[key].toUpperCase();
+        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+          convertToCaps(obj[key]);
+        }
+      }
+    };
+    convertToCaps(req.body);
+  }
+  next();
+});
+
 // --- Pincode Route ---
 app.get('/api/pincode/:pincode', async (req, res) => {
   try {
@@ -215,6 +235,8 @@ app.post('/api/shipments', async (req, res) => {
       forward_no, forwarder, description, bill_type, type_of_doc, doc_number,
       destination_ch, ess_ch, oda_ch, transport_ch, clearance_ch, other_ch, ddp_ch,
       charges_date,
+      branch,
+      eway_bill_no,
 
       packages, items 
     } = req.body;
@@ -238,8 +260,8 @@ app.post('/api/shipments', async (req, res) => {
         
         forward_no, forwarder, description, bill_type, type_of_doc, doc_number,
         destination_ch, ess_ch, oda_ch, transport_ch, clearance_ch, other_ch, ddp_ch,
-        charges_date
-      ) VALUES (?, ?, ?, ?, 'booked', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        charges_date, branch, eway_bill_no
+      ) VALUES (?, ?, ?, ?, 'booked', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       customer_id, user_id, airway_no, type,
       booking_date, booking_time, product, origin_hub, origin_zone,
@@ -258,7 +280,7 @@ app.post('/api/shipments', async (req, res) => {
       
       forward_no, forwarder, description, bill_type, type_of_doc, doc_number,
       destination_ch, ess_ch, oda_ch, transport_ch, clearance_ch, other_ch, ddp_ch,
-      charges_date
+      charges_date, branch, eway_bill_no
     ]);
 
     const shipmentId = result.lastID;

@@ -51,6 +51,8 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
     booking_date: new Date().toISOString().split('T')[0],
     booking_time: new Date().toTimeString().split(' ')[0].slice(0, 5),
     usps_number: '',
+    forward_no: '',
+    eway_bill_no: '',
     service: '',
     mode: '',
     duty: '',
@@ -151,7 +153,8 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
 
     // Behavior
     save_as_new_customer: false,
-    new_customer_code: ''
+    new_customer_code: '',
+    branch: ''
   });
 
   const [masters, setMasters] = useState({
@@ -163,7 +166,8 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
       products: ['DOCUMENTS', 'PARCEL'],
       billTypes: ['PREPAID', 'COD', 'TO PAY', 'CASH'],
       forwarders: ['DHL EXPRESS', 'FEDEX PRIORITY', 'SELF'],
-      countries: []
+      countries: [],
+      branches: []
   });
 
   useEffect(() => {
@@ -199,6 +203,11 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
     fetch('/api/modes')
       .then(res => res.json())
       .then(data => setMasters(prev => ({ ...prev, modes: data })))
+      .catch(err => console.error(err));
+
+    fetch('/api/branches')
+      .then(res => res.json())
+      .then(data => setMasters(prev => ({ ...prev, branches: data })))
       .catch(err => console.error(err));
   }, []);
 
@@ -493,6 +502,11 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
     }
   };
 
+  const selectedCompany = companies.find(c => c.company_name === formData.booking_company);
+  const filteredBranches = selectedCompany 
+    ? masters.branches.filter(b => b.company_id === selectedCompany.id)
+    : [];
+
   return (
     <div className="bg-white min-h-screen p-1 font-sans selection:bg-blue-100">
       <datalist id="countries-list">
@@ -525,77 +539,47 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
                 <h3 className="text-[10px] font-bold text-blue-800 uppercase">Air Waybill Information</h3>
             </div>
             <div className="p-1.5 space-y-0.5">
-                <FormField onChange={handleChange} label="AWB Number" name="airway_no" isRed labelWidth="85px">
-                   <div className="flex gap-1 w-full h-full">
-                      <input name="airway_no" value={formData.airway_no} onChange={handleChange} className="flex-1 h-full px-1 bg-slate-100 border border-slate-300 text-[10px] font-bold outline-none" />
-                      <button className="bg-slate-400 text-white text-[8px] font-bold px-2 h-full uppercase">Edit</button>
-                   </div>
-                </FormField>
+                <div className="grid grid-cols-[1fr_85px_1fr] gap-1 items-center">
+                    <FormField onChange={handleChange} label="DATE" name="booking_date" isRed labelWidth="85px" type="date" value={formData.booking_date} />
+                    <label className="text-[9px] font-bold text-slate-600 uppercase text-right">Booking Time</label>
+                    <input name="booking_time" value={formData.booking_time} onChange={handleChange} className="h-5 px-1 border border-slate-300 text-[10px] font-bold bg-slate-50" />
+                </div>
 
-                <FormField onChange={handleChange} label="Customer" isRed labelWidth="85px">
+                <FormField onChange={handleChange} label="Company" isRed labelWidth="85px">
                     <div className="flex gap-1 w-full h-full">
-                        <select 
-                            className="flex-1 h-full px-1 bg-slate-50 border border-slate-300 text-[10px] font-bold"
-                            value={selectedCustomerId}
-                            onChange={handleCustomerChange}
-                        >
-                            <option value="">SELECT...</option>
-                            {customers.map(c => <option key={c.id} value={c.id}>{c.code}</option>)}
-                        </select>
                         <select 
                             name="booking_company"
                             value={formData.booking_company}
                             onChange={handleChange}
                             className="flex-[2] h-full px-1 bg-slate-50 border border-slate-300 text-[10px] font-bold outline-none"
                         >
+                            <option value="">SELECT...</option>
                             {companies.map(c => <option key={c.id} value={c.company_name}>{c.company_name}</option>)}
+                        </select>
+                        <select name="branch" value={formData.branch} onChange={handleChange} className="flex-1 h-full px-1 bg-slate-50 border border-slate-300 text-[10px] font-bold outline-none">
+                            {filteredBranches.length > 0 && <option value="">SELECT...</option>}
+                            {filteredBranches.map(b => <option key={b.id} value={b.branch_name}>{b.branch_name}</option>)}
                         </select>
                     </div>
                 </FormField>
 
-                <FormField onChange={handleChange} label="Email" name="email" isRed labelWidth="85px" value={formData.email} />
-                <FormField onChange={handleChange} label="Payment Mode" name="payment_mode" isRed labelWidth="85px">
+                <FormField onChange={handleChange} label="PAY MODE" name="payment_mode" isRed labelWidth="85px">
                    <select name="payment_mode" value={formData.payment_mode} onChange={handleChange} className="flex-1 h-full px-1 bg-slate-50 border border-slate-300 text-[10px] font-bold outline-none">
                        <option value="Cash">CASH</option>
                        <option value="Credit">CREDIT</option>
                    </select>
                 </FormField>
-                <FormField onChange={handleChange} label="Contact No" name="contact_no" isRed labelWidth="85px" value={formData.contact_no} />
-                <FormField onChange={handleChange} label="Account Code" name="account_code" isRed labelWidth="85px" value={formData.account_code} />
-
-                <div className="grid grid-cols-2 gap-1">
-                   <FormField onChange={handleChange} label="Origin Hub" name="origin_hub" isRed labelWidth="85px">
-                      <select name="origin_hub" value={formData.origin_hub} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold">
-                         <option>MUMBAI</option>
-                      </select>
-                   </FormField>
-                   <FormField onChange={handleChange} label="Zone" name="shipper_zone" labelWidth="40px" value={formData.shipper_zone} />
-                </div>
-
-                <div className="grid grid-cols-[1fr_95px_70px] gap-1">
-                   <FormField onChange={handleChange} label="Destination" name="consignee_country" isRed labelWidth="85px">
-                       <input list="countries-list" name="consignee_country" value={formData.consignee_country} onChange={handleChange} placeholder="SELECT..." className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none" />
-                   </FormField>
-                   <FormField onChange={handleChange} label="PIN" name="consignee_zip" isRed labelWidth="25px" value={formData.consignee_zip} />
-                   <FormField onChange={handleChange} label="Zone" name="consignee_zone" labelWidth="35px" value={formData.consignee_zone} />
-                </div>
-
-                <FormField onChange={handleChange} label="Service" name="service" isRed labelWidth="85px">
-                   <select name="service" value={formData.service} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold outline-none">
-                       <option value="">SELECT...</option>
-                       <option value="DOMESTIC EXPRESS">DOMESTIC EXPRESS - DOMESTIC EXPRESS</option>
-                       <option value="DOMESTIC ECONOMY">DOMESTIC ECONOMY - DOMESTIC ECONOMY</option>
-                       <option value="DHL EXP">DHL EXP - DHL EXP</option>
-                       <option value="FEDEX IP">FEDEX IP - FEDEX IP</option>
-                       <option value="UPS EXP SAVER">UPS EXP SAVER - UPS EXP SAVER</option>
-                       <option value="BOMBINO SELF PREMIUM">BOMBINO SELF - BOMBINO SELF PREMIUM</option>
-                       <option value="BOMBINO SELF SERVICE">BOMBINO SELF SERVICE - BOMBINO SELF SERVICE</option>
-                   </select>
-                </FormField>
 
                 <div className="grid grid-cols-2 gap-1">
                    <FormField onChange={handleChange} label="Type" name="shipment_type_field" isRed labelWidth="85px">
-                      <select name="shipment_type_field" value={shipmentType} onChange={(e) => { setShipmentType(e.target.value); handleChange(e); }} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold outline-none">
+                      <select name="shipment_type_field" value={shipmentType} onChange={(e) => { 
+                          const type = e.target.value;
+                          setShipmentType(type); 
+                          handleChange(e); 
+                          if (type === 'domestic') {
+                              setFormData(prev => ({ ...prev, consignee_country: 'INDIA' }));
+                          }
+                      }} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold outline-none">
                           <option value="domestic">DOMESTIC</option>
                           <option value="international">INTERNATIONAL</option>
                       </select>
@@ -617,15 +601,44 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
                    </select>
                 </FormField>
 
-                <div className="grid grid-cols-[1fr_85px_1fr] gap-1 items-center">
-                    <FormField onChange={handleChange} label="Booking Date" name="booking_date" isRed labelWidth="85px" type="date" value={formData.booking_date} />
-                    <label className="text-[9px] font-bold text-slate-600 uppercase text-right">Booking Time</label>
-                    <input name="booking_time" value={formData.booking_time} onChange={handleChange} className="h-5 px-1 border border-slate-300 text-[10px] font-bold bg-slate-50" />
-                </div>
+                <FormField onChange={handleChange} label="AWB Number" name="airway_no" isRed labelWidth="85px">
+                   <div className="flex gap-1 w-full h-full">
+                      <input name="airway_no" value={formData.airway_no} onChange={handleChange} className="flex-1 h-full px-1 bg-slate-100 border border-slate-300 text-[10px] font-bold outline-none" />
+                      <button className="bg-slate-400 text-white text-[8px] font-bold px-2 h-full uppercase">Edit</button>
+                   </div>
+                </FormField>
+
+                <FormField onChange={handleChange} label="FWD NO" name="forward_no" labelWidth="85px" value={formData.forward_no} />
+
+                {shipmentType === 'domestic' ? (
+                    <div className="grid grid-cols-[1fr_95px_70px] gap-1">
+                       <FormField onChange={handleChange} label="Destination" name="consignee_country" isRed labelWidth="85px">
+                           <input name="consignee_country" value="INDIA" readOnly className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none bg-slate-100" />
+                       </FormField>
+                       <FormField onChange={handleChange} label="PIN" name="consignee_zip" isRed labelWidth="25px" value={formData.consignee_zip} />
+                       <FormField onChange={handleChange} label="Zone" name="consignee_zone" labelWidth="35px" value={formData.consignee_zone} />
+                    </div>
+                ) : (
+                    <FormField onChange={handleChange} label="Destination" name="consignee_country" isRed labelWidth="85px">
+                        <input list="countries-list" name="consignee_country" value={formData.consignee_country} onChange={handleChange} placeholder="SELECT..." className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none" />
+                    </FormField>
+                )}
+
+                <FormField onChange={handleChange} label="Service" name="service" isRed labelWidth="85px">
+                   <select name="service" value={formData.service} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold outline-none">
+                       <option value="">SELECT...</option>
+                       <option value="DOMESTIC EXPRESS">DOMESTIC EXPRESS - DOMESTIC EXPRESS</option>
+                       <option value="DOMESTIC ECONOMY">DOMESTIC ECONOMY - DOMESTIC ECONOMY</option>
+                       <option value="DHL EXP">DHL EXP - DHL EXP</option>
+                       <option value="FEDEX IP">FEDEX IP - FEDEX IP</option>
+                       <option value="UPS EXP SAVER">UPS EXP SAVER - UPS EXP SAVER</option>
+                       <option value="BOMBINO SELF PREMIUM">BOMBINO SELF - BOMBINO SELF PREMIUM</option>
+                       <option value="BOMBINO SELF SERVICE">BOMBINO SELF SERVICE - BOMBINO SELF SERVICE</option>
+                   </select>
+                </FormField>
 
                 {shipmentType === 'international' && (
                   <>
-                    <FormField onChange={handleChange} label="USPS Number" name="usps_number" labelWidth="85px" value={formData.usps_number} />
                     <FormField onChange={handleChange} label="Duty" name="duty" isRed labelWidth="85px">
                       <select name="duty" value={formData.duty} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold">
                           <option>SELECT...</option>
@@ -636,10 +649,10 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
                   </>
                 )}
 
-                <FormField onChange={handleChange} label="Reference Number" name="ref_no" labelWidth="85px" value={formData.ref_no} />
+                <FormField onChange={handleChange} label="REF NO" name="ref_no" labelWidth="85px" value={formData.ref_no} />
 
                 <div className="grid grid-cols-2 gap-1">
-                    <FormField onChange={handleChange} label="Shipment Value" name="shipment_value" labelWidth="85px" value={formData.shipment_value} />
+                    <FormField onChange={handleChange} label="VALUE" name="shipment_value" labelWidth="85px" value={formData.shipment_value} />
                     <FormField onChange={handleChange} label="Currency" name="currency" labelWidth="45px">
                         <select name="currency" value={formData.currency} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold">
                             <option>SELECT..</option>
@@ -650,14 +663,11 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
                 </div>
 
                 <div className="grid grid-cols-2 gap-1">
-                    <FormField onChange={handleChange} label="Invoice Date" name="invoice_date" isRed labelWidth="85px" type="date" value={formData.invoice_date} />
-                    <FormField onChange={handleChange} label="Invoice Number" name="invoice_no" labelWidth="85px" value={formData.invoice_no} />
+                    <FormField onChange={handleChange} label="INV DATE" name="invoice_date" isRed labelWidth="85px" type="date" value={formData.invoice_date} />
+                    <FormField onChange={handleChange} label="INV NO" name="invoice_no" labelWidth="85px" value={formData.invoice_no} />
                 </div>
 
-                <div className="flex items-center gap-2 h-5">
-                   <input type="checkbox" name="edit_shipment" className="h-3 w-3" />
-                   <label className="text-[9px] font-bold text-slate-600 uppercase">Edit</label>
-                </div>
+                <FormField onChange={handleChange} label="EWB NO" name="eway_bill_no" labelWidth="85px" value={formData.eway_bill_no} />
 
                 <FormField onChange={handleChange} label="Content" name="content" labelWidth="85px" value={formData.content} />
             </div>

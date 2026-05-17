@@ -124,6 +124,10 @@
   body {
     @apply bg-background text-foreground;
     }
+  input:not([type="password"]):not([type="email"]):not([name="website"]):not([name="logo"]),
+  textarea:not([name="website"]):not([name="logo"]) {
+    text-transform: uppercase;
+  }
   html {
     @apply font-sans;
     }
