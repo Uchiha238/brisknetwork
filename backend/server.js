@@ -206,7 +206,7 @@ app.get('/api/shipments', async (req, res) => {
     const shipments = await db.allAsync(`
       SELECT s.*, c.name as customer_name 
       FROM shipments s 
-      JOIN customers c ON s.customer_id = c.id
+      LEFT JOIN customers c ON s.customer_id = c.id
     `);
     res.json(shipments);
   } catch (err) {
@@ -343,7 +343,7 @@ app.get('/api/reports/export', async (req, res) => {
     const report = await db.allAsync(`
       SELECT s.*, c.name as customer_name, c.code as customer_code
       FROM shipments s
-      JOIN customers c ON s.customer_id = c.id
+      LEFT JOIN customers c ON s.customer_id = c.id
     `);
     res.json(report);
   } catch (err) {

@@ -108,9 +108,6 @@ export function AddShipmentForm() {
     api.getCustomers()
       .then(data => {
         setCustomers(data);
-        if (data.length > 0) {
-            handleCustomerChange({ target: { value: data[0].id.toString() } }, data);
-        }
       })
       .catch(err => console.error('Fetch customers error:', err));
 

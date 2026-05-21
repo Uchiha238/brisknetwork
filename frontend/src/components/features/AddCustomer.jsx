@@ -3,10 +3,44 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, Save, User, MapPin, ShieldCheck, Mail, Phone, Lock, FileText, Settings, Pencil, Trash2, Search, Download } from "lucide-react"
 import { api } from '../../services/api';
 
-export function AddCustomer({ onBack, onSuccess }) {
+const InputGroup = ({ label, name, type = "text", value, placeholder, options, onChange, className = "", widthClass = "w-full" }) => (
+    <div className={`flex flex-col gap-0.5 ${className} ${widthClass}`}>
+        <label className="text-[10px] font-black text-slate-700 uppercase tracking-tight leading-none">{label}</label>
+        {type === 'select' ? (
+            <select 
+                name={name} 
+                value={value} 
+                onChange={onChange}
+                className="w-full h-8 px-2 bg-white border border-slate-300 rounded-sm text-[11px] font-bold outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-50 transition-all cursor-pointer"
+            >
+                <option value="">SELECT...</option>
+                {options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+        ) : type === 'textarea' ? (
+            <textarea 
+                name={name} 
+                value={value} 
+                onChange={onChange}
+                placeholder={placeholder}
+                className="w-full h-14 p-1.5 border border-slate-300 rounded-sm text-[11px] font-bold outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-50 transition-all resize-none"
+            />
+        ) : (
+            <input 
+                type={type} 
+                name={name} 
+                value={value} 
+                onChange={onChange}
+                placeholder={placeholder}
+                className="w-full h-8 px-2 bg-white border border-slate-300 rounded-sm text-[11px] font-bold outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-50 transition-all"
+            />
+        )}
+    </div>
+);
+
+export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
     const [formData, setFormData] = useState({
-        parent_company: 'OM COURIER',
-        code: 'OMS0221',
+        parent_company: '',
+        code: '',
         name: '',
         address: '',
         city: '',
@@ -16,14 +50,14 @@ export function AddCustomer({ onBack, onSuccess }) {
         phone: '',
         email: '',
         sac_code: '',
-        gst_charges: 'Yes',
-        customer_type: 'Domestic',
-        domestic_rate_group: 'Domestic 1',
-        domestic_fuel_group: 'Group A',
-        international_rate_group: 'CO COURIER 1',
-        international_fuel_group: 'Group A',
+        gst_charges: '',
+        customer_type: '',
+        domestic_rate_group: '',
+        domestic_fuel_group: '',
+        international_rate_group: '',
+        international_fuel_group: '',
         mis_emails: '',
-        mis_format: 'SR.No Date Consigner Consignee Destination Pincode Invoice',
+        mis_format: '',
         password: 'admin@brisk2026', // Hidden from specification but necessary for login
     });
 
@@ -39,10 +73,31 @@ export function AddCustomer({ onBack, onSuccess }) {
         internationalFuelGroups: []
     });
 
+    const generateCustomerCode = (customerList) => {
+        const omsCodes = customerList
+            .map(c => c.code)
+            .filter(code => code && /^OMS\d+$/i.test(code));
+        
+        if (omsCodes.length === 0) {
+            return 'OMS0221';
+        }
+        
+        const numbers = omsCodes.map(code => parseInt(code.replace(/OMS/i, ''), 10));
+        const maxNum = Math.max(...numbers);
+        const nextNum = maxNum + 1;
+        return `OMS${String(nextNum).padStart(4, '0')}`;
+    };
+
     const fetchCustomers = async () => {
         try {
             const data = await api.getCustomers();
             setCustomers(data);
+            
+            // Generate and pre-populate code if not editing an existing customer
+            if (!isEditing) {
+                const nextCode = generateCustomerCode(data);
+                setFormData(prev => ({ ...prev, code: nextCode }));
+            }
         } catch (err) {
             console.error('Fetch customers error:', err);
         }
@@ -70,6 +125,56 @@ export function AddCustomer({ onBack, onSuccess }) {
     }, []);
 
     useEffect(() => {
+        if (editingCustomer) {
+            setIsEditing(true);
+            setFormData({
+                ...editingCustomer,
+                gst_charges: editingCustomer.gst_charges ? 'Yes' : 'No',
+            });
+            // Fetch cities for the customer's state so the dropdown is correctly populated!
+            if (editingCustomer.state) {
+                const stateObj = masters.states.find(s => s.name === editingCustomer.state || `${s.name} (${s.id || '27'})` === editingCustomer.state);
+                if (stateObj) {
+                    fetch(`/api/masters/cities?state_id=${stateObj.id}`)
+                        .then(res => res.json())
+                        .then(cities => {
+                            // Ensure the customer's city is in the dropdown
+                            if (editingCustomer.city && !cities.some(c => c.name.toUpperCase() === editingCustomer.city.toUpperCase())) {
+                                cities.push({ id: 9999, name: editingCustomer.city.toUpperCase(), state_id: stateObj.id });
+                            }
+                            setMasters(prev => ({ ...prev, cities }));
+                        })
+                        .catch(err => console.error('Error fetching cities on edit init:', err));
+                }
+            }
+        } else {
+            setIsEditing(false);
+            setFormData({
+                parent_company: '',
+                code: '',
+                name: '',
+                address: '',
+                city: '',
+                pincode: '',
+                state: '',
+                gst_no: '',
+                phone: '',
+                email: '',
+                sac_code: '',
+                gst_charges: '',
+                customer_type: '',
+                domestic_rate_group: '',
+                domestic_fuel_group: '',
+                international_rate_group: '',
+                international_fuel_group: '',
+                mis_emails: '',
+                mis_format: '',
+                password: 'admin@brisk2026'
+            });
+        }
+    }, [editingCustomer, masters.states]);
+
+    useEffect(() => {
         if (formData.state) {
             const stateObj = masters.states.find(s => s.name === formData.state || `${s.name} (${s.id || '27'})` === formData.state);
             if (stateObj) {
@@ -84,6 +189,52 @@ export function AddCustomer({ onBack, onSuccess }) {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+
+        if (name === 'pincode' && /^\d{6}$/.test(value)) {
+            fetch(`/api/pincode/${value}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.success) {
+                        const pincodeState = data.data.state ? data.data.state.toUpperCase() : '';
+                        
+                        const areaToCityMap = {
+                            'BOM': 'MUMBAI',
+                            'DEL': 'DELHI',
+                            'PNQ': 'PUNE',
+                            'AMD': 'AHMEDABAD'
+                        };
+                        
+                        let pincodeCity = data.data.city ? data.data.city.toUpperCase() : '';
+                        if (areaToCityMap[pincodeCity]) {
+                            pincodeCity = areaToCityMap[pincodeCity];
+                        }
+                        
+                        const stateObj = masters.states.find(s => s.name.toUpperCase() === pincodeState);
+                        if (stateObj) {
+                            const formattedStateName = `${stateObj.name} (${stateObj.id || '27'})`;
+                            
+                            // Fetch cities for this state immediately
+                            fetch(`/api/masters/cities?state_id=${stateObj.id}`)
+                                .then(res => res.json())
+                                .then(cities => {
+                                    const hasCity = cities.some(c => c.name.toUpperCase() === pincodeCity.toUpperCase());
+                                    if (pincodeCity && !hasCity) {
+                                        cities.push({ id: 9999, name: pincodeCity, state_id: stateObj.id });
+                                    }
+                                    
+                                    setMasters(prev => ({ ...prev, cities }));
+                                    setFormData(current => ({
+                                        ...current,
+                                        state: formattedStateName,
+                                        city: pincodeCity
+                                    }));
+                                })
+                                .catch(err => console.error('Error fetching cities in pincode lookup:', err));
+                        }
+                    }
+                })
+                .catch(err => console.error("Error fetching pincode data:", err));
+        }
     };
 
     const fillMockData = () => {
@@ -127,8 +278,8 @@ export function AddCustomer({ onBack, onSuccess }) {
                 fetchCustomers();
                 setIsEditing(false);
                 setFormData({
-                    parent_company: 'OM COURIER',
-                    code: 'OMS0221',
+                    parent_company: '',
+                    code: '',
                     name: '',
                     address: '',
                     city: '',
@@ -138,14 +289,14 @@ export function AddCustomer({ onBack, onSuccess }) {
                     phone: '',
                     email: '',
                     sac_code: '',
-                    gst_charges: 'Yes',
-                    customer_type: 'Domestic',
-                    domestic_rate_group: 'Domestic 1',
-                    domestic_fuel_group: 'Group A',
-                    international_rate_group: 'CO COURIER 1',
-                    international_fuel_group: 'Group A',
+                    gst_charges: '',
+                    customer_type: '',
+                    domestic_rate_group: '',
+                    domestic_fuel_group: '',
+                    international_rate_group: '',
+                    international_fuel_group: '',
                     mis_emails: '',
-                    mis_format: 'SR.No Date Consigner Consignee Destination Pincode Invoice',
+                    mis_format: '',
                     password: 'admin@brisk2026'
                 });
             }
@@ -169,40 +320,6 @@ export function AddCustomer({ onBack, onSuccess }) {
         setFormData({ ...customer });
     };
 
-    const InputGroup = ({ label, name, type = "text", value, placeholder, options, className = "", widthClass = "w-full" }) => (
-        <div className={`flex flex-col gap-0.5 ${className} ${widthClass}`}>
-            <label className="text-[10px] font-black text-slate-700 uppercase tracking-tight leading-none">{label}</label>
-            {type === 'select' ? (
-                <select 
-                    name={name} 
-                    value={value} 
-                    onChange={handleChange}
-                    className="w-full h-8 px-2 bg-white border border-slate-300 rounded-sm text-[11px] font-bold outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-50 transition-all cursor-pointer"
-                >
-                    <option value="">SELECT...</option>
-                    {options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-            ) : type === 'textarea' ? (
-                <textarea 
-                    name={name} 
-                    value={value} 
-                    onChange={handleChange}
-                    placeholder={placeholder}
-                    className="w-full h-14 p-1.5 border border-slate-300 rounded-sm text-[11px] font-bold outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-50 transition-all resize-none"
-                />
-            ) : (
-                <input 
-                    type={type} 
-                    name={name} 
-                    value={value} 
-                    onChange={handleChange}
-                    placeholder={placeholder}
-                    className="w-full h-8 px-2 bg-white border border-slate-300 rounded-sm text-[11px] font-bold outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-50 transition-all"
-                />
-            )}
-        </div>
-    );
-
     return (
         <div className="bg-[#f0f2f5] min-h-screen p-1 flex flex-col gap-1">
             {/* Header */}
@@ -211,7 +328,7 @@ export function AddCustomer({ onBack, onSuccess }) {
                     <button onClick={onBack} className="p-1 hover:bg-slate-100 rounded-full transition-colors">
                         <ArrowLeft className="h-4 w-4 text-slate-600" />
                     </button>
-                    <h1 className="text-sm font-bold text-[#1a2f4c] uppercase">Add customer</h1>
+                    <h1 className="text-sm font-bold text-[#1a2f4c] uppercase">{isEditing ? 'Edit customer' : 'Add customer'}</h1>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button onClick={fillMockData} className="bg-amber-500 hover:bg-amber-600 text-white font-bold uppercase text-[9px] h-7 px-3 tracking-wider">
@@ -228,23 +345,23 @@ export function AddCustomer({ onBack, onSuccess }) {
                 <form className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-2 max-w-[1400px] mx-auto" onSubmit={handleSubmit}>
                     
                     {/* Row 1: 1-Company, 2-Code, 3-Name */}
-                    <InputGroup label="1. Company Name" name="parent_company" type="select" value={formData.parent_company} options={['OM COURIER', 'BRISK']} />
-                    <InputGroup label="2. Cust Code" name="code" value={formData.code} />
-                    <InputGroup label="3. Cust Name" name="name" value={formData.name} placeholder="ENTER CUSTOMER NAME" />
+                    <InputGroup label="1. Company Name" name="parent_company" value={formData.parent_company} placeholder="ENTER COMPANY NAME" onChange={handleChange} />
+                    <InputGroup label="2. Cust Code" name="code" value={formData.code} onChange={handleChange} />
+                    <InputGroup label="3. Cust Name" name="name" value={formData.name} placeholder="ENTER CUSTOMER NAME" onChange={handleChange} />
 
                     {/* Row 2: 4-Address (Span 2), 5-Pincode */}
-                    <InputGroup label="4. Address" name="address" type="textarea" value={formData.address} placeholder="ENTER COMPLETE ADDRESS" className="md:col-span-2 h-14" />
-                    <InputGroup label="5. Pincode" name="pincode" value={formData.pincode} placeholder="400XXX" />
+                    <InputGroup label="4. Address" name="address" type="textarea" value={formData.address} placeholder="ENTER COMPLETE ADDRESS" className="md:col-span-2 h-14" onChange={handleChange} />
+                    <InputGroup label="5. Pincode" name="pincode" value={formData.pincode} placeholder="400XXX" onChange={handleChange} />
 
                     {/* Row 3: 6-City, 7-State, 8-GST No */}
-                    <InputGroup label="6. City" name="city" type="select" value={formData.city} options={masters.cities.map(c => c.name)} />
-                    <InputGroup label="7. State (with code)" name="state" type="select" value={formData.state} options={masters.states.map(s => `${s.name} (${s.id || '27'})`)} />
-                    <InputGroup label="8. GST No" name="gst_no" value={formData.gst_no} placeholder="27AAAAA..." />
+                    <InputGroup label="6. City" name="city" type="select" value={formData.city} options={masters.cities.map(c => c.name)} onChange={handleChange} />
+                    <InputGroup label="7. State (with code)" name="state" type="select" value={formData.state} options={masters.states.map(s => `${s.name} (${s.id || '27'})`)} onChange={handleChange} />
+                    <InputGroup label="8. GST No" name="gst_no" value={formData.gst_no} placeholder="27AAAAA..." onChange={handleChange} />
 
                     {/* Row 4: 9-Contact, 10-Mail, 11-SAC Code */}
-                    <InputGroup label="9. Contact No" name="phone" value={formData.phone} placeholder="+91 XXXXX XXXXX" />
-                    <InputGroup label="10. Mail Id" name="email" value={formData.email} placeholder="example@mail.com" />
-                    <InputGroup label="11. SAC Code" name="sac_code" value={formData.sac_code} />
+                    <InputGroup label="9. Contact No" name="phone" value={formData.phone} placeholder="+91 XXXXX XXXXX" onChange={handleChange} />
+                    <InputGroup label="10. Mail Id" name="email" value={formData.email} placeholder="example@mail.com" onChange={handleChange} />
+                    <InputGroup label="11. SAC Code" name="sac_code" value={formData.sac_code} onChange={handleChange} />
 
                     {/* Row 5: 12-GST Charges, 13-Type */}
                     <div className="flex flex-col gap-0.5">
@@ -272,14 +389,14 @@ export function AddCustomer({ onBack, onSuccess }) {
 
                     {/* Row 6: All Rate Groups in a single line (14, 15, 16, 17) */}
                     <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-4 p-2 bg-blue-50/30 border border-blue-100 rounded-sm">
-                        <InputGroup label="14. Domestic Rate Group" name="domestic_rate_group" type="select" value={formData.domestic_rate_group} options={masters.domesticRateGroups.map(g => g.name)} />
-                        <InputGroup label="15. Domestic Fuel Group" name="domestic_fuel_group" type="select" value={formData.domestic_fuel_group} options={masters.domesticFuelGroups.map(g => g.name)} />
-                        <InputGroup label="16. International Rate" name="international_rate_group" type="select" value={formData.international_rate_group} options={masters.internationalRateGroups.map(g => g.name)} />
-                        <InputGroup label="17. International Fuel" name="international_fuel_group" type="select" value={formData.international_fuel_group} options={masters.internationalFuelGroups.map(g => g.name)} />
+                        <InputGroup label="14. Domestic Rate Group" name="domestic_rate_group" type="select" value={formData.domestic_rate_group} options={masters.domesticRateGroups.map(g => g.name)} onChange={handleChange} />
+                        <InputGroup label="15. Domestic Fuel Group" name="domestic_fuel_group" type="select" value={formData.domestic_fuel_group} options={masters.domesticFuelGroups.map(g => g.name)} onChange={handleChange} />
+                        <InputGroup label="16. International Rate" name="international_rate_group" type="select" value={formData.international_rate_group} options={masters.internationalRateGroups.map(g => g.name)} onChange={handleChange} />
+                        <InputGroup label="17. International Fuel" name="international_fuel_group" type="select" value={formData.international_fuel_group} options={masters.internationalFuelGroups.map(g => g.name)} onChange={handleChange} />
                     </div>
 
                     {/* Row 7: 18-MIS Email ID (Span 2), 19-MIS Format */}
-                    <InputGroup label="18. MIS Email ID" name="mis_emails" value={formData.mis_emails} placeholder="REPORTS@MAIL.COM; ACCOUNTS@MAIL.COM" className="md:col-span-2" />
+                    <InputGroup label="18. MIS Email ID" name="mis_emails" value={formData.mis_emails} placeholder="REPORTS@MAIL.COM; ACCOUNTS@MAIL.COM" className="md:col-span-2" onChange={handleChange} />
                     
                     <div className="flex flex-col gap-0.5">
                         <label className="text-[10px] font-black text-slate-700 uppercase leading-none">19. MIS Format Selection</label>
@@ -289,6 +406,7 @@ export function AddCustomer({ onBack, onSuccess }) {
                             onChange={handleChange}
                             className="w-full h-8 px-2 bg-white border border-slate-300 rounded-sm text-[10px] font-bold outline-none focus:border-blue-600 transition-all cursor-pointer"
                         >
+                            <option value="">SELECT...</option>
                             <option value="SR.No Date Consigner Consignee Destination Pincode Invoice">Format 1: Standard</option>
                             <option value="SR.No Date Consigner Pincode Pickup From Consignee Pincode">Format 2: Consignor/Consignee Pincode</option>
                             <option value="SR.No Date Consigner Pincode Pickup From">Format 3: Dispatch Details</option>

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search, FileText, LayoutGrid, CheckCircle2, AlertCircle, Edit2, Trash2, Download, Filter, MoreHorizontal, X, Pencil } from "lucide-react"
 import { api } from '../../services/api';
 
-export function CustomerDetails({ setCurrentPage }) {
+export function CustomerDetails({ setCurrentPage, setEditingCustomer: setGlobalEditingCustomer }) {
   const [customers, setCustomers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingCustomer, setEditingCustomer] = useState(null);
@@ -53,16 +53,8 @@ export function CustomerDetails({ setCurrentPage }) {
   };
 
   const openEdit = (customer) => {
-    setEditingCustomer(customer);
-    setFormData({
-      code: customer.code,
-      name: customer.name,
-      phone: customer.phone,
-      email: customer.email,
-      city: customer.city,
-      gst_no: customer.gst_no
-    });
-    // setIsModalOpen(true); // Removed as modal is removed
+    setGlobalEditingCustomer(customer);
+    setCurrentPage('add-customer');
   };
 
   const filteredCustomers = customers.filter(c => 

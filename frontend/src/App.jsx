@@ -25,6 +25,7 @@ import { MailConfig } from "./components/features/MailConfig"
 function App() {
   const [user, setUser] = useState({ name: 'Admin', role: 'admin' })
   const [currentPage, setCurrentPage] = useState("dashboard")
+  const [editingCustomer, setEditingCustomer] = useState(null)
 
   useEffect(() => {
     const savedUser = localStorage.getItem('om-courier-user');
@@ -52,7 +53,7 @@ function App() {
       {currentPage === "dashboard" && <AdminDashboard />}
       {currentPage === "add-shipment" && <AddUnifiedShipmentForm initialType="domestic" />}
       {currentPage === "gst-setting" && <GstSetting />}
-      {currentPage === "view-customer" && <CustomerDetails setCurrentPage={setCurrentPage} />}
+      {currentPage === "view-customer" && <CustomerDetails setCurrentPage={setCurrentPage} setEditingCustomer={setEditingCustomer} />}
       {currentPage === "courier-master" && <CourierMaster />}
       {currentPage === "mode-master" && <ModeMaster />}
       {currentPage === "int-zone" && <InternationalZone />}
@@ -66,7 +67,19 @@ function App() {
       {currentPage === "view-branch-cnode" && <BranchWiseCnode />}
       {currentPage === "rate-group" && <RateGroup />}
       {currentPage === "fuel-group" && <FuelGroup />}
-      {currentPage === "add-customer" && <AddCustomer onBack={() => setCurrentPage('view-customer')} onSuccess={() => setCurrentPage('view-customer')} />}
+      {currentPage === "add-customer" && (
+        <AddCustomer 
+          editingCustomer={editingCustomer} 
+          onBack={() => {
+            setEditingCustomer(null);
+            setCurrentPage('view-customer');
+          }} 
+          onSuccess={() => {
+            setEditingCustomer(null);
+            setCurrentPage('view-customer');
+          }} 
+        />
+      )}
       {currentPage === "company-setting" && <CompanySetting />}
       {currentPage === "mail-config" && <MailConfig />}
 

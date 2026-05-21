@@ -174,9 +174,6 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
     api.getCustomers()
       .then(data => {
         setCustomers(data);
-        if (data.length > 0 && !selectedCustomerId) {
-            handleCustomerChange({ target: { value: data[0].id.toString() } }, data);
-        }
       })
       .catch(err => console.error('Fetch customers error:', err));
 
