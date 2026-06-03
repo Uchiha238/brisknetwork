@@ -76,7 +76,8 @@ const init = async () => {
         domestic_fuel_group TEXT,
         international_fuel_group TEXT,
         mis_emails TEXT,
-        mis_format TEXT
+        mis_format TEXT,
+        payment_type TEXT DEFAULT 'Credit'
       );
 
       CREATE TABLE IF NOT EXISTS rate_groups (
@@ -321,6 +322,7 @@ const init = async () => {
     if (!columns.includes('mis_format')) await db.execAsync("ALTER TABLE customers ADD COLUMN mis_format TEXT");
     if (!columns.includes('customer_type')) await db.execAsync("ALTER TABLE customers ADD COLUMN customer_type TEXT DEFAULT 'Domestic'");
     if (!columns.includes('parent_company')) await db.execAsync("ALTER TABLE customers ADD COLUMN parent_company TEXT");
+    if (!columns.includes('payment_type')) await db.execAsync("ALTER TABLE customers ADD COLUMN payment_type TEXT DEFAULT 'Credit'");
 
     const shipmentInfo = await db.allAsync("PRAGMA table_info(shipments)");
     const sCols = shipmentInfo.map(c => c.name);

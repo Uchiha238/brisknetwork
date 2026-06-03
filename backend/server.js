@@ -5,7 +5,33 @@ const db = require('./db');
 const app = express();
 const PORT = 5000;
 
-app.use(cors());
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'],
+  credentials: false
+}));
+
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self';"
+  );
+  next();
+});
+
 app.use(express.json());
 
 // Middleware to force uppercase for all string inputs except specified exclusions
@@ -29,7 +55,7 @@ app.use((req, res, next) => {
 });
 
 // --- Pincode Route ---
-app.get('/api/pincode/:pincode', async (req, res) => {
+app.get('/api/pincode/:pincode', async (req, res, next) => {
   try {
     const { pincode } = req.params;
     const row = await db.getAsync('SELECT * FROM local_pincodes WHERE pincode = ?', [pincode]);
@@ -46,41 +72,41 @@ app.get('/api/pincode/:pincode', async (req, res) => {
       res.status(404).json({ success: false, error: 'Pincode not found' });
     }
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
 // --- Modes Routes ---
-app.get('/api/modes', async (req, res) => {
+app.get('/api/modes', async (req, res, next) => {
   try {
     const modes = await db.allAsync('SELECT * FROM modes ORDER BY id');
     res.json(modes);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-app.post('/api/modes', async (req, res) => {
+app.post('/api/modes', async (req, res, next) => {
   try {
     const { name, type } = req.body;
     const result = await db.runAsync('INSERT INTO modes (name, type) VALUES (?, ?)', [name.toUpperCase(), type || 'Domestic']);
     res.json({ success: true, id: result.lastID });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
-app.delete('/api/modes/:id', async (req, res) => {
+app.delete('/api/modes/:id', async (req, res, next) => {
   try {
     await db.runAsync('DELETE FROM modes WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 });
 
 // --- Auth Routes ---
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', async (req, res, next) => {
   try {
     const { username, password } = req.body;
     const user = await db.getAsync('SELECT * FROM users WHERE username = ? AND password = ?', [username, password]);
@@ -91,12 +117,12 @@ app.post('/api/login', async (req, res) => {
       res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
 // --- Dashboard Routes ---
-app.get('/api/dashboard', async (req, res) => {
+app.get('/api/dashboard', async (req, res, next) => {
   try {
     const customerCount = (await db.getAsync('SELECT count(*) as count FROM customers')).count;
     const shipmentCount = (await db.getAsync('SELECT count(*) as count FROM shipments')).count;
@@ -108,21 +134,21 @@ app.get('/api/dashboard', async (req, res) => {
       statusDistribution: statusDistribution
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
 // --- Customer Routes ---
-app.get('/api/customers', async (req, res) => {
+app.get('/api/customers', async (req, res, next) => {
   try {
     const customers = await db.allAsync('SELECT * FROM customers');
     res.json(customers);
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
-app.post('/api/customers', async (req, res) => {
+app.post('/api/customers', async (req, res, next) => {
   try {
     const { 
       code, name, phone, email, city, gst_no,
@@ -130,7 +156,7 @@ app.post('/api/customers', async (req, res) => {
       gst_charges, api_access, sac_code, credit_days, cft,
       domestic_rate_group, international_rate_group,
       domestic_fuel_group, international_fuel_group,
-      mis_emails, mis_format
+      mis_emails, mis_format, parent_company, customer_type, payment_type
     } = req.body;
     
     const result = await db.runAsync(`
@@ -140,23 +166,23 @@ app.post('/api/customers', async (req, res) => {
         gst_charges, api_access, sac_code, credit_days, cft,
         domestic_rate_group, international_rate_group,
         domestic_fuel_group, international_fuel_group,
-        mis_emails, mis_format
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        mis_emails, mis_format, parent_company, customer_type, payment_type
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       code, name, phone, email, city, gst_no,
       password, address, staff_allotment, pincode, state,
       gst_charges === 'Yes' ? 1 : 0, api_access, sac_code, credit_days, cft,
       domestic_rate_group, international_rate_group,
       domestic_fuel_group, international_fuel_group,
-      mis_emails, mis_format
+      mis_emails, mis_format, parent_company, customer_type, payment_type || 'Credit'
     ]);
     res.json({ success: true, id: result.lastID });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
-app.put('/api/customers/:id', async (req, res) => {
+app.put('/api/customers/:id', async (req, res, next) => {
   try {
     const { 
       code, name, phone, email, city, gst_no,
@@ -164,7 +190,7 @@ app.put('/api/customers/:id', async (req, res) => {
       gst_charges, api_access, sac_code, credit_days, cft,
       domestic_rate_group, international_rate_group,
       domestic_fuel_group, international_fuel_group,
-      mis_emails, mis_format
+      mis_emails, mis_format, parent_company, customer_type, payment_type
     } = req.body;
     
     await db.runAsync(`
@@ -174,7 +200,7 @@ app.put('/api/customers/:id', async (req, res) => {
         gst_charges = ?, api_access = ?, sac_code = ?, credit_days = ?, cft = ?,
         domestic_rate_group = ?, international_rate_group = ?,
         domestic_fuel_group = ?, international_fuel_group = ?,
-        mis_emails = ?, mis_format = ?
+        mis_emails = ?, mis_format = ?, parent_company = ?, customer_type = ?, payment_type = ?
       WHERE id = ?
     `, [
       code, name, phone, email, city, gst_no,
@@ -182,26 +208,26 @@ app.put('/api/customers/:id', async (req, res) => {
       gst_charges === 'Yes' ? 1 : 0, api_access, sac_code, credit_days, cft,
       domestic_rate_group, international_rate_group,
       domestic_fuel_group, international_fuel_group,
-      mis_emails, mis_format,
+      mis_emails, mis_format, parent_company, customer_type, payment_type || 'Credit',
       req.params.id
     ]);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
-app.delete('/api/customers/:id', async (req, res) => {
+app.delete('/api/customers/:id', async (req, res, next) => {
   try {
     await db.runAsync('DELETE FROM customers WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
 // --- Shipment Routes ---
-app.get('/api/shipments', async (req, res) => {
+app.get('/api/shipments', async (req, res, next) => {
   try {
     const shipments = await db.allAsync(`
       SELECT s.*, c.name as customer_name 
@@ -210,11 +236,11 @@ app.get('/api/shipments', async (req, res) => {
     `);
     res.json(shipments);
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
-app.post('/api/shipments', async (req, res) => {
+app.post('/api/shipments', async (req, res, next) => {
   try {
     const { 
       customer_id, user_id, airway_no, type,
@@ -313,32 +339,32 @@ app.post('/api/shipments', async (req, res) => {
     res.json({ success: true, id: shipmentId });
   } catch (err) {
     console.error('Shipment creation error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
-app.put('/api/shipments/:id/status', async (req, res) => {
+app.put('/api/shipments/:id/status', async (req, res, next) => {
   try {
     const { status, location } = req.body;
     await db.runAsync('UPDATE shipments SET status = ? WHERE id = ?', [status, req.params.id]);
     await db.runAsync('INSERT INTO tracking (shipment_id, status, location, event_time) VALUES (?, ?, ?, ?)', [req.params.id, status, location, new Date().toISOString()]);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
-app.get('/api/shipments/:id/tracking', async (req, res) => {
+app.get('/api/shipments/:id/tracking', async (req, res, next) => {
   try {
     const tracking = await db.allAsync('SELECT * FROM tracking WHERE shipment_id = ? ORDER BY event_time DESC', [req.params.id]);
     res.json(tracking);
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
 // --- Reports ---
-app.get('/api/reports/export', async (req, res) => {
+app.get('/api/reports/export', async (req, res, next) => {
   try {
     const report = await db.allAsync(`
       SELECT s.*, c.name as customer_name, c.code as customer_code
@@ -347,21 +373,21 @@ app.get('/api/reports/export', async (req, res) => {
     `);
     res.json(report);
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
 // --- Masters ---
-app.get('/api/masters/states', async (req, res) => {
+app.get('/api/masters/states', async (req, res, next) => {
   try {
     const states = await db.allAsync('SELECT * FROM states ORDER BY name ASC');
     res.json(states);
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
-app.get('/api/masters/cities', async (req, res) => {
+app.get('/api/masters/cities', async (req, res, next) => {
   try {
     const { state_id } = req.query;
     const sql = state_id ? 'SELECT * FROM cities WHERE state_id = ? ORDER BY name ASC' : 'SELECT * FROM cities ORDER BY name ASC';
@@ -369,28 +395,28 @@ app.get('/api/masters/cities', async (req, res) => {
     const cities = await db.allAsync(sql, params);
     res.json(cities);
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
-app.get('/api/masters/countries', async (req, res) => {
+app.get('/api/masters/countries', async (req, res, next) => {
   try {
     const countries = await db.allAsync('SELECT * FROM countries ORDER BY name ASC');
     res.json(countries);
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
 // --- Company Settings ---
-app.get('/api/company', async (req, res) => {
+app.get('/api/company', async (req, res, next) => {
   try {
     const rows = await db.allAsync('SELECT * FROM company_settings ORDER BY id ASC');
     res.json(rows);
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) { next(err); }
 });
 
-app.post('/api/company', async (req, res) => {
+app.post('/api/company', async (req, res, next) => {
   try {
     const { company_name, logo, gst_no, email, address, pan,
       export_invoice_series, import_invoice_series, domestic_invoice_series,
@@ -410,10 +436,10 @@ app.post('/api/company', async (req, res) => {
        account_name, account_number, ifsc, branch_name, bank_name, bank_terms]
     );
     res.json({ success: true, id: result.lastID });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) { next(err); }
 });
 
-app.put('/api/company/:id', async (req, res) => {
+app.put('/api/company/:id', async (req, res, next) => {
   try {
     const { company_name, logo, gst_no, email, address, pan,
       export_invoice_series, import_invoice_series, domestic_invoice_series,
@@ -432,25 +458,25 @@ app.put('/api/company/:id', async (req, res) => {
        account_name, account_number, ifsc, branch_name, bank_name, bank_terms, req.params.id]
     );
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) { next(err); }
 });
 
-app.delete('/api/company/:id', async (req, res) => {
+app.delete('/api/company/:id', async (req, res, next) => {
   try {
     await db.runAsync('DELETE FROM company_settings WHERE id = ?', [req.params.id]);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) { next(err); }
 });
 
 // --- Mail Config (SMTP) ---
-app.get('/api/mail-config', async (req, res) => {
+app.get('/api/mail-config', async (req, res, next) => {
   try {
     const row = await db.getAsync('SELECT * FROM mail_config ORDER BY id ASC LIMIT 1');
     res.json(row || {});
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) { next(err); }
 });
 
-app.post('/api/mail-config', async (req, res) => {
+app.post('/api/mail-config', async (req, res, next) => {
   try {
     const { port_no, host, username, password } = req.body;
     const result = await db.runAsync(
@@ -458,10 +484,10 @@ app.post('/api/mail-config', async (req, res) => {
       [port_no, host, username, password]
     );
     res.json({ success: true, id: result.lastID });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) { next(err); }
 });
 
-app.put('/api/mail-config/:id', async (req, res) => {
+app.put('/api/mail-config/:id', async (req, res, next) => {
   try {
     const { port_no, host, username, password } = req.body;
     await db.runAsync(
@@ -469,11 +495,11 @@ app.put('/api/mail-config/:id', async (req, res) => {
       [port_no, host, username, password, req.params.id]
     );
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) { next(err); }
 });
 
 // --- Company Branches ---
-app.get('/api/branches', async (req, res) => {
+app.get('/api/branches', async (req, res, next) => {
   try {
     const { company_id } = req.query;
     const sql = company_id
@@ -481,10 +507,10 @@ app.get('/api/branches', async (req, res) => {
       : 'SELECT * FROM company_branches ORDER BY id ASC';
     const params = company_id ? [company_id] : [];
     res.json(await db.allAsync(sql, params));
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) { next(err); }
 });
 
-app.get('/api/branches/next-code', async (req, res) => {
+app.get('/api/branches/next-code', async (req, res, next) => {
   try {
     const last = await db.getAsync("SELECT branch_code FROM company_branches ORDER BY id DESC LIMIT 1");
     let next = 'BC0001';
@@ -493,10 +519,10 @@ app.get('/api/branches/next-code', async (req, res) => {
       next = 'BC' + String(num).padStart(4, '0');
     }
     res.json({ code: next });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) { next(err); }
 });
 
-app.post('/api/branches', async (req, res) => {
+app.post('/api/branches', async (req, res, next) => {
   try {
     const { company_id, branch_name, branch_code, email, contact_no, address, city, state, pincode, contact_person } = req.body;
     if (!company_id || !branch_name) return res.status(400).json({ success: false, error: 'company_id and branch_name are required' });
@@ -505,10 +531,10 @@ app.post('/api/branches', async (req, res) => {
       [company_id, branch_name, branch_code, email, contact_no, address, city, state, pincode, contact_person]
     );
     res.json({ success: true, id: result.lastID });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) { next(err); }
 });
 
-app.put('/api/branches/:id', async (req, res) => {
+app.put('/api/branches/:id', async (req, res, next) => {
   try {
     const { branch_name, branch_code, email, contact_no, address, city, state, pincode, contact_person } = req.body;
     await db.runAsync(
@@ -516,27 +542,27 @@ app.put('/api/branches/:id', async (req, res) => {
       [branch_name, branch_code, email, contact_no, address, city, state, pincode, contact_person, req.params.id]
     );
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) { next(err); }
 });
 
-app.delete('/api/branches/:id', async (req, res) => {
+app.delete('/api/branches/:id', async (req, res, next) => {
   try {
     await db.runAsync('DELETE FROM company_branches WHERE id = ?', [req.params.id]);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+  } catch (err) { next(err); }
 });
 
 // --- Fuel Entries (Detailed Add Fuel Form) ---
-app.get('/api/fuel-entries', async (req, res) => {
+app.get('/api/fuel-entries', async (req, res, next) => {
   try {
     const entries = await db.allAsync('SELECT * FROM fuel_entries ORDER BY id DESC');
     res.json(entries.map(e => ({ ...e, rate_slabs: JSON.parse(e.rate_slabs || '[]') })));
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
-app.post('/api/fuel-entries', async (req, res) => {
+app.post('/api/fuel-entries', async (req, res, next) => {
   try {
     const {
       fuel_courier, fuel_price_pct, company_type, docket_charge, customer,
@@ -557,11 +583,11 @@ app.post('/api/fuel-entries', async (req, res) => {
     ]);
     res.json({ success: true, id: result.lastID });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
-app.put('/api/fuel-entries/:id', async (req, res) => {
+app.put('/api/fuel-entries/:id', async (req, res, next) => {
   try {
     const {
       fuel_courier, fuel_price_pct, company_type, docket_charge, customer,
@@ -582,20 +608,20 @@ app.put('/api/fuel-entries/:id', async (req, res) => {
     ]);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
-app.delete('/api/fuel-entries/:id', async (req, res) => {
+app.delete('/api/fuel-entries/:id', async (req, res, next) => {
   try {
     await db.runAsync('DELETE FROM fuel_entries WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
-app.get('/api/masters/rate-groups', async (req, res) => {
+app.get('/api/masters/rate-groups', async (req, res, next) => {
   try {
     const { type } = req.query;
     const sql = type ? 'SELECT * FROM rate_groups WHERE type = ?' : 'SELECT * FROM rate_groups';
@@ -603,11 +629,11 @@ app.get('/api/masters/rate-groups', async (req, res) => {
     const groups = await db.allAsync(sql, params);
     res.json(groups);
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
-app.get('/api/masters/fuel-groups', async (req, res) => {
+app.get('/api/masters/fuel-groups', async (req, res, next) => {
   try {
     const { type } = req.query;
     const sql = type ? 'SELECT * FROM fuel_groups WHERE type = ?' : 'SELECT * FROM fuel_groups';
@@ -615,11 +641,11 @@ app.get('/api/masters/fuel-groups', async (req, res) => {
     const groups = await db.allAsync(sql, params);
     res.json(groups);
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
-app.post('/api/masters/fuel-groups', async (req, res) => {
+app.post('/api/masters/fuel-groups', async (req, res, next) => {
   try {
     const { name, type } = req.body;
     if (!name || !type) return res.status(400).json({ success: false, error: 'Name and type are required' });
@@ -627,11 +653,11 @@ app.post('/api/masters/fuel-groups', async (req, res) => {
     res.json({ success: true, id: result.lastID });
   } catch (err) {
     if (err.message.includes('UNIQUE')) return res.status(409).json({ success: false, error: 'A fuel group with this name already exists.' });
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
-app.put('/api/masters/fuel-groups/:id', async (req, res) => {
+app.put('/api/masters/fuel-groups/:id', async (req, res, next) => {
   try {
     const { name, type } = req.body;
     if (!name || !type) return res.status(400).json({ success: false, error: 'Name and type are required' });
@@ -639,17 +665,22 @@ app.put('/api/masters/fuel-groups/:id', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     if (err.message.includes('UNIQUE')) return res.status(409).json({ success: false, error: 'A fuel group with this name already exists.' });
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
 });
 
-app.delete('/api/masters/fuel-groups/:id', async (req, res) => {
+app.delete('/api/masters/fuel-groups/:id', async (req, res, next) => {
   try {
     await db.runAsync('DELETE FROM fuel_groups WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    next(err);
   }
+});
+
+app.use((err, req, res, next) => {
+  console.error('Unhandled Error:', err);
+  res.status(500).json({ success: false, error: 'Something went wrong' });
 });
 
 app.listen(PORT, () => {

@@ -58,6 +58,7 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
         international_fuel_group: '',
         mis_emails: '',
         mis_format: '',
+        payment_type: 'Credit',
         password: 'admin@brisk2026', // Hidden from specification but necessary for login
     });
 
@@ -130,6 +131,7 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
             setFormData({
                 ...editingCustomer,
                 gst_charges: editingCustomer.gst_charges ? 'Yes' : 'No',
+                payment_type: editingCustomer.payment_type || 'Credit',
             });
             // Fetch cities for the customer's state so the dropdown is correctly populated!
             if (editingCustomer.state) {
@@ -169,6 +171,7 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
                 international_fuel_group: '',
                 mis_emails: '',
                 mis_format: '',
+                payment_type: 'Credit',
                 password: 'admin@brisk2026'
             });
         }
@@ -258,6 +261,7 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
             international_fuel_group: 'Group A',
             mis_emails: 'reports@brisknetwork.com; billing@brisknetwork.com',
             mis_format: 'SR.No Date Consigner Consignee Destination Pincode Invoice',
+            payment_type: 'Credit',
             password: 'admin@brisk2026'
         });
     };
@@ -297,6 +301,7 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
                     international_fuel_group: '',
                     mis_emails: '',
                     mis_format: '',
+                    payment_type: 'Credit',
                     password: 'admin@brisk2026'
                 });
             }
@@ -375,13 +380,24 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
                             ))}
                         </div>
                     </div>
-                    <div className="md:col-span-2 flex flex-col gap-0.5">
+                    <div className="flex flex-col gap-0.5">
                         <label className="text-[10px] font-black text-slate-700 uppercase leading-none">13. Type</label>
-                        <div className="flex gap-12 items-center h-8 px-4 bg-slate-50 rounded border border-slate-200">
+                        <div className="flex gap-4 items-center h-8 px-2 bg-slate-50 rounded border border-slate-200">
                             {['Domestic', 'International', 'Both'].map(val => (
-                                <label key={val} className="flex items-center gap-2 cursor-pointer">
+                                <label key={val} className="flex items-center gap-1.5 cursor-pointer">
                                     <input type="radio" name="customer_type" value={val} checked={formData.customer_type === val} onChange={handleChange} className="h-3 w-3 accent-blue-600" />
                                     <span className="text-[10px] font-black text-slate-600 uppercase whitespace-nowrap">{val}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                        <label className="text-[10px] font-black text-slate-700 uppercase leading-none">14. Payment Type</label>
+                        <div className="flex gap-4 items-center h-8 px-2 bg-slate-50 rounded border border-slate-200">
+                            {['Credit', 'Cash'].map(val => (
+                                <label key={val} className="flex items-center gap-1.5 cursor-pointer">
+                                    <input type="radio" name="payment_type" value={val} checked={formData.payment_type === val} onChange={handleChange} className="h-3 w-3 accent-blue-600" />
+                                    <span className="text-[10px] font-black text-slate-600 uppercase">{val}</span>
                                 </label>
                             ))}
                         </div>

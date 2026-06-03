@@ -120,6 +120,7 @@ export function CustomerDetails({ setCurrentPage, setEditingCustomer: setGlobalE
                 <th className="p-4 w-48 text-[10px] font-black uppercase tracking-wider text-slate-800">Email</th>
                 <th className="p-4 w-32 text-[10px] font-black uppercase tracking-wider text-slate-800">Phone</th>
                 <th className="p-4 w-32 text-[10px] font-black uppercase tracking-wider text-slate-800">City</th>
+                <th className="p-4 w-32 text-[10px] font-black uppercase tracking-wider text-slate-800">Pay Type</th>
                 <th className="p-4 w-48 text-[10px] font-black uppercase tracking-wider text-slate-800">GST No</th>
                 <th className="p-4 w-24 text-[10px] font-black uppercase tracking-wider text-slate-800 text-center sticky right-0 bg-slate-50/90 backdrop-blur-sm shadow-l border-l border-slate-200">Action</th>
               </tr>
@@ -137,6 +138,11 @@ export function CustomerDetails({ setCurrentPage, setEditingCustomer: setGlobalE
                   <td className="p-4 text-[11px] font-semibold text-slate-500 uppercase">{customer.email}</td>
                   <td className="p-4 text-[11px] font-bold text-slate-600 font-mono">{customer.phone}</td>
                   <td className="p-4 text-[11px] font-black text-slate-700 uppercase">{customer.city}</td>
+                  <td className="p-4 text-[11px] font-black text-slate-700 uppercase">
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${customer.payment_type === 'Cash' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>
+                      {customer.payment_type || 'Credit'}
+                    </span>
+                  </td>
                   <td className="p-4 text-[11px] font-black text-slate-800 font-mono tracking-tighter uppercase">{customer.gst_no}</td>
                   <td className="p-4 text-center sticky right-0 bg-white/90 group-hover:bg-blue-50/90 backdrop-blur-sm border-l border-slate-100 group-hover:border-blue-100 transition-all">
                     <div className="flex justify-center gap-2">

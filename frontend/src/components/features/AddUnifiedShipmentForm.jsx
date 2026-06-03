@@ -3,44 +3,30 @@ import { Button } from "@/components/ui/button"
 import { Save, Plus, Search, MapPin, User, Package, Clock, ShieldCheck, FileText, RotateCcw, Trash2, Globe, Home } from "lucide-react"
 import { api } from '../../services/api';
 
-const SectionHeader = ({ title, className = "", isWhite = false }) => (
-    <div className={`flex items-center justify-between px-2 py-1.5 ${isWhite ? "bg-white border-t border-slate-300" : "bg-green-800 text-white"} text-[10px] font-black border-b border-slate-200 ${className}`}>
-      <span className="uppercase tracking-widest">{title}</span>
-    </div>
-  );
-
-const FormField = ({ label, name, type = "text", value, placeholder, required = false, children, className = "", labelWidth = "100px", isRed = false, inputMaxWidth = "none", onChange, readOnly = false }) => (
-    <div className={`grid items-center gap-1 leading-none ${className}`} style={{ gridTemplateColumns: `${labelWidth} 1fr` }}>
-      <label className={`text-[10px] font-black uppercase truncate ${isRed || required ? "text-red-600" : "text-slate-700"}`}>
-        {label}
-      </label>
-      <div className="relative flex items-center h-[22px]" style={{ maxWidth: inputMaxWidth }}>
-        {children ? children : (
-            <input
-                type={type}
-                name={name}
-                value={value}
-                onChange={readOnly ? undefined : onChange}
-                readOnly={readOnly}
-                placeholder={placeholder}
-                className={`w-full h-full px-2 border border-slate-300 text-[12px] font-bold text-slate-900 outline-none transition-colors placeholder:text-slate-300 placeholder:font-normal ${readOnly ? 'bg-slate-100 cursor-not-allowed' : 'bg-[#fcfcfc] focus:bg-white'}`}
-            />
-        )}
-      </div>
-    </div>
-  );
+import { SectionHeader, FormField } from './awb/FormField';
+import { AwbInfoSection } from './awb/AwbInfoSection';
+import { ShipperInfoSection } from './awb/ShipperInfoSection';
+import { ConsigneeInfoSection } from './awb/ConsigneeInfoSection';
+import { WeightsDimensionsSection } from './awb/WeightsDimensionsSection';
+import { InvoiceSection } from './awb/InvoiceSection';
+import { ChargesSection } from './awb/ChargesSection';
+import { FinalChargeSection } from './awb/FinalChargeSection';
 
 export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
   const [shipmentType, setShipmentType] = useState(initialType); // 'domestic' or 'international'
   const [customers, setCustomers] = useState([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [companies, setCompanies] = useState([]);
+  const [shipperSearch, setShipperSearch] = useState('');
+  const [consigneeSearch, setConsigneeSearch] = useState('');
+  const [showShipperSuggestions, setShowShipperSuggestions] = useState(false);
+  const [showConsigneeSuggestions, setShowConsigneeSuggestions] = useState(false);
   const [formData, setFormData] = useState({
     booking_company: '',
     airway_no: '',
     edit_awb: false,
     email: 'OPSOMCOURIER@GMAIL.COM',
-    payment_mode: 'Cash',
+    payment_mode: 'CASH',
     contact_no: '9029200429',
     account_code: 'WCC9723',
     origin_hub: 'MUMBAI',
@@ -164,7 +150,7 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
       couriers: ['DHL', 'FEDEX', 'UPS', 'SELF'],
       modes: [],
       products: ['DOCUMENTS', 'PARCEL'],
-      billTypes: ['PREPAID', 'COD', 'TO PAY', 'CASH'],
+      billTypes: ['PREPAID', 'COD', 'TO PAY', 'CASH', 'CREDIT'],
       forwarders: ['DHL EXPRESS', 'FEDEX PRIORITY', 'SELF'],
       countries: [],
       branches: []
@@ -302,10 +288,44 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
     const { name, value, type, checked } = e.target;
     
     setFormData(prev => {
-        const newData = {
+        let newData = {
             ...prev,
             [name]: type === 'checkbox' ? checked : (type === 'number' ? value : value.toUpperCase())
         };
+
+        // If pay mode is changed, validate currently selected customer
+        if (name === 'payment_mode') {
+            const newPayMode = value.toUpperCase(); // e.g. "CASH" or "CREDIT"
+            newData.bill_type = newPayMode; // Sync billing type
+            if (selectedCustomerId) {
+                const selectedCust = customers.find(c => c.id.toString() === selectedCustomerId);
+                if (selectedCust) {
+                    const custPayMode = (selectedCust.payment_type || 'Credit').toUpperCase();
+                    if (custPayMode !== newPayMode) {
+                        // Clear selected customer and shipper details
+                        setSelectedCustomerId('');
+                        setShipperSearch('');
+                        newData = {
+                            ...newData,
+                            shipper_code: '',
+                            shipper_company: '',
+                            shipper_name: '',
+                            shipper_address1: '',
+                            shipper_address2: '',
+                            shipper_address3: '',
+                            shipper_zip: '',
+                            shipper_city: '',
+                            shipper_state: '',
+                            shipper_zone: '',
+                            shipper_phone: '',
+                            shipper_email: '',
+                            shipper_kyc_no: '',
+                            account_code: ''
+                        };
+                    }
+                }
+            }
+        }
 
         // Pincode auto-fill using internal local database
         if ((name === 'shipper_zip' || name === 'consignee_zip') && /^\d{6}$/.test(value)) {
@@ -422,30 +442,47 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
     }));
   };
 
+  const generateCustomerCode = (customerList) => {
+      const omsCodes = customerList
+          .map(c => c.code)
+          .filter(code => code && /^OMS\d+$/i.test(code));
+      
+      if (omsCodes.length === 0) {
+          return 'OMS0221';
+      }
+      
+      const numbers = omsCodes.map(code => parseInt(code.replace(/OMS/i, ''), 10));
+      const maxNum = Math.max(...numbers);
+      const nextNum = maxNum + 1;
+      return `OMS${String(nextNum).padStart(4, '0')}`;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     let customerIdToUse = selectedCustomerId;
 
-    if (formData.save_as_new_customer) {
+    // 1. Save Shipper as a new customer if checkbox is checked
+    if (formData.shipper_save) {
         if (!formData.shipper_name || !formData.shipper_phone) {
             alert("Please provide Shipper Name and Phone to save as a new customer.");
             return;
         }
 
-        const generatedCode = formData.new_customer_code || `CSH${Date.now().toString().slice(-6)}`;
+        const isCredit = (formData.payment_mode || 'Cash').toLowerCase() === 'credit';
+        const generatedCode = isCredit ? generateCustomerCode(customers) : `CSH${Date.now().toString().slice(-6)}`;
         
         const newCustomerData = {
             code: generatedCode,
             name: formData.shipper_name,
             phone: formData.shipper_phone,
             email: formData.shipper_email || '',
-            address: formData.shipper_address1,
+            address: formData.shipper_address1 + (formData.shipper_address2 ? `, ${formData.shipper_address2}` : '') + (formData.shipper_address3 ? `, ${formData.shipper_address3}` : ''),
             city: formData.shipper_city,
             state: formData.shipper_state,
             pincode: formData.shipper_zip,
             gst_no: formData.shipper_kyc_no || '',
-            password: 'admin@brisk2026', // Placeholder
+            password: 'admin@brisk2026',
             gst_charges: 'Yes',
             staff_allotment: 'Admin',
             api_access: 'Enabled',
@@ -457,7 +494,8 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
             domestic_fuel_group: 'Group A',
             international_fuel_group: 'Group A',
             mis_emails: '',
-            mis_format: 'SR.No Date Consigner Consignee Destination Pincode Invoice'
+            mis_format: 'SR.No Date Consigner Consignee Destination Pincode Invoice',
+            payment_type: isCredit ? 'Credit' : 'Cash'
         };
 
         try {
@@ -469,12 +507,65 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
                 setCustomers(updatedCustomers);
                 setSelectedCustomerId(customerIdToUse.toString());
             } else {
-                alert("Failed to save customer: " + custResult.error);
+                alert("Failed to save shipper customer: " + custResult.error);
                 return;
             }
         } catch (err) {
-            console.error("New customer creation error:", err);
-            alert("Error saving new customer.");
+            console.error("New shipper customer creation error:", err);
+            alert("Error saving new shipper customer.");
+            return;
+        }
+    }
+
+    // 2. Save Consignee as a new customer if checkbox is checked
+    if (formData.consignee_save) {
+        if (!formData.consignee_name || !formData.consignee_phone) {
+            alert("Please provide Consignee Name and Phone to save as a new customer.");
+            return;
+        }
+
+        const isCredit = (formData.payment_mode || 'Cash').toLowerCase() === 'credit';
+        const generatedCode = isCredit ? generateCustomerCode(customers) : `CSH${Date.now().toString().slice(-6)}`;
+        
+        const newConsigneeData = {
+            code: generatedCode,
+            name: formData.consignee_name,
+            phone: formData.consignee_phone,
+            email: formData.consignee_email || '',
+            address: formData.consignee_address1 + (formData.consignee_address2 ? `, ${formData.consignee_address2}` : '') + (formData.consignee_address3 ? `, ${formData.consignee_address3}` : ''),
+            city: formData.consignee_city,
+            state: formData.consignee_state,
+            pincode: formData.consignee_zip,
+            gst_no: '',
+            password: 'admin@brisk2026',
+            gst_charges: 'Yes',
+            staff_allotment: 'Admin',
+            api_access: 'Enabled',
+            sac_code: '996812',
+            credit_days: '30',
+            cft: '10',
+            domestic_rate_group: 'Domestic 1',
+            international_rate_group: 'CO COURIER 1',
+            domestic_fuel_group: 'Group A',
+            international_fuel_group: 'Group A',
+            mis_emails: '',
+            mis_format: 'SR.No Date Consigner Consignee Destination Pincode Invoice',
+            payment_type: isCredit ? 'Credit' : 'Cash'
+        };
+
+        try {
+            const custResult = await api.createCustomer(newConsigneeData);
+            if (custResult.success) {
+                // Update dropdown list
+                const updatedCustomers = await api.getCustomers();
+                setCustomers(updatedCustomers);
+            } else {
+                alert("Failed to save consignee customer: " + custResult.error);
+                return;
+            }
+        } catch (err) {
+            console.error("New consignee customer creation error:", err);
+            alert("Error saving new consignee customer.");
             return;
         }
     }
@@ -497,6 +588,78 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
       console.error(err);
       alert('Failed to save shipment. Please check the backend.');
     }
+  };
+
+  // Filter shipper search results based on shipperSearch query AND pay mode
+  const filteredShipperCustomers = customers.filter(cust => {
+      if (!shipperSearch) return [];
+      const q = shipperSearch.toLowerCase();
+      const matchSearch = 
+          (cust.name && cust.name.toLowerCase().includes(q)) || 
+          (cust.code && cust.code.toLowerCase().includes(q)) ||
+          (cust.parent_company && cust.parent_company.toLowerCase().includes(q));
+      
+      // Pay mode filter: Cash / Credit
+      const currentPayMode = formData.payment_mode || 'Cash'; // e.g. "Cash" or "Credit"
+      const custPayMode = cust.payment_type || 'Credit'; // customer master default to 'Credit'
+      
+      const matchPayMode = custPayMode.toLowerCase() === currentPayMode.toLowerCase();
+      
+      return matchSearch && matchPayMode;
+  });
+
+  // Filter consignee search results based on consigneeSearch query (any customer from Customer Master)
+  const filteredConsigneeCustomers = customers.filter(cust => {
+      if (!consigneeSearch) return [];
+      const q = consigneeSearch.toLowerCase();
+      return (
+          (cust.name && cust.name.toLowerCase().includes(q)) || 
+          (cust.code && cust.code.toLowerCase().includes(q)) ||
+          (cust.parent_company && cust.parent_company.toLowerCase().includes(q))
+      );
+  });
+
+  const handleSelectShipper = (customer) => {
+      if (!customer) return;
+      setSelectedCustomerId(customer.id);
+      setShipperSearch(customer.name || customer.parent_company || '');
+      const custPayMode = (customer.payment_type || 'Credit').toUpperCase();
+      setFormData(prev => ({
+          ...prev,
+          payment_mode: custPayMode,
+          bill_type: custPayMode, // Auto-select bill type to match pay mode (CASH or CREDIT)
+          contact_no: customer.phone || prev.contact_no || '',
+          account_code: customer.code || prev.account_code || '',
+          shipper_code: customer.code || '',
+          shipper_company: customer.parent_company || customer.name || '',
+          shipper_name: customer.name || '',
+          shipper_address1: customer.address || '',
+          shipper_city: customer.city || '',
+          shipper_state: customer.state || '',
+          shipper_zip: customer.pincode || '',
+          shipper_email: customer.email || '',
+          shipper_phone: customer.phone || '+91',
+          shipper_kyc_no: customer.gst_no || '',
+      }));
+  };
+
+  const handleSelectConsignee = (customer) => {
+      if (!customer) return;
+      setConsigneeSearch(customer.name || customer.parent_company || '');
+      setFormData(prev => ({
+          ...prev,
+          consignee_code: customer.code || '',
+          consignee_company: customer.parent_company || customer.name || '',
+          consignee_name: customer.name || '',
+          consignee_address1: customer.address || '',
+          consignee_address2: '',
+          consignee_address3: '',
+          consignee_zip: customer.pincode || '',
+          consignee_city: customer.city || '',
+          consignee_state: customer.state || '',
+          consignee_phone: customer.phone || '',
+          consignee_email: customer.email || '',
+      }));
   };
 
   const selectedCompany = companies.find(c => c.company_name === formData.booking_company);
@@ -529,699 +692,142 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
 
       {/* Main 3-Column Layout */}
       <div className="grid grid-cols-3 gap-0 border border-slate-300 divide-x divide-slate-300">
-        
-        {/* Column 1: AWB INFO */}
-        <div className="flex flex-col">
-            <div className="px-2 py-1 border-b border-slate-300 bg-slate-50">
-                <h3 className="text-[10px] font-bold text-blue-800 uppercase">Air Waybill Information</h3>
-            </div>
-            <div className="p-1.5 space-y-0.5">
-                <div className="grid grid-cols-[1fr_85px_1fr] gap-1 items-center">
-                    <FormField onChange={handleChange} label="DATE" name="booking_date" isRed labelWidth="85px" type="date" value={formData.booking_date} />
-                    <label className="text-[9px] font-bold text-slate-600 uppercase text-right">Booking Time</label>
-                    <input name="booking_time" value={formData.booking_time} onChange={handleChange} className="h-5 px-1 border border-slate-300 text-[10px] font-bold bg-slate-50" />
-                </div>
-
-                <FormField onChange={handleChange} label="Company" isRed labelWidth="85px">
-                    <div className="flex gap-1 w-full h-full">
-                        <select 
-                            name="booking_company"
-                            value={formData.booking_company}
-                            onChange={handleChange}
-                            className="flex-[2] h-full px-1 bg-slate-50 border border-slate-300 text-[10px] font-bold outline-none"
-                        >
-                            <option value="">SELECT...</option>
-                            {companies.map(c => <option key={c.id} value={c.company_name}>{c.company_name}</option>)}
-                        </select>
-                        <select name="branch" value={formData.branch} onChange={handleChange} className="flex-1 h-full px-1 bg-slate-50 border border-slate-300 text-[10px] font-bold outline-none">
-                            {filteredBranches.length > 0 && <option value="">SELECT...</option>}
-                            {filteredBranches.map(b => <option key={b.id} value={b.branch_name}>{b.branch_name}</option>)}
-                        </select>
-                    </div>
-                </FormField>
-
-                <FormField onChange={handleChange} label="PAY MODE" name="payment_mode" isRed labelWidth="85px">
-                   <select name="payment_mode" value={formData.payment_mode} onChange={handleChange} className="flex-1 h-full px-1 bg-slate-50 border border-slate-300 text-[10px] font-bold outline-none">
-                       <option value="Cash">CASH</option>
-                       <option value="Credit">CREDIT</option>
-                   </select>
-                </FormField>
-
-                <div className="grid grid-cols-2 gap-1">
-                   <FormField onChange={handleChange} label="Type" name="shipment_type_field" isRed labelWidth="85px">
-                      <select name="shipment_type_field" value={shipmentType} onChange={(e) => { 
-                          const type = e.target.value;
-                          setShipmentType(type); 
-                          handleChange(e); 
-                          if (type === 'domestic') {
-                              setFormData(prev => ({ ...prev, consignee_country: 'INDIA' }));
-                          }
-                      }} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold outline-none">
-                          <option value="domestic">DOMESTIC</option>
-                          <option value="international">INTERNATIONAL</option>
-                      </select>
-                   </FormField>
-                   <FormField onChange={handleChange} label="Mode" name="mode" isRed labelWidth="40px">
-                      <select name="mode" value={formData.mode} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold outline-none">
-                          <option value="">SELECT...</option>
-                          {masters.modes
-                            .filter(m => !m.type || m.type === 'Both' || m.type.toLowerCase() === shipmentType)
-                            .map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
-                      </select>
-                   </FormField>
-                </div>
-
-                <FormField onChange={handleChange} label="Product" name="product" isRed labelWidth="85px">
-                   <select name="product" value={formData.product} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold">
-                      <option>SELECT..</option>
-                      {masters.products.map(p => <option key={p} value={p}>{p}</option>)}
-                   </select>
-                </FormField>
-
-                <FormField onChange={handleChange} label="AWB Number" name="airway_no" isRed labelWidth="85px">
-                   <div className="flex gap-1 w-full h-full">
-                      <input name="airway_no" value={formData.airway_no} onChange={handleChange} className="flex-1 h-full px-1 bg-slate-100 border border-slate-300 text-[10px] font-bold outline-none" />
-                      <button className="bg-slate-400 text-white text-[8px] font-bold px-2 h-full uppercase">Edit</button>
-                   </div>
-                </FormField>
-
-                <FormField onChange={handleChange} label="FWD NO" name="forward_no" labelWidth="85px" value={formData.forward_no} />
-
-                {shipmentType === 'domestic' ? (
-                    <div className="grid grid-cols-[1fr_95px_70px] gap-1">
-                       <FormField onChange={handleChange} label="Destination" name="consignee_country" isRed labelWidth="85px">
-                           <input name="consignee_country" value="INDIA" readOnly className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none bg-slate-100" />
-                       </FormField>
-                       <FormField onChange={handleChange} label="PIN" name="consignee_zip" isRed labelWidth="25px" value={formData.consignee_zip} />
-                       <FormField onChange={handleChange} label="Zone" name="consignee_zone" labelWidth="35px" value={formData.consignee_zone} />
-                    </div>
-                ) : (
-                    <FormField onChange={handleChange} label="Destination" name="consignee_country" isRed labelWidth="85px">
-                        <input list="countries-list" name="consignee_country" value={formData.consignee_country} onChange={handleChange} placeholder="SELECT..." className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none" />
-                    </FormField>
-                )}
-
-                <FormField onChange={handleChange} label="Service" name="service" isRed labelWidth="85px">
-                   <select name="service" value={formData.service} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold outline-none">
-                       <option value="">SELECT...</option>
-                       <option value="DOMESTIC EXPRESS">DOMESTIC EXPRESS - DOMESTIC EXPRESS</option>
-                       <option value="DOMESTIC ECONOMY">DOMESTIC ECONOMY - DOMESTIC ECONOMY</option>
-                       <option value="DHL EXP">DHL EXP - DHL EXP</option>
-                       <option value="FEDEX IP">FEDEX IP - FEDEX IP</option>
-                       <option value="UPS EXP SAVER">UPS EXP SAVER - UPS EXP SAVER</option>
-                       <option value="BOMBINO SELF PREMIUM">BOMBINO SELF - BOMBINO SELF PREMIUM</option>
-                       <option value="BOMBINO SELF SERVICE">BOMBINO SELF SERVICE - BOMBINO SELF SERVICE</option>
-                   </select>
-                </FormField>
-
-                {shipmentType === 'international' && (
-                  <>
-                    <FormField onChange={handleChange} label="Duty" name="duty" isRed labelWidth="85px">
-                      <select name="duty" value={formData.duty} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold">
-                          <option>SELECT...</option>
-                          <option>DDP</option>
-                          <option>DDU</option>
-                      </select>
-                    </FormField>
-                  </>
-                )}
-
-                <FormField onChange={handleChange} label="REF NO" name="ref_no" labelWidth="85px" value={formData.ref_no} />
-
-                <div className="grid grid-cols-2 gap-1">
-                    <FormField onChange={handleChange} label="VALUE" name="shipment_value" labelWidth="85px" value={formData.shipment_value} />
-                    <FormField onChange={handleChange} label="Currency" name="currency" labelWidth="45px">
-                        <select name="currency" value={formData.currency} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold">
-                            <option>SELECT..</option>
-                            <option>INR</option>
-                            <option>USD</option>
-                        </select>
-                    </FormField>
-                </div>
-
-                <div className="grid grid-cols-2 gap-1">
-                    <FormField onChange={handleChange} label="INV DATE" name="invoice_date" isRed labelWidth="85px" type="date" value={formData.invoice_date} />
-                    <FormField onChange={handleChange} label="INV NO" name="invoice_no" labelWidth="85px" value={formData.invoice_no} />
-                </div>
-
-                <FormField onChange={handleChange} label="EWB NO" name="eway_bill_no" labelWidth="85px" value={formData.eway_bill_no} />
-
-                <FormField onChange={handleChange} label="Content" name="content" labelWidth="85px" value={formData.content} />
-            </div>
-        </div>
-
-        {/* Column 2: SHIPPER INFO */}
-        <div className="flex flex-col">
-            <div className="px-2 py-1 border-b border-slate-300 bg-slate-50 flex justify-between items-center">
-                <h3 className="text-[10px] font-bold text-blue-800 uppercase">Shipper / Consignor / From</h3>
-                <div className="flex gap-2">
-                   <RotateCcw className="h-3 w-3 text-blue-800 cursor-pointer" />
-                   <div className="flex items-center gap-1">
-                      <input type="checkbox" name="shipper_save" checked={formData.shipper_save} onChange={handleChange} className="h-3 w-3" />
-                      <span className="text-[8px] font-bold text-slate-500 uppercase">Save to address book?</span>
-                   </div>
-                </div>
-            </div>
-            <div className="p-1.5 space-y-1">
-                <FormField onChange={handleChange} label="Search Address Book" labelWidth="95px">
-                   <input className="w-full h-full px-1 border border-slate-300" />
-                </FormField>
-
-                <div className="grid grid-cols-[1fr_85px] gap-1">
-                   <FormField onChange={handleChange} label="Code" name="shipper_code" labelWidth="95px" value={formData.shipper_code} />
-                   <div className="flex items-center gap-1">
-                      <input type="checkbox" name="shipper_update" checked={formData.shipper_update} onChange={handleChange} className="h-2.5 w-2.5" />
-                      <span className="text-[7px] font-bold text-slate-500 uppercase leading-none">Update address book?</span>
-                   </div>
-                </div>
-
-                <FormField onChange={handleChange} label="Company" name="shipper_company" labelWidth="95px" value={formData.shipper_company} />
-                <FormField onChange={handleChange} label="Person Name" name="shipper_name" isRed labelWidth="95px" value={formData.shipper_name} />
-                <FormField onChange={handleChange} label="Address 1" name="shipper_address1" isRed labelWidth="95px" value={formData.shipper_address1} />
-                <FormField onChange={handleChange} label="Address 2" name="shipper_address2" labelWidth="95px" value={formData.shipper_address2} />
-                <FormField onChange={handleChange} label="Address 3" name="shipper_address3" labelWidth="95px" value={formData.shipper_address3} />
-
-                <div className="grid grid-cols-[1fr_50px] gap-1">
-                   <FormField onChange={handleChange} label="Post / Zip Code" name="shipper_zip" isRed labelWidth="95px" value={formData.shipper_zip} />
-                   <button className="bg-yellow-500 hover:bg-yellow-600 text-[8px] font-bold text-white uppercase h-5">Search</button>
-                </div>
-
-                <FormField onChange={handleChange} label="City" name="shipper_city" labelWidth="95px" value={formData.shipper_city} />
-                <div className="grid grid-cols-[1fr_80px] gap-1">
-                   <FormField onChange={handleChange} label="State / County" name="shipper_state" isRed labelWidth="95px" value={formData.shipper_state} />
-                   <FormField onChange={handleChange} label="Zone" name="shipper_zone" labelWidth="35px" value={formData.shipper_zone} />
-                </div>
-
-                <FormField onChange={handleChange} label="Country" name="shipper_country" isRed labelWidth="95px">
-                   <input list="countries-list" name="shipper_country" value={formData.shipper_country} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none" />
-                </FormField>
-
-                <div className="grid grid-cols-[90px_1fr] gap-1 items-center">
-                   <label className="text-[9px] font-bold text-red-500 uppercase">Phone Number</label>
-                   <div className="flex gap-1 h-5">
-                      <input value="+91" readOnly className="w-8 h-full text-center text-[10px] font-bold bg-slate-50 border border-slate-300" />
-                      <input name="shipper_phone" value={formData.shipper_phone} onChange={handleChange} className="flex-1 h-full px-1 text-[10px] font-bold border border-slate-300" />
-                   </div>
-                </div>
-
-                <FormField onChange={handleChange} label="Email Address" name="shipper_email" labelWidth="95px" value={formData.shipper_email} />
-                
-                <FormField onChange={handleChange} label="KYC Type" name="shipper_kyc_type" labelWidth="95px">
-                   <select name="shipper_kyc_type" value={formData.shipper_kyc_type} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold">
-                      <option>PAN CARD</option>
-                      <option>GSTIN</option>
-                   </select>
-                </FormField>
-
-                <FormField onChange={handleChange} label="KYC Number" name="shipper_kyc_no" labelWidth="95px" value={formData.shipper_kyc_no} />
-
-                <div className="grid grid-cols-[95px_1fr_1fr] gap-1 items-center h-5">
-                    <label className="text-[9px] font-bold text-slate-600 uppercase">Upload KYC</label>
-                    <input type="file" className="text-[7px] w-full" />
-                    <input type="file" className="text-[7px] w-full" />
-                </div>
-
-                <div className="grid grid-cols-[95px_1fr] gap-1 items-center h-5">
-                    <label className="text-[9px] font-bold text-slate-600 uppercase">Shipper Image</label>
-                    <input type="file" className="text-[7px] w-full" />
-                </div>
-            </div>
-        </div>
-
-        {/* Column 3: CONSIGNEE INFO */}
-        <div className="flex flex-col">
-            <div className="px-2 py-1 border-b border-slate-300 bg-slate-50 flex justify-between items-center">
-                <h3 className="text-[10px] font-bold text-blue-800 uppercase">Consignee / Receiver / To</h3>
-                <div className="flex gap-2">
-                   <RotateCcw className="h-3 w-3 text-blue-800 cursor-pointer" />
-                   <div className="flex items-center gap-1">
-                      <input type="checkbox" name="consignee_save" checked={formData.consignee_save} onChange={handleChange} className="h-3 w-3" />
-                      <span className="text-[8px] font-bold text-slate-500 uppercase">Save to address book?</span>
-                   </div>
-                </div>
-            </div>
-            <div className="p-1.5 space-y-1">
-                <FormField onChange={handleChange} label="Search Address Book" labelWidth="105px" inputMaxWidth="320px">
-                   <input className="w-full h-full px-1 border border-slate-300" />
-                </FormField>
-
-                <div className="grid grid-cols-[1fr_85px] gap-1">
-                   <FormField onChange={handleChange} label="Code" name="consignee_code" labelWidth="105px" value={formData.consignee_code} inputMaxWidth="320px" />
-                   <div className="flex items-center gap-1">
-                      <input type="checkbox" name="consignee_update" checked={formData.consignee_update} onChange={handleChange} className="h-2.5 w-2.5" />
-                      <span className="text-[7px] font-bold text-slate-500 uppercase leading-none">Update address book?</span>
-                   </div>
-                </div>
-
-                <FormField onChange={handleChange} label="Company" name="consignee_company" labelWidth="105px" value={formData.consignee_company} inputMaxWidth="320px" />
-                <FormField onChange={handleChange} label="Person Name" name="consignee_name" isRed labelWidth="105px" value={formData.consignee_name} inputMaxWidth="320px" />
-                <FormField onChange={handleChange} label="Address 1" name="consignee_address1" isRed labelWidth="105px" value={formData.consignee_address1} inputMaxWidth="320px" />
-                <FormField onChange={handleChange} label="Apartment# / Floor#" name="consignee_address2" labelWidth="105px" value={formData.consignee_address2} inputMaxWidth="320px" />
-                <FormField onChange={handleChange} label="Address 3" name="consignee_address3" labelWidth="105px" value={formData.consignee_address3} inputMaxWidth="320px" />
-
-                <div className="grid grid-cols-[1fr_50px] gap-1 max-w-[425px]">
-                   <FormField onChange={handleChange} label="Post / Zip Code" name="consignee_zip" isRed labelWidth="105px" value={formData.consignee_zip} inputMaxWidth="320px" readOnly />
-                   <button className="bg-slate-300 text-[8px] font-bold text-white uppercase h-[22px] cursor-not-allowed" disabled>Search</button>
-                </div>
-
-                <FormField onChange={handleChange} label="City" name="consignee_city" isRed labelWidth="105px" value={formData.consignee_city} inputMaxWidth="320px" readOnly />
-                <div className="grid grid-cols-[1fr_80px] gap-1 max-w-[425px]">
-                   <FormField onChange={handleChange} label="State / County" name="consignee_state" labelWidth="105px" value={formData.consignee_state} inputMaxWidth="320px" readOnly />
-                   <FormField onChange={handleChange} label="Zone" name="consignee_zone" labelWidth="35px" value={formData.consignee_zone} readOnly />
-                </div>
-
-                <FormField onChange={handleChange} label="Country" name="consignee_country" isRed labelWidth="105px" inputMaxWidth="320px" readOnly>
-                   <input name="consignee_country" value={formData.consignee_country} readOnly className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none bg-slate-100 cursor-not-allowed" />
-                </FormField>
-
-                <div className="grid grid-cols-[105px_1fr_1fr] gap-1 items-center max-w-[425px]">
-                   <label className="text-[9px] font-bold text-red-500 uppercase">Phone Number</label>
-                   <input className="h-[22px] px-1 text-[11px] font-bold border border-slate-300" />
-                   <input className="h-[22px] px-1 text-[11px] font-bold border border-slate-300" />
-                </div>
-
-                <FormField onChange={handleChange} label="Email Address" name="consignee_email" labelWidth="105px" value={formData.consignee_email} inputMaxWidth="320px" />
-            </div>
-        </div>
+        <AwbInfoSection
+          formData={formData}
+          handleChange={handleChange}
+          companies={companies}
+          filteredBranches={filteredBranches}
+          shipmentType={shipmentType}
+          setShipmentType={setShipmentType}
+          setFormData={setFormData}
+          masters={masters}
+        />
+        <ShipperInfoSection
+          formData={formData}
+          handleChange={handleChange}
+          shipperSearch={shipperSearch}
+          setShipperSearch={setShipperSearch}
+          showShipperSuggestions={showShipperSuggestions}
+          setShowShipperSuggestions={setShowShipperSuggestions}
+          filteredShipperCustomers={filteredShipperCustomers}
+          handleSelectShipper={handleSelectShipper}
+        />
+        <ConsigneeInfoSection
+          formData={formData}
+          handleChange={handleChange}
+          consigneeSearch={consigneeSearch}
+          setConsigneeSearch={setConsigneeSearch}
+          showConsigneeSuggestions={showConsigneeSuggestions}
+          setShowConsigneeSuggestions={setShowConsigneeSuggestions}
+          filteredConsigneeCustomers={filteredConsigneeCustomers}
+          handleSelectConsignee={handleSelectConsignee}
+        />
       </div>
 
-      {/* Bottom Section: Weights and Dimensions */}
-      <div className="mt-1 border border-slate-300 bg-white">
-          <SectionHeader title="Weights and Dimensions" isWhite />
-          
-          {/* Summary Row */}
-          <div className="p-1 flex items-center gap-6 border-b border-slate-200 bg-slate-50/50">
-             <div className="flex items-center gap-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase">PCS</label>
-                <input type="number" name="pcs" value={formData.pcs} onChange={handleChange} className="w-16 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-white text-slate-900" />
-             </div>
-             <div className="flex items-center gap-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase">Actual Weight</label>
-                <input type="number" value={formData.actual_weight} className="w-20 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-slate-100 text-slate-900" readOnly />
-             </div>
-             <div className="flex items-center gap-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase">Volumetric Weight</label>
-                <input type="number" value={formData.volumetric_weight} className="w-20 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-black text-white" readOnly />
-             </div>
-             <div className="flex items-center gap-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase">Chargeable Weight</label>
-                <input type="number" value={formData.chargeable_weight} className="w-20 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-slate-100 text-slate-900" readOnly />
-             </div>
-          </div>
+      <WeightsDimensionsSection
+        formData={formData}
+        handleChange={handleChange}
+        handleArrayChange={handleArrayChange}
+        shipmentType={shipmentType}
+      />
 
-          {/* Parcel Detail Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-[9px] font-black text-slate-500 uppercase">
-                  <th className="px-2 py-1.5 border-r border-slate-200 w-24">Parcel No.</th>
-                  <th className="px-2 py-1.5 border-r border-slate-200 w-20">Box No</th>
-                  <th className="px-2 py-1.5 border-r border-slate-200 text-red-600">Actual Wt.(KG.)</th>
-                  <th className="px-2 py-1.5 border-r border-slate-200">L(CM)</th>
-                  <th className="px-2 py-1.5 border-r border-slate-200">B(CM)</th>
-                  <th className="px-2 py-1.5 border-r border-slate-200">H(CM)</th>
-                  <th className="px-2 py-1.5 border-r border-slate-200">Volumetric Wt.(KG.)</th>
-                  <th className="px-2 py-1.5">Chargeable Wt.(KG.)</th>
+      <InvoiceSection
+        formData={formData}
+        handleChange={handleChange}
+      />
+
+      {/* Invoice Items Table */}
+      {formData.create_invoice && (
+        <div className="mt-2 border border-slate-300 bg-white">
+          <div className="bg-[#1a2f4c] text-white px-2 py-1 text-[10px] font-bold uppercase tracking-wider">
+            Shipment Invoice Items
+          </div>
+          <div className="overflow-x-auto p-1">
+            <table className="w-full text-left border-collapse border border-slate-200">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="px-2 py-1 text-[9px] font-bold text-slate-500 uppercase border border-slate-200">BOX NO.</th>
+                  <th className="px-2 py-1 text-[9px] font-bold text-slate-500 uppercase border border-slate-200">SR. NO.</th>
+                  <th className="px-2 py-1 text-[9px] font-bold text-slate-500 uppercase border border-slate-200">DESCRIPTION</th>
+                  <th className="px-2 py-1 text-[9px] font-bold text-slate-500 uppercase border border-slate-200">HS CODE</th>
+                  <th className="px-2 py-1 text-[9px] font-bold text-slate-500 uppercase border border-slate-200">UNIT TYPE</th>
+                  <th className="px-2 py-1 text-[9px] font-bold text-slate-500 uppercase border border-slate-200">QUANTITY</th>
+                  <th className="px-2 py-1 text-[9px] font-bold text-slate-500 uppercase border border-slate-200">UNIT WEIGHT</th>
+                  <th className="px-2 py-1 text-[9px] font-bold text-slate-500 uppercase border border-slate-200">IGST</th>
+                  <th className="px-2 py-1 text-[9px] font-bold text-slate-500 uppercase border border-slate-200">UNIT RATES</th>
+                  <th className="px-2 py-1 text-[9px] font-bold text-slate-500 uppercase text-right border border-slate-200">AMOUNT</th>
+                  <th className="px-2 py-1 w-10 border border-slate-200"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
-                {formData.packages.map((pkg, idx) => (
-                  <tr key={idx} className="bg-white">
-                    <td className="px-2 py-1 border-r border-slate-200">
-                       <input value={idx + 1} className="w-full h-[22px] bg-slate-50 text-[11px] font-bold px-1 border-none focus:outline-none" readOnly />
+              <tbody>
+                {formData.items.map((item, idx) => (
+                  <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50">
+                    <td className="px-2 py-1 border border-slate-200">
+                      <select value={item.box_no} onChange={e => handleArrayChange('items', idx, 'box_no', e.target.value)} className="w-12 h-6 text-[11px] font-bold bg-transparent outline-none">
+                        {formData.packages.map(p => <option key={p.box_no} value={p.box_no}>{p.box_no}</option>)}
+                      </select>
                     </td>
-                    <td className="px-2 py-1 border-r border-slate-200">
-                       <input 
-                         value={pkg.box_no} 
-                         onChange={(e) => handleArrayChange('packages', idx, 'box_no', e.target.value)}
-                         className="w-full h-[22px] text-[11px] font-bold px-1 border border-slate-200 focus:border-blue-500 outline-none" 
-                       />
+                    <td className="px-2 py-1 text-[11px] font-bold text-slate-400 border border-slate-200">{item.sr_no}</td>
+                    <td className="px-2 py-1 border border-slate-200">
+                      <input value={item.description} onChange={e => handleArrayChange('items', idx, 'description', e.target.value)} placeholder="DESCRIPTION" className="w-full h-6 px-1 text-[11px] font-semibold border border-transparent hover:border-slate-200 focus:border-blue-500 rounded outline-none animate-none" />
                     </td>
-                    <td className="px-2 py-1 border-r border-slate-200">
-                       <input 
-                         type="number"
-                         value={pkg.actual_wt} 
-                         onChange={(e) => handleArrayChange('packages', idx, 'actual_wt', e.target.value)}
-                         className="w-full h-[22px] text-[11px] font-bold px-1 border border-slate-200 focus:border-blue-500 outline-none" 
-                       />
+                    <td className="px-2 py-1 border border-slate-200">
+                      <input value={item.hs_code} onChange={e => handleArrayChange('items', idx, 'hs_code', e.target.value)} className="w-full h-6 px-1 text-[11px] font-semibold bg-transparent outline-none" />
                     </td>
-                    <td className="px-2 py-1 border-r border-slate-200">
-                       <input 
-                         type="number"
-                         value={pkg.length} 
-                         onChange={(e) => handleArrayChange('packages', idx, 'length', e.target.value)}
-                         className="w-full h-[22px] text-[11px] font-bold px-1 border border-slate-200 focus:border-blue-500 outline-none" 
-                       />
+                    <td className="px-2 py-1 border border-slate-200">
+                      <select value={item.unit_type} onChange={e => handleArrayChange('items', idx, 'unit_type', e.target.value)} className="w-full h-6 text-[11px] font-bold bg-transparent outline-none">
+                        <option>PCS</option>
+                        <option>DOZ</option>
+                        <option>SET</option>
+                      </select>
                     </td>
-                    <td className="px-2 py-1 border-r border-slate-200">
-                       <input 
-                         type="number"
-                         value={pkg.breadth} 
-                         onChange={(e) => handleArrayChange('packages', idx, 'breadth', e.target.value)}
-                         className="w-full h-[22px] text-[11px] font-bold px-1 border border-slate-200 focus:border-blue-500 outline-none" 
-                       />
+                    <td className="px-2 py-1 border border-slate-200">
+                      <input type="number" value={item.quantity} onChange={e => handleArrayChange('items', idx, 'quantity', parseInt(e.target.value))} className="w-16 h-6 px-1 text-[11px] font-bold text-center border border-dashed border-slate-200 rounded outline-none" />
                     </td>
-                    <td className="px-2 py-1 border-r border-slate-200">
-                       <input 
-                         type="number"
-                         value={pkg.height} 
-                         onChange={(e) => handleArrayChange('packages', idx, 'height', e.target.value)}
-                         className="w-full h-[22px] text-[11px] font-bold px-1 border border-slate-200 focus:border-blue-500 outline-none" 
-                       />
+                    <td className="px-2 py-1 border border-slate-200">
+                      <input type="number" value={item.unit_weight} onChange={e => handleArrayChange('items', idx, 'unit_weight', parseFloat(e.target.value))} className="w-16 h-6 px-1 text-[11px] font-bold text-center rounded outline-none" />
                     </td>
-                    <td className="px-2 py-1 border-r border-slate-200">
-                       <input value={pkg.vol_wt?.toFixed(2) || '0'} className="w-full h-[22px] bg-slate-50 text-[11px] font-bold px-1 border-none focus:outline-none" readOnly />
+                    <td className="px-2 py-1 border border-slate-200">
+                      <input type="number" value={item.igst} onChange={e => handleArrayChange('items', idx, 'igst', parseFloat(e.target.value))} className="w-16 h-6 px-1 text-[11px] font-bold text-center rounded outline-none" />
                     </td>
-                    <td className="px-2 py-1">
-                       <input value={pkg.chargeable_wt?.toFixed(2) || '0'} className="w-full h-[22px] bg-slate-50 text-[11px] font-bold px-1 border-none focus:outline-none" readOnly />
+                    <td className="px-2 py-1 border border-slate-200">
+                      <input type="number" value={item.unit_rate} onChange={e => handleArrayChange('items', idx, 'unit_rate', parseFloat(e.target.value))} className="w-20 h-6 px-1 text-[11px] font-bold text-center border border-dashed border-slate-200 rounded outline-none" />
+                    </td>
+                    <td className="px-2 py-1 text-[11px] font-black text-slate-900 text-right border border-slate-200">{(item.amount || 0).toFixed(2)}</td>
+                    <td className="px-2 py-1 text-center border border-slate-200">
+                      <button onClick={() => removeArrayItem('items', idx)} className="text-red-500 hover:text-red-700 transition-colors uppercase text-[8px] font-black">REMOVE</button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-
-          {/* Financial Footer */}
-          <div className="p-2 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center gap-4">
-             <div className="flex items-center gap-2">
-                <label className="text-[9px] font-black text-slate-500 uppercase">Bill Amount</label>
-                <input type="number" name="freight_ch" value={formData.freight_ch} onChange={handleChange} className="w-24 h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-white text-slate-900" />
-             </div>
-             <div className="flex items-center gap-2">
-                <label className="text-[9px] font-black text-slate-500 uppercase">Fuel Amount</label>
-                <input type="number" name="fuel_surcharge" value={formData.fuel_surcharge} onChange={handleChange} className="w-24 h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-white text-slate-900" />
-             </div>
-             <div className="flex items-center gap-2">
-                <label className="text-[9px] font-black text-slate-500 uppercase">Gst Amount</label>
-                <input type="number" name="igst_ch" value={formData.igst_ch} onChange={handleChange} className="w-24 h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-white text-slate-900" />
-             </div>
-             <div className="flex items-center gap-2">
-                <label className="text-[9px] font-black text-slate-500 uppercase">Total Amount</label>
-                <input type="number" value={formData.grand_total} className="w-28 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-slate-100 text-slate-900" readOnly />
-             </div>
-
-             {shipmentType === 'international' && (
-               <div className="flex flex-wrap gap-4 mt-2 pt-2 border-t border-slate-200 w-full">
-                 <div className="flex items-center gap-2">
-                    <label className="text-[9px] font-black text-slate-500 uppercase">Dest. Ch</label>
-                    <input type="number" name="destination_ch" value={formData.destination_ch} onChange={handleChange} className="w-20 h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-white" />
-                 </div>
-                 <div className="flex items-center gap-2">
-                    <label className="text-[9px] font-black text-slate-500 uppercase">ESS</label>
-                    <input type="number" name="ess_ch" value={formData.ess_ch} onChange={handleChange} className="w-20 h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-white" />
-                 </div>
-                 <div className="flex items-center gap-2">
-                    <label className="text-[9px] font-black text-slate-500 uppercase">ODA</label>
-                    <input type="number" name="oda_ch" value={formData.oda_ch} onChange={handleChange} className="w-20 h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-white" />
-                 </div>
-                 <div className="flex items-center gap-2">
-                    <label className="text-[9px] font-black text-slate-500 uppercase">Clearance</label>
-                    <input type="number" name="clearance_ch" value={formData.clearance_ch} onChange={handleChange} className="w-20 h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-white" />
-                 </div>
-               </div>
-             )}
-
-             <button type="button" className="ml-auto bg-[#3b82f6] hover:bg-[#2563eb] text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded shadow-sm transition-all">
-                Check Rate
-             </button>
-          </div>
-      </div>
-
-      {/* Shipment Invoice Toggle Section */}
-      <div className="mt-2 p-2">
-         <div className="flex items-center gap-2 mb-3">
-            <input 
-              type="checkbox" 
-              name="create_invoice" 
-              checked={formData.create_invoice} 
-              onChange={handleChange} 
-              className="h-4 w-4 accent-green-800" 
-            />
-            <span className="text-[13px] font-black text-slate-700 uppercase">Create Shipment Invoice?</span>
-         </div>
-
-         {formData.create_invoice && (
-            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-               <div className="grid grid-cols-4 gap-3">
-                  <FormField onChange={handleChange} label="Invoice Type ?" name="invoice_type">
-                     <select name="invoice_type" value={formData.invoice_type} onChange={handleChange} className="w-full h-full px-2 border border-slate-300 text-[11px] font-bold uppercase">
-                        <option>INVOICE</option>
-                        <option>PROFORMA</option>
-                     </select>
-                  </FormField>
-                  <FormField onChange={handleChange} label="Note" name="note" value={formData.note} />
-                  <FormField onChange={handleChange} label="Currency" name="currency">
-                     <select name="currency" value={formData.currency} onChange={handleChange} className="w-full h-full px-2 border border-slate-300 text-[11px] font-bold uppercase">
-                        <option>INR</option>
-                        <option>USD</option>
-                        <option>EUR</option>
-                     </select>
-                  </FormField>
-                  <FormField onChange={handleChange} label="Incoterms" name="incoterms">
-                     <select className="w-full h-full px-2 border border-slate-300 text-[11px] font-bold uppercase">
-                        <option>CFR</option>
-                        <option>FOB</option>
-                        <option>CIF</option>
-                     </select>
-                  </FormField>
-               </div>
-               <div className="p-2 bg-slate-50 border border-slate-200 rounded text-center">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                     UNSOLICITED GIFT SENT TO MY FRIENDS & FAMILY MEMBERS FOR THERE PERSONAL USE ONLY
-                  </span>
-               </div>
-            </div>
-         )}
-      </div>
-
-      {/* Shipment Invoice Items Table Section Header */}
-      <div className="mt-1 bg-[#1a2f4c] text-white px-2 py-1 text-[10px] font-bold uppercase tracking-wider">
-         Shipment Invoice Items
-      </div>
-
-      {/* Charges Section */}
-      <div className="mt-1 border border-slate-300 bg-white">
-          {formData.service === "SURFACE CARGO" ? (
-            <>
-              <SectionHeader title="Charges" />
-              <div className="p-2">
-                <div className="grid grid-cols-2 gap-x-8 gap-y-1">
-                  {/* Left Column */}
-                  <div className="space-y-1">
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-                      <label className="text-[10px] font-black text-slate-700 uppercase">Freight</label>
-                      <input type="number" name="freight_ch" value={formData.freight_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-                      <label className="text-[10px] font-black text-slate-700 uppercase">AWB Charges</label>
-                      <input type="number" name="awb_ch" value={formData.awb_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-                      <label className="text-[10px] font-black text-slate-700 uppercase">RAS Ch.</label>
-                      <input type="number" name="ras_ch" value={formData.ras_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-                      <label className="text-[10px] font-black text-slate-700 uppercase">ERS Ch.</label>
-                      <input type="number" name="ers_ch" value={formData.ers_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-                      <label className="text-[10px] font-black text-slate-700 uppercase">Odd Dimension Ch.</label>
-                      <input type="number" name="odd_dimension_ch" value={formData.odd_dimension_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-                      <label className="text-[10px] font-black text-slate-700 uppercase">Address Change Ch.</label>
-                      <input type="number" name="address_change_ch" value={formData.address_change_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-                      <label className="text-[10px] font-black text-slate-700 uppercase">DDP Ch.</label>
-                      <input type="number" name="ddp_ch" value={formData.ddp_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-                      <label className="text-[10px] font-black text-slate-700 uppercase">DG Ch.</label>
-                      <input type="number" name="dg_ch" value={formData.dg_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-                      <label className="text-[10px] font-black text-slate-700 uppercase">Import Duty Ch.</label>
-                      <input type="number" name="import_duty_ch" value={formData.import_duty_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1 mt-2 pt-2 border-t border-slate-200">
-                      <label className="text-[10px] font-black text-slate-900 uppercase">Total</label>
-                      <input type="number" value={
-                        Number(formData.freight_ch) + Number(formData.awb_ch) + Number(formData.ras_ch) + Number(formData.ers_ch) +
-                        Number(formData.odd_dimension_ch) + Number(formData.address_change_ch) + Number(formData.ddp_ch) +
-                        Number(formData.dg_ch) + Number(formData.import_duty_ch) + Number(formData.clearance_ch) +
-                        Number(formData.adc_noc_ch) + Number(formData.ess_ch) + Number(formData.electronic_item_ch) +
-                        Number(formData.odd_weight_ch) + Number(formData.other_ch) + Number(formData.fuel_surcharge) +
-                        Number(formData.packing_ch) + Number(formData.handling_ch)
-                      } readOnly className="h-[22px] px-2 border border-slate-300 text-[11px] font-black bg-slate-100 text-slate-900" />
-                    </div>
-                  </div>
-
-                  {/* Right Column */}
-                  <div className="space-y-1">
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-                      <label className="text-[10px] font-black text-slate-700 uppercase">Clearance</label>
-                      <input type="number" name="clearance_ch" value={formData.clearance_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-                      <label className="text-[10px] font-black text-slate-700 uppercase">ADC Noc Ch.</label>
-                      <input type="number" name="adc_noc_ch" value={formData.adc_noc_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-                      <label className="text-[10px] font-black text-slate-700 uppercase">ESS</label>
-                      <input type="number" name="ess_ch" value={formData.ess_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-                      <label className="text-[10px] font-black text-slate-700 uppercase">Electronic Item Ch.</label>
-                      <input type="number" name="electronic_item_ch" value={formData.electronic_item_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-                      <label className="text-[10px] font-black text-slate-700 uppercase">Odd Weight Ch.</label>
-                      <input type="number" name="odd_weight_ch" value={formData.odd_weight_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-                      <label className="text-[10px] font-black text-slate-700 uppercase">Other Ch.</label>
-                      <input type="number" name="other_ch" value={formData.other_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-                      <label className="text-[10px] font-black text-[#1a2f4c] uppercase">Fuel Surcharge</label>
-                      <input type="number" name="fuel_surcharge" value={formData.fuel_surcharge} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-black bg-[#1a2f4c] text-white" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-                      <label className="text-[10px] font-black text-slate-700 uppercase">Packing Ch.</label>
-                      <input type="number" name="packing_ch" value={formData.packing_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-                      <label className="text-[10px] font-black text-slate-700 uppercase">Handling Ch.</label>
-                      <input type="number" name="handling_ch" value={formData.handling_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-                    </div>
-                  </div>
+            <div className="p-2 bg-slate-50 flex justify-between items-center border-t border-slate-200">
+              <Button onClick={() => addArrayItem('items', { box_no: '1', sr_no: 1, description: '', hs_code: '', unit_type: 'PCS', quantity: 1, unit_weight: 0, igst: 0, unit_rate: 0, amount: 0 })} className="h-6 bg-[#65a30d] hover:bg-[#4d7c0f] text-white text-[9px] font-black uppercase shadow-md shadow-green-100 gap-1 px-2 py-0.5">
+                <Plus className="h-2.5 w-2.5" /> ADD ITEM
+              </Button>
+              <div className="flex gap-6 px-2">
+                <div className="flex flex-col items-end">
+                  <span className="text-[8px] font-bold text-slate-400 uppercase">TOTAL AMOUNT</span>
+                  <span className="text-[12px] font-black text-slate-900">{formData.items.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</span>
                 </div>
               </div>
-            </>
-          ) : (
-            <>
-              <div className="px-3 py-2 border-b border-slate-200 flex justify-between items-center">
-                <h3 className="text-[14px] font-bold text-[#1a2f4c]">Charges</h3>
-                <div className="flex items-center gap-2">
-                  <label className="text-[12px] font-bold text-slate-600">Charges date :</label>
-                  <input type="date" name="charges_date" value={formData.charges_date} onChange={handleChange} className="h-[30px] px-2 border border-slate-300 rounded text-[12px] focus:outline-blue-500" />
-                </div>
-              </div>
-              <div className="p-4">
-                <div className="grid grid-cols-2 gap-x-12 gap-y-2">
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-2">
-                      <label className="text-[13px] font-medium text-slate-700">Freight</label>
-                      <input type="number" name="freight_ch" value={formData.freight_ch} onChange={handleChange} className="h-[35px] px-3 border border-slate-300 rounded text-[14px]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-2">
-                      <label className="text-[13px] font-medium text-slate-700">Destination</label>
-                      <input type="number" name="destination_ch" value={formData.destination_ch} onChange={handleChange} className="h-[35px] px-3 border border-slate-300 rounded text-[14px]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-2">
-                      <label className="text-[13px] font-medium text-slate-700">ESS</label>
-                      <input type="number" name="ess_ch" value={formData.ess_ch} onChange={handleChange} className="h-[35px] px-3 border border-slate-300 rounded text-[14px]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-2">
-                      <label className="text-[13px] font-medium text-slate-700">ODA</label>
-                      <input type="number" name="oda_ch" value={formData.oda_ch} onChange={handleChange} className="h-[35px] px-3 border border-slate-300 rounded text-[14px]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-2">
-                      <label className="text-[13px] font-bold text-slate-700">Total</label>
-                      <input type="number" value={
-                        Number(formData.freight_ch) + Number(formData.destination_ch) + Number(formData.ess_ch) + Number(formData.oda_ch) +
-                        Number(formData.transport_ch) + Number(formData.clearance_ch) + Number(formData.other_ch) + Number(formData.ddp_ch) +
-                        Number(formData.fuel_surcharge)
-                      } readOnly className="h-[35px] px-3 border border-slate-300 rounded bg-slate-100 text-[14px] font-bold" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-2">
-                      <label className="text-[13px] font-medium text-slate-700">Transport</label>
-                      <input type="number" name="transport_ch" value={formData.transport_ch} onChange={handleChange} className="h-[35px] px-3 border border-slate-300 rounded text-[14px]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-2">
-                      <label className="text-[13px] font-medium text-slate-700">Clearance</label>
-                      <input type="number" name="clearance_ch" value={formData.clearance_ch} onChange={handleChange} className="h-[35px] px-3 border border-slate-300 rounded text-[14px]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-2">
-                      <label className="text-[13px] font-medium text-slate-700">OtherCh.</label>
-                      <input type="number" name="other_ch" value={formData.other_ch} onChange={handleChange} className="h-[35px] px-3 border border-slate-300 rounded text-[14px]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-2">
-                      <label className="text-[13px] font-medium text-slate-700">DDP.</label>
-                      <input type="number" name="ddp_ch" value={formData.ddp_ch} onChange={handleChange} className="h-[35px] px-3 border border-slate-300 rounded text-[14px]" />
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-center gap-2">
-                      <label className="text-[13px] font-medium text-slate-700">Fuel Surcharge</label>
-                      <input type="number" name="fuel_surcharge" value={formData.fuel_surcharge} onChange={handleChange} className="h-[35px] px-3 border border-slate-300 rounded bg-slate-100 text-[14px] font-bold" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-      </div>
-
-      {/* Final Charge Section */}
-      <div className="mt-1 border border-slate-300 bg-white">
-          <SectionHeader title="Final Charge" />
-          <div className="p-2 max-w-lg space-y-1">
-            <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-              <label className="text-[10px] font-black text-red-600 uppercase">Pay By*</label>
-              <select name="bill_type" value={formData.bill_type} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc] outline-none">
-                <option value="">-Select-</option>
-                {masters.billTypes.map(b => <option key={b} value={b}>{b}</option>)}
-              </select>
-            </div>
-            <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-              <label className="text-[10px] font-black text-slate-700 uppercase">Sub Total</label>
-              <input type="number" value={
-                Number(formData.freight_ch) + Number(formData.awb_ch) + Number(formData.ras_ch) + Number(formData.ers_ch) +
-                Number(formData.odd_dimension_ch) + Number(formData.address_change_ch) + Number(formData.ddp_ch) +
-                Number(formData.dg_ch) + Number(formData.import_duty_ch) + Number(formData.clearance_ch) +
-                Number(formData.adc_noc_ch) + Number(formData.ess_ch) + Number(formData.electronic_item_ch) +
-                Number(formData.odd_weight_ch) + Number(formData.other_ch) + Number(formData.fuel_surcharge) +
-                Number(formData.packing_ch) + Number(formData.handling_ch) + Number(formData.destination_ch) +
-                Number(formData.transport_ch) + Number(formData.oda_ch)
-              } readOnly className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-slate-100 cursor-not-allowed" />
-            </div>
-            <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-              <label className="text-[10px] font-black text-slate-700 uppercase">CGST Tax</label>
-              <input type="number" name="cgst_ch" value={formData.cgst_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-            </div>
-            <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-              <label className="text-[10px] font-black text-slate-700 uppercase">SGST Tax</label>
-              <input type="number" name="sgst_ch" value={formData.sgst_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-            </div>
-            <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-              <label className="text-[10px] font-black text-slate-700 uppercase">IGST Tax</label>
-              <input type="number" name="igst_ch" value={formData.igst_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-            </div>
-            <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-              <label className="text-[10px] font-black text-slate-900 uppercase">Grand Total</label>
-              <input type="number" value={
-                Number(formData.freight_ch) + Number(formData.awb_ch) + Number(formData.ras_ch) + Number(formData.ers_ch) +
-                Number(formData.odd_dimension_ch) + Number(formData.address_change_ch) + Number(formData.ddp_ch) +
-                Number(formData.dg_ch) + Number(formData.import_duty_ch) + Number(formData.clearance_ch) +
-                Number(formData.adc_noc_ch) + Number(formData.ess_ch) + Number(formData.electronic_item_ch) +
-                Number(formData.odd_weight_ch) + Number(formData.other_ch) + Number(formData.fuel_surcharge) +
-                Number(formData.packing_ch) + Number(formData.handling_ch) + Number(formData.destination_ch) +
-                Number(formData.transport_ch) + Number(formData.oda_ch) +
-                Number(formData.cgst_ch) + Number(formData.sgst_ch) + Number(formData.igst_ch)
-              } readOnly className="h-[22px] px-2 border border-slate-300 text-[11px] font-black bg-slate-100 cursor-not-allowed" />
-            </div>
-
-            <div className="flex gap-2 pt-3">
-              <button onClick={handleSubmit} className="bg-[#1e3a8a] hover:bg-[#1e40af] text-white text-[11px] font-black uppercase tracking-wider px-6 py-2 rounded shadow-md transition-all hover:scale-[1.02]">
-                Submit
-              </button>
-              <button onClick={() => window.location.reload()} className="bg-[#1e3a8a] hover:bg-[#1e40af] text-white text-[11px] font-black uppercase tracking-wider px-6 py-2 rounded shadow-md transition-all hover:scale-[1.02]">
-                New
-              </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Charges & Billing Summary */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
+        <ChargesSection
+          formData={formData}
+          handleChange={handleChange}
+        />
+        <FinalChargeSection
+          formData={formData}
+          handleChange={handleChange}
+          masters={masters}
+          handleSubmit={handleSubmit}
+        />
       </div>
 
     </div>
