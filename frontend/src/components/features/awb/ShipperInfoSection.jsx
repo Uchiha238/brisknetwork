@@ -41,7 +41,7 @@ export function ShipperInfoSection({
               placeholder="TYPE INITIALS OF COMPANY..."
               className="w-full h-[22px] px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none focus:border-blue-500"
             />
-            {showShipperSuggestions && shipperSearch && (
+            {showShipperSuggestions && (
               <div className="absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-300 rounded shadow-lg max-h-48 overflow-y-auto z-[9999] text-[9px] text-slate-800 font-bold uppercase">
                 {filteredShipperCustomers.length > 0 ? (
                   filteredShipperCustomers.map(cust => (

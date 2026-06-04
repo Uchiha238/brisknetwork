@@ -132,3 +132,10 @@
     @apply font-sans;
     }
 }
+
+/* Custom focus yellow glow and border for form inputs, selects, textareas, and buttons */
+input:focus, select:focus, textarea:focus, button:focus {
+  border-color: #eab308 !important; /* yellow-500 */
+  box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.4) !important;
+  outline: none !important;
+}

@@ -157,6 +157,19 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
   });
 
   useEffect(() => {
+    // Automatically open native dropdowns (select and date pickers) when tabbed or focused
+    const handleFocusIn = (e) => {
+      if (e.target && (e.target.tagName === 'SELECT' || e.target.type === 'date')) {
+        try {
+          e.target.showPicker();
+        } catch (err) {
+          // Ignore if browser blocks or doesn't support
+        }
+      }
+    };
+
+    document.addEventListener('focusin', handleFocusIn);
+
     api.getCustomers()
       .then(data => {
         setCustomers(data);
@@ -192,6 +205,10 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
       .then(res => res.json())
       .then(data => setMasters(prev => ({ ...prev, branches: data })))
       .catch(err => console.error(err));
+
+    return () => {
+      document.removeEventListener('focusin', handleFocusIn);
+    };
   }, []);
 
   useEffect(() => {
@@ -592,25 +609,25 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
 
   // Filter shipper search results based on shipperSearch query AND pay mode
   const filteredShipperCustomers = customers.filter(cust => {
-      if (!shipperSearch) return [];
-      const q = shipperSearch.toLowerCase();
-      const matchSearch = 
-          (cust.name && cust.name.toLowerCase().includes(q)) || 
-          (cust.code && cust.code.toLowerCase().includes(q)) ||
-          (cust.parent_company && cust.parent_company.toLowerCase().includes(q));
-      
       // Pay mode filter: Cash / Credit
-      const currentPayMode = formData.payment_mode || 'Cash'; // e.g. "Cash" or "Credit"
+      const currentPayMode = formData.payment_mode || 'CASH'; // standard uppercase
       const custPayMode = cust.payment_type || 'Credit'; // customer master default to 'Credit'
       
       const matchPayMode = custPayMode.toLowerCase() === currentPayMode.toLowerCase();
-      
-      return matchSearch && matchPayMode;
+      if (!matchPayMode) return false;
+
+      if (!shipperSearch) return true; // Show all matching pay mode if empty
+      const q = shipperSearch.toLowerCase();
+      return (
+          (cust.name && cust.name.toLowerCase().includes(q)) || 
+          (cust.code && cust.code.toLowerCase().includes(q)) ||
+          (cust.parent_company && cust.parent_company.toLowerCase().includes(q))
+      );
   });
 
   // Filter consignee search results based on consigneeSearch query (any customer from Customer Master)
   const filteredConsigneeCustomers = customers.filter(cust => {
-      if (!consigneeSearch) return [];
+      if (!consigneeSearch) return true; // Show all if empty
       const q = consigneeSearch.toLowerCase();
       return (
           (cust.name && cust.name.toLowerCase().includes(q)) || 
