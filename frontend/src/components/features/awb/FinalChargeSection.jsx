@@ -25,15 +25,7 @@ export function FinalChargeSection({
         </div>
         <div className="grid grid-cols-[140px_1fr] items-center gap-1">
           <label className="text-[10px] font-black text-slate-700 uppercase">Sub Total</label>
-          <input type="number" value={
-            Number(formData.freight_ch) + Number(formData.awb_ch) + Number(formData.ras_ch) + Number(formData.ers_ch) +
-            Number(formData.odd_dimension_ch) + Number(formData.address_change_ch) + Number(formData.ddp_ch) +
-            Number(formData.dg_ch) + Number(formData.import_duty_ch) + Number(formData.clearance_ch) +
-            Number(formData.adc_noc_ch) + Number(formData.ess_ch) + Number(formData.electronic_item_ch) +
-            Number(formData.odd_weight_ch) + Number(formData.other_ch) + Number(formData.fuel_surcharge) +
-            Number(formData.packing_ch) + Number(formData.handling_ch) + Number(formData.destination_ch) +
-            Number(formData.transport_ch) + Number(formData.oda_ch)
-          } readOnly className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-slate-100 cursor-not-allowed" />
+          <input type="number" value={formData.sub_total} readOnly tabIndex={-1} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-slate-100 cursor-not-allowed" />
         </div>
         <div className="grid grid-cols-[140px_1fr] items-center gap-1">
           <label className="text-[10px] font-black text-slate-700 uppercase">CGST Tax</label>
@@ -49,16 +41,13 @@ export function FinalChargeSection({
         </div>
         <div className="grid grid-cols-[140px_1fr] items-center gap-1">
           <label className="text-[10px] font-black text-slate-900 uppercase">Grand Total</label>
-          <input type="number" value={
-            Number(formData.freight_ch) + Number(formData.awb_ch) + Number(formData.ras_ch) + Number(formData.ers_ch) +
-            Number(formData.odd_dimension_ch) + Number(formData.address_change_ch) + Number(formData.ddp_ch) +
-            Number(formData.dg_ch) + Number(formData.import_duty_ch) + Number(formData.clearance_ch) +
-            Number(formData.adc_noc_ch) + Number(formData.ess_ch) + Number(formData.electronic_item_ch) +
-            Number(formData.odd_weight_ch) + Number(formData.other_ch) + Number(formData.fuel_surcharge) +
-            Number(formData.packing_ch) + Number(formData.handling_ch) + Number(formData.destination_ch) +
-            Number(formData.transport_ch) + Number(formData.oda_ch) +
-            Number(formData.cgst_ch) + Number(formData.sgst_ch) + Number(formData.igst_ch)
-          } readOnly className="h-[22px] px-2 border border-slate-300 text-[11px] font-black bg-slate-100 cursor-not-allowed" />
+          <input 
+            type="number" 
+            name="grand_total"
+            value={formData.grand_total} 
+            onChange={handleChange}
+            className="h-[22px] px-2 border border-slate-300 text-[11px] font-black bg-white outline-none focus:border-blue-500" 
+          />
         </div>
 
         <div className="flex gap-2 pt-3">

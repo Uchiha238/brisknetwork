@@ -21,6 +21,7 @@ import { InternationalRate } from "./components/features/InternationalRate"
 import { Login } from "./components/features/Login"
 import { CompanySetting } from "./components/features/CompanySetting"
 import { MailConfig } from "./components/features/MailConfig"
+import { ListShipments } from "./components/features/ListShipments"
 
 function App() {
   const [user, setUser] = useState({ name: 'Admin', role: 'admin' })
@@ -82,6 +83,7 @@ function App() {
       )}
       {currentPage === "company-setting" && <CompanySetting />}
       {currentPage === "mail-config" && <MailConfig />}
+      {currentPage === "list-shipments" && <ListShipments />}
 
     </DashboardLayout>
   )

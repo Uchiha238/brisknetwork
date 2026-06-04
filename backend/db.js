@@ -326,31 +326,143 @@ const init = async () => {
 
     const shipmentInfo = await db.allAsync("PRAGMA table_info(shipments)");
     const sCols = shipmentInfo.map(c => c.name);
-    if (!sCols.includes('forward_no')) await db.execAsync("ALTER TABLE shipments ADD COLUMN forward_no TEXT");
-    if (!sCols.includes('forwarder')) await db.execAsync("ALTER TABLE shipments ADD COLUMN forwarder TEXT");
-    if (!sCols.includes('description')) await db.execAsync("ALTER TABLE shipments ADD COLUMN description TEXT");
-    if (!sCols.includes('bill_type')) await db.execAsync("ALTER TABLE shipments ADD COLUMN bill_type TEXT");
-    if (!sCols.includes('type_of_doc')) await db.execAsync("ALTER TABLE shipments ADD COLUMN type_of_doc TEXT");
-    if (!sCols.includes('doc_number')) await db.execAsync("ALTER TABLE shipments ADD COLUMN doc_number TEXT");
-    if (!sCols.includes('destination_ch')) await db.execAsync("ALTER TABLE shipments ADD COLUMN destination_ch REAL");
-    if (!sCols.includes('ess_ch')) await db.execAsync("ALTER TABLE shipments ADD COLUMN ess_ch REAL");
-    if (!sCols.includes('oda_ch')) await db.execAsync("ALTER TABLE shipments ADD COLUMN oda_ch REAL");
-    if (!sCols.includes('transport_ch')) await db.execAsync("ALTER TABLE shipments ADD COLUMN transport_ch REAL");
-    if (!sCols.includes('clearance_ch')) await db.execAsync("ALTER TABLE shipments ADD COLUMN clearance_ch REAL");
-    if (!sCols.includes('other_ch')) await db.execAsync("ALTER TABLE shipments ADD COLUMN other_ch REAL");
-    if (!sCols.includes('ddp_ch')) await db.execAsync("ALTER TABLE shipments ADD COLUMN ddp_ch REAL");
-    if (!sCols.includes('charges_date')) await db.execAsync("ALTER TABLE shipments ADD COLUMN charges_date TEXT");
-    if (!sCols.includes('origin_zone')) await db.execAsync("ALTER TABLE shipments ADD COLUMN origin_zone TEXT");
-    if (!sCols.includes('dest_zone')) await db.execAsync("ALTER TABLE shipments ADD COLUMN dest_zone TEXT");
-    if (!sCols.includes('service')) await db.execAsync("ALTER TABLE shipments ADD COLUMN service TEXT");
-    if (!sCols.includes('shipper_kyc_file1')) await db.execAsync("ALTER TABLE shipments ADD COLUMN shipper_kyc_file1 TEXT");
-    if (!sCols.includes('shipper_kyc_file2')) await db.execAsync("ALTER TABLE shipments ADD COLUMN shipper_kyc_file2 TEXT");
-    if (!sCols.includes('shipper_image')) await db.execAsync("ALTER TABLE shipments ADD COLUMN shipper_image TEXT");
-    if (!sCols.includes('branch')) await db.execAsync("ALTER TABLE shipments ADD COLUMN branch TEXT");
-    if (!sCols.includes('eway_bill_no')) await db.execAsync("ALTER TABLE shipments ADD COLUMN eway_bill_no TEXT");
+    
+    const expectedShipmentCols = {
+      customer_id: "INTEGER",
+      user_id: "INTEGER",
+      airway_no: "TEXT",
+      type: "TEXT",
+      status: "TEXT",
+      booking_date: "TEXT",
+      booking_time: "TEXT",
+      product: "TEXT",
+      origin_hub: "TEXT",
+      origin_zone: "TEXT",
+      destination: "TEXT",
+      dest_zone: "TEXT",
+      usps_number: "TEXT",
+      service: "TEXT",
+      duty: "TEXT",
+      ref_no: "TEXT",
+      shipment_value: "REAL",
+      currency: "TEXT",
+      invoice_date: "TEXT",
+      invoice_no: "TEXT",
+      account_code: "TEXT",
+      shipper_name: "TEXT",
+      shipper_company: "TEXT",
+      shipper_address1: "TEXT",
+      shipper_address2: "TEXT",
+      shipper_address3: "TEXT",
+      shipper_city: "TEXT",
+      shipper_state: "TEXT",
+      shipper_zip: "TEXT",
+      shipper_country: "TEXT",
+      shipper_phone: "TEXT",
+      shipper_email: "TEXT",
+      shipper_kyc_type: "TEXT",
+      shipper_kyc_no: "TEXT",
+      consignee_name: "TEXT",
+      consignee_company: "TEXT",
+      consignee_address1: "TEXT",
+      consignee_address2: "TEXT",
+      consignee_address3: "TEXT",
+      consignee_city: "TEXT",
+      consignee_state: "TEXT",
+      consignee_zip: "TEXT",
+      consignee_country: "TEXT",
+      consignee_phone: "TEXT",
+      consignee_email: "TEXT",
+      pcs: "INTEGER",
+      actual_weight: "REAL",
+      volumetric_weight: "REAL",
+      chargeable_weight: "REAL",
+      bill_amount: "REAL",
+      fuel_amount: "REAL",
+      gst_amount: "REAL",
+      freight_charges: "REAL",
+      total_charges: "REAL",
+      forward_no: "TEXT",
+      forwarder: "TEXT",
+      description: "TEXT",
+      bill_type: "TEXT",
+      type_of_doc: "TEXT",
+      doc_number: "TEXT",
+      destination_ch: "REAL",
+      ess_ch: "REAL",
+      oda_ch: "REAL",
+      transport_ch: "REAL",
+      clearance_ch: "REAL",
+      other_ch: "REAL",
+      ddp_ch: "REAL",
+      charges_date: "TEXT",
+      shipper_kyc_file1: "TEXT",
+      shipper_kyc_file2: "TEXT",
+      shipper_image: "TEXT",
+      branch: "TEXT",
+      eway_bill_no: "TEXT"
+    };
+
+    for (const [colName, colType] of Object.entries(expectedShipmentCols)) {
+      if (!sCols.includes(colName)) {
+        try {
+          await db.execAsync(`ALTER TABLE shipments ADD COLUMN ${colName} ${colType}`);
+          console.log(`Migrated shipments table: added column ${colName}`);
+        } catch (alterErr) {
+          console.error(`Failed to add column ${colName} to shipments table:`, alterErr);
+        }
+      }
+    }
 
     const packageInfo = await db.allAsync("PRAGMA table_info(packages)");
-    if (!packageInfo.map(c => c.name).includes('per_box_wt')) await db.execAsync("ALTER TABLE packages ADD COLUMN per_box_wt REAL");
+    const pCols = packageInfo.map(c => c.name);
+    const expectedPackageCols = {
+      shipment_id: "INTEGER",
+      box_no: "TEXT",
+      actual_wt: "REAL",
+      length: "REAL",
+      breadth: "REAL",
+      height: "REAL",
+      vol_wt: "REAL",
+      chargeable_wt: "REAL",
+      per_box_wt: "REAL"
+    };
+    for (const [colName, colType] of Object.entries(expectedPackageCols)) {
+      if (!pCols.includes(colName)) {
+        try {
+          await db.execAsync(`ALTER TABLE packages ADD COLUMN ${colName} ${colType}`);
+          console.log(`Migrated packages table: added column ${colName}`);
+        } catch (alterErr) {
+          console.error(`Failed to add column ${colName} to packages table:`, alterErr);
+        }
+      }
+    }
+
+    const itemInfo = await db.allAsync("PRAGMA table_info(shipment_items)");
+    const iCols = itemInfo.map(c => c.name);
+    const expectedItemCols = {
+      shipment_id: "INTEGER",
+      box_no: "TEXT",
+      sr_no: "INTEGER",
+      description: "TEXT",
+      hs_code: "TEXT",
+      unit_type: "TEXT",
+      quantity: "INTEGER",
+      unit_weight: "REAL",
+      igst: "REAL",
+      unit_rate: "REAL",
+      amount: "REAL"
+    };
+    for (const [colName, colType] of Object.entries(expectedItemCols)) {
+      if (!iCols.includes(colName)) {
+        try {
+          await db.execAsync(`ALTER TABLE shipment_items ADD COLUMN ${colName} ${colType}`);
+          console.log(`Migrated shipment_items table: added column ${colName}`);
+        } catch (alterErr) {
+          console.error(`Failed to add column ${colName} to shipment_items table:`, alterErr);
+        }
+      }
+    }
 
     // 3. Seeding
     const userCount = (await db.getAsync('SELECT count(*) as count FROM users')).count;

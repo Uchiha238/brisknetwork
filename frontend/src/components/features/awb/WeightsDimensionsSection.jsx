@@ -19,15 +19,15 @@ export function WeightsDimensionsSection({
         </div>
         <div className="flex items-center gap-2">
           <label className="text-[10px] font-black text-slate-500 uppercase">Actual Weight</label>
-          <input type="number" value={formData.actual_weight} className="w-20 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-slate-100 text-slate-900" readOnly />
+          <input type="number" value={formData.actual_weight} tabIndex={-1} className="w-20 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-slate-100 text-slate-900" readOnly />
         </div>
         <div className="flex items-center gap-2">
           <label className="text-[10px] font-black text-slate-500 uppercase">Volumetric Weight</label>
-          <input type="number" value={formData.volumetric_weight} className="w-20 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-black text-white" readOnly />
+          <input type="number" value={formData.volumetric_weight} tabIndex={-1} className="w-20 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-black text-white" readOnly />
         </div>
         <div className="flex items-center gap-2">
           <label className="text-[10px] font-black text-slate-500 uppercase">Chargeable Weight</label>
-          <input type="number" value={formData.chargeable_weight} className="w-20 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-slate-100 text-slate-900" readOnly />
+          <input type="number" value={formData.chargeable_weight} tabIndex={-1} className="w-20 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-slate-100 text-slate-900" readOnly />
         </div>
       </div>
 
@@ -50,7 +50,7 @@ export function WeightsDimensionsSection({
             {formData.packages.map((pkg, idx) => (
               <tr key={idx} className="bg-white">
                 <td className="px-2 py-1 border-r border-slate-200">
-                  <input value={idx + 1} className="w-full h-[22px] bg-slate-50 text-[11px] font-bold px-1 border-none focus:outline-none" readOnly />
+                  <input value={idx + 1} tabIndex={-1} className="w-full h-[22px] bg-slate-50 text-[11px] font-bold px-1 border-none focus:outline-none" readOnly />
                 </td>
                 <td className="px-2 py-1 border-r border-slate-200">
                   <input 
@@ -92,10 +92,10 @@ export function WeightsDimensionsSection({
                   />
                 </td>
                 <td className="px-2 py-1 border-r border-slate-200">
-                  <input value={pkg.vol_wt?.toFixed(2) || '0'} className="w-full h-[22px] bg-slate-50 text-[11px] font-bold px-1 border-none focus:outline-none" readOnly />
+                  <input value={pkg.vol_wt?.toFixed(2) || '0'} tabIndex={-1} className="w-full h-[22px] bg-slate-50 text-[11px] font-bold px-1 border-none focus:outline-none" readOnly />
                 </td>
                 <td className="px-2 py-1">
-                  <input value={pkg.chargeable_wt?.toFixed(2) || '0'} className="w-full h-[22px] bg-slate-50 text-[11px] font-bold px-1 border-none focus:outline-none" readOnly />
+                  <input value={pkg.chargeable_wt?.toFixed(2) || '0'} tabIndex={-1} className="w-full h-[22px] bg-slate-50 text-[11px] font-bold px-1 border-none focus:outline-none" readOnly />
                 </td>
               </tr>
             ))}
@@ -119,7 +119,13 @@ export function WeightsDimensionsSection({
         </div>
         <div className="flex items-center gap-2">
           <label className="text-[9px] font-black text-slate-500 uppercase">Total Amount</label>
-          <input type="number" value={formData.grand_total} className="w-28 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-slate-100 text-slate-900" readOnly />
+          <input 
+            type="number" 
+            name="grand_total"
+            value={formData.grand_total} 
+            onChange={handleChange}
+            className="w-28 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-white text-slate-900 focus:border-blue-500 outline-none" 
+          />
         </div>
 
         {shipmentType === 'international' && (

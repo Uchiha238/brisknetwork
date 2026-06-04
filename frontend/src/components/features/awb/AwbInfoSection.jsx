@@ -18,7 +18,7 @@ export function AwbInfoSection({
       </div>
       <div className="p-1.5 space-y-0.5">
         <div className="grid grid-cols-2 gap-1">
-          <FormField onChange={handleChange} label="DATE" name="booking_date" isRed labelWidth="40px" type="date" value={formData.booking_date} />
+          <FormField onChange={handleChange} label="DATE" name="booking_date" isRed labelWidth="40px" type="date" value={formData.booking_date} tabIndex={-1} />
           <FormField onChange={handleChange} label="TIME" name="booking_time" labelWidth="40px" value={formData.booking_time} />
         </div>
 
@@ -95,7 +95,7 @@ export function AwbInfoSection({
         {shipmentType === 'domestic' ? (
           <div className="grid grid-cols-[1fr_95px_70px] gap-1">
             <FormField onChange={handleChange} label="Destination" name="consignee_country" isRed labelWidth="85px">
-              <input name="consignee_country" value="INDIA" readOnly className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none bg-slate-100" />
+              <input name="consignee_country" value="INDIA" readOnly tabIndex={-1} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none bg-slate-100" />
             </FormField>
             <FormField onChange={handleChange} label="PIN" name="consignee_zip" isRed labelWidth="25px" value={formData.consignee_zip} />
             <FormField onChange={handleChange} label="Zone" name="consignee_zone" labelWidth="35px" value={formData.consignee_zone} />
@@ -143,7 +143,7 @@ export function AwbInfoSection({
         </div>
 
         <div className="grid grid-cols-2 gap-1">
-          <FormField onChange={handleChange} label="INV DATE" name="invoice_date" isRed labelWidth="85px" type="date" value={formData.invoice_date} />
+          <FormField onChange={handleChange} label="INV DATE" name="invoice_date" isRed labelWidth="85px" type="date" value={formData.invoice_date} tabIndex={-1} />
           <FormField onChange={handleChange} label="INV NO" name="invoice_no" labelWidth="85px" value={formData.invoice_no} />
         </div>
 

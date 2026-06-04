@@ -6,7 +6,7 @@ export const SectionHeader = ({ title, className = "", isWhite = false }) => (
   </div>
 );
 
-export const FormField = ({ label, name, type = "text", value, placeholder, required = false, children, className = "", labelWidth = "100px", isRed = false, inputMaxWidth = "none", onChange, readOnly = false }) => (
+export const FormField = ({ label, name, type = "text", value, placeholder, required = false, children, className = "", labelWidth = "100px", isRed = false, inputMaxWidth = "none", onChange, readOnly = false, tabIndex }) => (
   <div className={`grid items-center gap-1 leading-none ${className}`} style={{ gridTemplateColumns: `${labelWidth} 1fr` }}>
     <label className={`text-[10px] font-black uppercase truncate ${isRed || required ? "text-red-600" : "text-slate-700"}`}>
       {label}
@@ -19,6 +19,7 @@ export const FormField = ({ label, name, type = "text", value, placeholder, requ
           value={value}
           onChange={readOnly ? undefined : onChange}
           readOnly={readOnly}
+          tabIndex={tabIndex !== undefined ? tabIndex : (readOnly ? -1 : undefined)}
           placeholder={placeholder}
           className={`w-full h-full px-2 border border-slate-300 text-[12px] font-bold text-slate-900 outline-none transition-colors placeholder:text-slate-300 placeholder:font-normal ${readOnly ? 'bg-slate-100 cursor-not-allowed' : 'bg-[#fcfcfc] focus:bg-white'}`}
         />

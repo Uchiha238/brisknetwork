@@ -12,6 +12,22 @@ export function ShipperInfoSection({
   filteredShipperCustomers,
   handleSelectShipper
 }) {
+  const [highlightedIndex, setHighlightedIndex] = React.useState(-1);
+  const listRef = React.useRef(null);
+
+  React.useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [shipperSearch, showShipperSuggestions]);
+
+  React.useEffect(() => {
+    if (highlightedIndex >= 0 && listRef.current) {
+      const activeEl = listRef.current.children[highlightedIndex];
+      if (activeEl) {
+        activeEl.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [highlightedIndex]);
+
   return (
     <div className="flex flex-col">
       <div className="px-2 py-1 border-b border-slate-300 bg-slate-50 flex justify-between items-center">
@@ -38,16 +54,37 @@ export function ShipperInfoSection({
               onBlur={() => {
                 setTimeout(() => setShowShipperSuggestions(false), 200);
               }}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setHighlightedIndex(prev => 
+                    prev < filteredShipperCustomers.length - 1 ? prev + 1 : prev
+                  );
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setHighlightedIndex(prev => prev > 0 ? prev - 1 : -1);
+                } else if (e.key === 'Enter') {
+                  if (highlightedIndex >= 0 && highlightedIndex < filteredShipperCustomers.length) {
+                    e.preventDefault();
+                    handleSelectShipper(filteredShipperCustomers[highlightedIndex]);
+                    setShowShipperSuggestions(false);
+                  }
+                } else if (e.key === 'Escape') {
+                  setShowShipperSuggestions(false);
+                }
+              }}
               placeholder="TYPE INITIALS OF COMPANY..."
               className="w-full h-[22px] px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none focus:border-blue-500"
             />
             {showShipperSuggestions && (
-              <div className="absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-300 rounded shadow-lg max-h-48 overflow-y-auto z-[9999] text-[9px] text-slate-800 font-bold uppercase">
+              <div ref={listRef} className="absolute left-0 right-0 top-full mt-0.5 bg-white border border-slate-300 rounded shadow-lg max-h-48 overflow-y-auto z-[9999] text-[9px] text-slate-800 font-bold uppercase">
                 {filteredShipperCustomers.length > 0 ? (
-                  filteredShipperCustomers.map(cust => (
+                  filteredShipperCustomers.map((cust, idx) => (
                     <div
                       key={cust.id}
-                      className="p-1 hover:bg-blue-50 cursor-pointer border-b border-slate-100 text-left"
+                      className={`p-1 cursor-pointer border-b border-slate-100 text-left ${
+                        idx === highlightedIndex ? 'bg-blue-100 text-blue-900 font-black' : 'hover:bg-blue-50'
+                      }`}
                       onMouseDown={() => {
                         handleSelectShipper(cust);
                       }}

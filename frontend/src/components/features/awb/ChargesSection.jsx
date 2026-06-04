@@ -52,14 +52,7 @@ export function ChargesSection({
                 </div>
                 <div className="grid grid-cols-[140px_1fr] items-center gap-1 mt-2 pt-2 border-t border-slate-200">
                   <label className="text-[10px] font-black text-slate-900 uppercase">Total</label>
-                  <input type="number" value={
-                    Number(formData.freight_ch) + Number(formData.awb_ch) + Number(formData.ras_ch) + Number(formData.ers_ch) +
-                    Number(formData.odd_dimension_ch) + Number(formData.address_change_ch) + Number(formData.ddp_ch) +
-                    Number(formData.dg_ch) + Number(formData.import_duty_ch) + Number(formData.clearance_ch) +
-                    Number(formData.adc_noc_ch) + Number(formData.ess_ch) + Number(formData.electronic_item_ch) +
-                    Number(formData.odd_weight_ch) + Number(formData.other_ch) + Number(formData.fuel_surcharge) +
-                    Number(formData.packing_ch) + Number(formData.handling_ch)
-                  } readOnly className="h-[22px] px-2 border border-slate-300 text-[11px] font-black bg-slate-100 text-slate-900" />
+                  <input type="number" value={formData.sub_total} readOnly tabIndex={-1} className="h-[22px] px-2 border border-slate-300 text-[11px] font-black bg-slate-100 text-slate-900" />
                 </div>
               </div>
 
@@ -111,7 +104,7 @@ export function ChargesSection({
             <h3 className="text-[14px] font-bold text-[#1a2f4c]">Charges</h3>
             <div className="flex items-center gap-2">
               <label className="text-[12px] font-bold text-slate-600">Charges date :</label>
-              <input type="date" name="charges_date" value={formData.charges_date} onChange={handleChange} className="h-[30px] px-2 border border-slate-300 rounded text-[12px] focus:outline-blue-500" />
+              <input type="date" name="charges_date" value={formData.charges_date} onChange={handleChange} tabIndex={-1} className="h-[30px] px-2 border border-slate-300 rounded text-[12px] focus:outline-blue-500" />
             </div>
           </div>
           <div className="p-4">
@@ -135,11 +128,7 @@ export function ChargesSection({
                 </div>
                 <div className="grid grid-cols-[140px_1fr] items-center gap-2">
                   <label className="text-[13px] font-bold text-slate-700">Total</label>
-                  <input type="number" value={
-                    Number(formData.freight_ch) + Number(formData.destination_ch) + Number(formData.ess_ch) + Number(formData.oda_ch) +
-                    Number(formData.transport_ch) + Number(formData.clearance_ch) + Number(formData.other_ch) + Number(formData.ddp_ch) +
-                    Number(formData.fuel_surcharge)
-                  } readOnly className="h-[35px] px-3 border border-slate-300 rounded bg-slate-100 text-[14px] font-bold" />
+                  <input type="number" value={formData.sub_total} readOnly tabIndex={-1} className="h-[35px] px-3 border border-slate-300 rounded bg-slate-100 text-[14px] font-bold" />
                 </div>
               </div>
               <div className="space-y-2">

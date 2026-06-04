@@ -16,6 +16,7 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
   const [shipmentType, setShipmentType] = useState(initialType); // 'domestic' or 'international'
   const [customers, setCustomers] = useState([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [selectedConsigneeId, setSelectedConsigneeId] = useState('');
   const [companies, setCompanies] = useState([]);
   const [shipperSearch, setShipperSearch] = useState('');
   const [consigneeSearch, setConsigneeSearch] = useState('');
@@ -23,7 +24,7 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
   const [showConsigneeSuggestions, setShowConsigneeSuggestions] = useState(false);
   const [formData, setFormData] = useState({
     booking_company: '',
-    airway_no: '',
+    airway_no: 'BRK' + Math.floor(100000 + Math.random() * 900000),
     edit_awb: false,
     email: 'OPSOMCOURIER@GMAIL.COM',
     payment_mode: 'CASH',
@@ -283,6 +284,10 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
         formData.freight_ch, formData.pickup_ch, formData.cod_ch, 
         formData.other_ch, formData.fuel_surcharge, formData.transport_ch, 
         formData.remote_area_ch, formData.awb_ch,
+        formData.ras_ch, formData.ers_ch, formData.odd_dimension_ch,
+        formData.address_change_ch, formData.dg_ch, formData.import_duty_ch,
+        formData.adc_noc_ch, formData.electronic_item_ch, formData.odd_weight_ch,
+        formData.packing_ch, formData.handling_ch,
         formData.destination_ch, formData.clearance_ch, formData.ess_ch,
         formData.oda_ch, formData.ddp_ch
     ].reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
@@ -297,6 +302,9 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
   }, [
     formData.freight_ch, formData.pickup_ch, formData.cod_ch, formData.other_ch,
     formData.fuel_surcharge, formData.transport_ch, formData.remote_area_ch, formData.awb_ch,
+    formData.ras_ch, formData.ers_ch, formData.odd_dimension_ch, formData.address_change_ch,
+    formData.dg_ch, formData.import_duty_ch, formData.adc_noc_ch, formData.electronic_item_ch,
+    formData.odd_weight_ch, formData.packing_ch, formData.handling_ch,
     formData.destination_ch, formData.clearance_ch, formData.ess_ch, formData.oda_ch,
     formData.ddp_ch, formData.cgst_ch, formData.sgst_ch, formData.igst_ch
   ]);
@@ -310,38 +318,31 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
             [name]: type === 'checkbox' ? checked : (type === 'number' ? value : value.toUpperCase())
         };
 
-        // If pay mode is changed, validate currently selected customer
+        // If pay mode is changed, always clear the shipper form
         if (name === 'payment_mode') {
             const newPayMode = value.toUpperCase(); // e.g. "CASH" or "CREDIT"
             newData.bill_type = newPayMode; // Sync billing type
-            if (selectedCustomerId) {
-                const selectedCust = customers.find(c => c.id.toString() === selectedCustomerId);
-                if (selectedCust) {
-                    const custPayMode = (selectedCust.payment_type || 'Credit').toUpperCase();
-                    if (custPayMode !== newPayMode) {
-                        // Clear selected customer and shipper details
-                        setSelectedCustomerId('');
-                        setShipperSearch('');
-                        newData = {
-                            ...newData,
-                            shipper_code: '',
-                            shipper_company: '',
-                            shipper_name: '',
-                            shipper_address1: '',
-                            shipper_address2: '',
-                            shipper_address3: '',
-                            shipper_zip: '',
-                            shipper_city: '',
-                            shipper_state: '',
-                            shipper_zone: '',
-                            shipper_phone: '',
-                            shipper_email: '',
-                            shipper_kyc_no: '',
-                            account_code: ''
-                        };
-                    }
-                }
-            }
+            
+            // Clear selected customer and shipper details
+            setSelectedCustomerId('');
+            setShipperSearch('');
+            newData = {
+                ...newData,
+                shipper_code: '',
+                shipper_company: '',
+                shipper_name: '',
+                shipper_address1: '',
+                shipper_address2: '',
+                shipper_address3: '',
+                shipper_zip: '',
+                shipper_city: '',
+                shipper_state: '',
+                shipper_zone: '',
+                shipper_phone: '',
+                shipper_email: '',
+                shipper_kyc_no: '',
+                account_code: ''
+            };
         }
 
         // Pincode auto-fill using internal local database
@@ -534,6 +535,33 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
         }
     }
 
+    // 1b. Update Shipper in address book if checkbox is checked
+    if (formData.shipper_update && selectedCustomerId) {
+        const existingShipper = customers.find(c => c.id.toString() === selectedCustomerId.toString());
+        if (existingShipper) {
+            const updatedShipperData = {
+                ...existingShipper,
+                code: formData.shipper_code || existingShipper.code,
+                name: formData.shipper_name || existingShipper.name,
+                phone: formData.shipper_phone || existingShipper.phone,
+                email: formData.shipper_email || existingShipper.email,
+                address: formData.shipper_address1 + (formData.shipper_address2 ? `, ${formData.shipper_address2}` : '') + (formData.shipper_address3 ? `, ${formData.shipper_address3}` : ''),
+                city: formData.shipper_city || existingShipper.city,
+                state: formData.shipper_state || existingShipper.state,
+                pincode: formData.shipper_zip || existingShipper.pincode,
+                gst_no: formData.shipper_kyc_no || existingShipper.gst_no,
+                parent_company: formData.shipper_company || existingShipper.parent_company,
+                payment_type: (formData.payment_mode || 'Cash').toLowerCase() === 'credit' ? 'Credit' : 'Cash',
+                gst_charges: existingShipper.gst_charges ? 'Yes' : 'No'
+            };
+            try {
+                await api.updateCustomer(selectedCustomerId, updatedShipperData);
+            } catch (err) {
+                console.error("Error updating shipper customer:", err);
+            }
+        }
+    }
+
     // 2. Save Consignee as a new customer if checkbox is checked
     if (formData.consignee_save) {
         if (!formData.consignee_name || !formData.consignee_phone) {
@@ -587,17 +615,57 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
         }
     }
 
+    // 2b. Update Consignee in address book if checkbox is checked
+    if (formData.consignee_update && selectedConsigneeId) {
+        const existingConsignee = customers.find(c => c.id.toString() === selectedConsigneeId.toString());
+        if (existingConsignee) {
+            const updatedConsigneeData = {
+                ...existingConsignee,
+                code: formData.consignee_code || existingConsignee.code,
+                name: formData.consignee_name || existingConsignee.name,
+                phone: formData.consignee_phone || existingConsignee.phone,
+                email: formData.consignee_email || existingConsignee.email,
+                address: formData.consignee_address1 + (formData.consignee_address2 ? `, ${formData.consignee_address2}` : '') + (formData.consignee_address3 ? `, ${formData.consignee_address3}` : ''),
+                city: formData.consignee_city || existingConsignee.city,
+                state: formData.consignee_state || existingConsignee.state,
+                pincode: formData.consignee_zip || existingConsignee.pincode,
+                parent_company: formData.consignee_company || existingConsignee.parent_company,
+                gst_charges: existingConsignee.gst_charges ? 'Yes' : 'No'
+            };
+            try {
+                await api.updateCustomer(selectedConsigneeId, updatedConsigneeData);
+            } catch (err) {
+                console.error("Error updating consignee customer:", err);
+            }
+        }
+    }
+
+    // Refresh customers list at the very end of database actions
+    if (formData.shipper_save || formData.consignee_save || formData.shipper_update || formData.consignee_update) {
+        try {
+            const updatedCustomers = await api.getCustomers();
+            setCustomers(updatedCustomers);
+        } catch (err) {
+            console.error("Error reloading customers master:", err);
+        }
+    }
+
     const payload = { 
         ...formData, 
         customer_id: customerIdToUse, 
         user_id: 1, 
-        type: shipmentType 
+        type: shipmentType,
+        bill_amount: parseFloat(formData.freight_ch) || 0,
+        fuel_amount: parseFloat(formData.fuel_surcharge) || 0,
+        gst_amount: (parseFloat(formData.cgst_ch) || 0) + (parseFloat(formData.sgst_ch) || 0) + (parseFloat(formData.igst_ch) || 0),
+        total_charges: parseFloat(formData.grand_total) || 0
     };
     
     try {
       const data = await api.createShipment(payload);
       if (data.success) {
-        alert(`${shipmentType.toUpperCase()} AWB Created Successfully! ID: ${data.id}`);
+        alert(`${shipmentType.toUpperCase()} AWB Created Successfully! AWB: ${formData.airway_no}`);
+        window.location.reload();
       } else {
         alert('Error: ' + data.error);
       }
@@ -662,6 +730,7 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
 
   const handleSelectConsignee = (customer) => {
       if (!customer) return;
+      setSelectedConsigneeId(customer.id);
       setConsigneeSearch(customer.name || customer.parent_company || '');
       setFormData(prev => ({
           ...prev,
