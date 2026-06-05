@@ -1,6 +1,7 @@
 import React from 'react';
 import { RotateCcw } from 'lucide-react';
-import { FormField } from './FormField';
+import { FormField, getCountryCallingCode } from './FormField';
+import { isDomesticCountry } from '../../../utils/weight';
 
 export function ConsigneeInfoSection({
   formData,
@@ -27,6 +28,70 @@ export function ConsigneeInfoSection({
       }
     }
   }, [highlightedIndex]);
+
+  const isDomestic = isDomesticCountry(formData.consignee_country);
+
+  const callingCode = getCountryCallingCode(formData.consignee_country) || '+91';
+  const fullPhone = formData.consignee_phone || '';
+  const displayPhone = fullPhone.startsWith(callingCode) ? fullPhone.slice(callingCode.length) : fullPhone.replace(/^\+\d+/, '');
+
+  const handlePhoneChange = (e) => {
+    const digits = e.target.value.replace(/[^\d]/g, '');
+    handleChange({
+      target: {
+        name: 'consignee_phone',
+        value: callingCode + digits,
+        type: 'text'
+      }
+    });
+  };
+
+  const fullEmail = formData.consignee_email || '';
+  let emailUser = '';
+  let emailDomain = 'GMAIL.COM';
+  if (fullEmail.includes('@')) {
+    const parts = fullEmail.split('@');
+    emailUser = parts[0];
+    emailDomain = parts[1] || '';
+  } else {
+    emailUser = fullEmail;
+  }
+
+  const handleEmailUserChange = (e) => {
+    const val = e.target.value.toUpperCase();
+    if (val.includes('@')) {
+      const parts = val.split('@');
+      const userPart = parts[0] || '';
+      const domainPart = parts.slice(1).join('@') || 'GMAIL.COM';
+      handleChange({
+        target: {
+          name: 'consignee_email',
+          value: userPart + '@' + domainPart,
+          type: 'text'
+        }
+      });
+    } else {
+      handleChange({
+        target: {
+          name: 'consignee_email',
+          value: val + '@' + emailDomain,
+          type: 'text'
+        }
+      });
+    }
+  };
+
+  const handleEmailDomainChange = (e) => {
+    const val = e.target.value.toUpperCase();
+    const cleanDomain = val.replace(/@/g, '');
+    handleChange({
+      target: {
+        name: 'consignee_email',
+        value: emailUser + '@' + cleanDomain,
+        type: 'text'
+      }
+    });
+  };
 
   return (
     <div className="flex flex-col">
@@ -101,7 +166,7 @@ export function ConsigneeInfoSection({
         </FormField>
 
         <div className="grid grid-cols-[1fr_85px] gap-1">
-          <FormField onChange={handleChange} label="Code" name="consignee_code" labelWidth="105px" value={formData.consignee_code} inputMaxWidth="320px" />
+          <FormField onChange={handleChange} label="Code" name="consignee_code" labelWidth="105px" value={formData.consignee_code} inputMaxWidth="320px" readOnly tabIndex={-1} />
           <div className="flex items-center gap-1">
             <input type="checkbox" name="consignee_update" checked={formData.consignee_update} onChange={handleChange} className="h-2.5 w-2.5" />
             <span className="text-[7px] font-bold text-slate-500 uppercase leading-none">Update address book?</span>
@@ -115,24 +180,61 @@ export function ConsigneeInfoSection({
         <FormField onChange={handleChange} label="Address 3" name="consignee_address3" labelWidth="105px" value={formData.consignee_address3} inputMaxWidth="320px" />
 
         <div className="grid grid-cols-[1fr_50px] gap-1 max-w-[425px]">
-          <FormField onChange={handleChange} label="Post / Zip Code" name="consignee_zip" isRed labelWidth="105px" value={formData.consignee_zip} inputMaxWidth="320px" readOnly />
-          <button type="button" className="bg-slate-300 text-[8px] font-bold text-white uppercase h-[22px] cursor-not-allowed" disabled>Search</button>
+          <FormField onChange={handleChange} label="Post / Zip Code" name="consignee_zip" isRed labelWidth="105px" value={formData.consignee_zip} inputMaxWidth="320px" readOnly={isDomestic} />
+          <button type="button" className={`text-[8px] font-bold text-white uppercase h-[22px] ${isDomestic ? 'bg-slate-300 cursor-not-allowed' : 'bg-slate-300 cursor-not-allowed'}`} disabled>Search</button>
         </div>
 
-        <FormField onChange={handleChange} label="City" name="consignee_city" isRed labelWidth="105px" value={formData.consignee_city} inputMaxWidth="320px" readOnly />
+        <FormField onChange={handleChange} label="City" name="consignee_city" isRed labelWidth="105px" value={formData.consignee_city} inputMaxWidth="320px" readOnly={isDomestic} />
         <div className="grid grid-cols-[1fr_80px] gap-1 max-w-[425px]">
-          <FormField onChange={handleChange} label="State / County" name="consignee_state" labelWidth="105px" value={formData.consignee_state} inputMaxWidth="320px" readOnly />
-          <FormField onChange={handleChange} label="Zone" name="consignee_zone" labelWidth="35px" value={formData.consignee_zone} readOnly />
+          <FormField onChange={handleChange} label="State / County" name="consignee_state" labelWidth="105px" value={formData.consignee_state} inputMaxWidth="320px" readOnly={isDomestic} />
+          <FormField onChange={handleChange} label="Zone" name="consignee_zone" labelWidth="35px" value={formData.consignee_zone} readOnly={isDomestic} />
         </div>
 
-        <FormField onChange={handleChange} label="Country" name="consignee_country" isRed labelWidth="105px" inputMaxWidth="320px" readOnly>
-          <input name="consignee_country" value={formData.consignee_country} readOnly tabIndex={-1} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none bg-slate-100 cursor-not-allowed" />
+        <FormField onChange={handleChange} label="Country" name="consignee_country" isRed labelWidth="105px" inputMaxWidth="320px">
+          <input list="countries-list" name="consignee_country" value={formData.consignee_country} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none" />
         </FormField>
 
-        {/* Bound Phone Number Input */}
-        <FormField onChange={handleChange} label="Phone Number" name="consignee_phone" isRed labelWidth="105px" value={formData.consignee_phone} inputMaxWidth="320px" />
+        {/* Bound Phone Number Input with Static Prefix */}
+        <FormField label="Phone Number" isRed labelWidth="105px" inputMaxWidth="320px">
+          <div className="flex w-full h-[22px] border border-slate-300 rounded overflow-hidden">
+            <span className="bg-slate-100 px-1.5 flex items-center justify-center text-[10px] font-bold border-r border-slate-200 select-none text-slate-500 h-full">
+              {callingCode}
+            </span>
+            <input
+              type="text"
+              name="consignee_phone"
+              value={displayPhone}
+              onChange={handlePhoneChange}
+              placeholder="PHONE NUMBER"
+              className="flex-1 h-full px-2 text-[11px] font-bold text-slate-900 outline-none uppercase bg-[#fcfcfc] focus:bg-white"
+            />
+          </div>
+        </FormField>
 
-        <FormField onChange={handleChange} label="Email Address" name="consignee_email" labelWidth="105px" value={formData.consignee_email} inputMaxWidth="320px" />
+        <FormField label="Email Address" labelWidth="105px" inputMaxWidth="320px">
+          <div className="flex items-center w-full h-full text-[12px] font-bold text-slate-900 border border-slate-300 rounded overflow-hidden focus-within:border-blue-500 transition-colors bg-white">
+            <input
+              type="text"
+              placeholder="USERNAME"
+              value={emailUser}
+              onChange={handleEmailUserChange}
+              style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
+              className="flex-1 h-full px-2 uppercase bg-white text-slate-900"
+            />
+            <div className="flex items-center h-full bg-slate-50 border-l border-slate-200 px-2 text-slate-500 select-none">
+              <span className="font-bold text-[11px] mr-1 text-slate-400">@</span>
+              <input
+                type="text"
+                placeholder="DOMAIN.COM"
+                value={emailDomain}
+                onChange={handleEmailDomainChange}
+                tabIndex={-1}
+                style={{ border: 'none', outline: 'none', boxShadow: 'none', width: '90px' }}
+                className="h-full uppercase bg-transparent text-slate-500 focus:text-slate-900 px-0"
+              />
+            </div>
+          </div>
+        </FormField>
       </div>
     </div>
   );

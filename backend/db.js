@@ -41,293 +41,53 @@ db.execAsync = (sql) => {
   });
 };
 
+// Helper to dynamically add missing columns to a table
+const ensureColumnsExist = async (tableName, colDefinitions) => {
+  try {
+    const tableInfo = await db.allAsync(`PRAGMA table_info(${tableName})`);
+    const existingColumns = tableInfo.map(c => c.name.toLowerCase());
+    for (const [colName, colType] of Object.entries(colDefinitions)) {
+      if (!existingColumns.includes(colName.toLowerCase())) {
+        await db.execAsync(`ALTER TABLE ${tableName} ADD COLUMN ${colName} ${colType}`);
+        console.log(`Migrated ${tableName} table: added column ${colName}`);
+      }
+    }
+  } catch (err) {
+    console.error(`Failed to migrate ${tableName} table:`, err);
+  }
+};
+
 // Initialize tables
+const schemaSql = require('./dbSchema');
 const init = async () => {
   try {
     // 1. Core Tables
-    await db.execAsync(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT,
-        role TEXT
-      );
-
-      CREATE TABLE IF NOT EXISTS customers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        code TEXT UNIQUE,
-        name TEXT,
-        phone TEXT,
-        email TEXT,
-        city TEXT,
-        gst_no TEXT,
-        password TEXT,
-        address TEXT,
-        staff_allotment TEXT,
-        pincode TEXT,
-        state TEXT,
-        gst_charges BOOLEAN DEFAULT 1,
-        api_access TEXT,
-        sac_code TEXT,
-        credit_days INTEGER,
-        cft TEXT,
-        domestic_rate_group TEXT,
-        international_rate_group TEXT,
-        domestic_fuel_group TEXT,
-        international_fuel_group TEXT,
-        mis_emails TEXT,
-        mis_format TEXT,
-        payment_type TEXT DEFAULT 'Credit'
-      );
-
-      CREATE TABLE IF NOT EXISTS rate_groups (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE,
-        type TEXT
-      );
-
-      CREATE TABLE IF NOT EXISTS fuel_groups (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE,
-        type TEXT
-      );
-
-      CREATE TABLE IF NOT EXISTS fuel_entries (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        fuel_courier TEXT DEFAULT 'All',
-        fuel_price_pct REAL,
-        company_type TEXT DEFAULT 'Domestic',
-        docket_charge REAL,
-        customer TEXT DEFAULT 'All',
-        fov_min REAL,
-        fov_above REAL,
-        fov_below REAL,
-        fov_base REAL,
-        appointment_min REAL,
-        appointment_per_kg REAL,
-        fuel_from_date TEXT,
-        fuel_to_date TEXT,
-        cft REAL,
-        air_cft REAL,
-        calculate_on TEXT DEFAULT 'Freight',
-        cod_fixed REAL,
-        topay_fixed REAL,
-        rate_slabs TEXT DEFAULT '[]',
-        created_at TEXT DEFAULT (datetime('now'))
-      );
-
-      CREATE TABLE IF NOT EXISTS company_settings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        company_name TEXT NOT NULL,
-        logo TEXT,
-        gst_no TEXT,
-        email TEXT,
-        address TEXT,
-        pan TEXT,
-        export_invoice_series TEXT,
-        import_invoice_series TEXT,
-        domestic_invoice_series TEXT,
-        contact_no TEXT,
-        website TEXT,
-        branch_wise_invoice INTEGER DEFAULT 0,
-        invoice_terms TEXT,
-        account_name TEXT,
-        account_number TEXT,
-        ifsc TEXT,
-        branch_name TEXT,
-        bank_name TEXT,
-        bank_terms TEXT
-      );
-
-      CREATE TABLE IF NOT EXISTS mail_config (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        port_no TEXT,
-        host TEXT,
-        username TEXT,
-        password TEXT
-      );
-
-      CREATE TABLE IF NOT EXISTS company_branches (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        company_id INTEGER NOT NULL,
-        branch_name TEXT NOT NULL,
-        branch_code TEXT UNIQUE,
-        email TEXT,
-        contact_no TEXT,
-        address TEXT,
-        city TEXT,
-        state TEXT,
-        pincode TEXT,
-        contact_person TEXT,
-        FOREIGN KEY (company_id) REFERENCES company_settings(id)
-      );
-
-      CREATE TABLE IF NOT EXISTS states (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE
-      );
-
-      CREATE TABLE IF NOT EXISTS modes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE,
-        type TEXT DEFAULT 'Domestic'
-      );
-
-      CREATE TABLE IF NOT EXISTS cities (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        state_id INTEGER,
-        name TEXT UNIQUE,
-        FOREIGN KEY (state_id) REFERENCES states(id)
-      );
-
-      CREATE TABLE IF NOT EXISTS shipments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        customer_id INTEGER,
-        user_id INTEGER,
-        airway_no TEXT UNIQUE,
-        type TEXT, 
-        status TEXT,
-        booking_date TEXT,
-        booking_time TEXT,
-        product TEXT,
-        origin_hub TEXT,
-        origin_zone TEXT,
-        destination TEXT,
-        dest_zone TEXT,
-        usps_number TEXT,
-        service TEXT,
-        duty TEXT,
-        ref_no TEXT,
-        shipment_value REAL,
-        currency TEXT,
-        invoice_date TEXT,
-        invoice_no TEXT,
-        account_code TEXT,
-        shipper_name TEXT,
-        shipper_company TEXT,
-        shipper_address1 TEXT,
-        shipper_address2 TEXT,
-        shipper_address3 TEXT,
-        shipper_city TEXT,
-        shipper_state TEXT,
-        shipper_zip TEXT,
-        shipper_country TEXT,
-        shipper_phone TEXT,
-        shipper_email TEXT,
-        shipper_kyc_type TEXT,
-        shipper_kyc_no TEXT,
-        consignee_name TEXT,
-        consignee_company TEXT,
-        consignee_address1 TEXT,
-        consignee_address2 TEXT,
-        consignee_address3 TEXT,
-        consignee_city TEXT,
-        consignee_state TEXT,
-        consignee_zip TEXT,
-        consignee_country TEXT,
-        consignee_phone TEXT,
-        consignee_email TEXT,
-        pcs INTEGER,
-        actual_weight REAL,
-        volumetric_weight REAL,
-        chargeable_weight REAL,
-        bill_amount REAL,
-        fuel_amount REAL,
-        gst_amount REAL,
-        freight_charges REAL,
-        total_charges REAL,
-        forward_no TEXT,
-        forwarder TEXT,
-        description TEXT,
-        bill_type TEXT,
-        type_of_doc TEXT,
-        doc_number TEXT,
-        destination_ch REAL,
-        ess_ch REAL,
-        oda_ch REAL,
-        transport_ch REAL,
-        clearance_ch REAL,
-        other_ch REAL,
-        ddp_ch REAL,
-        charges_date TEXT,
-        FOREIGN KEY (customer_id) REFERENCES customers(id),
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      );
-
-      CREATE TABLE IF NOT EXISTS packages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        shipment_id INTEGER,
-        box_no TEXT,
-        actual_wt REAL,
-        length REAL,
-        breadth REAL,
-        height REAL,
-        vol_wt REAL,
-        chargeable_wt REAL,
-        per_box_wt REAL,
-        FOREIGN KEY (shipment_id) REFERENCES shipments(id)
-      );
-
-      CREATE TABLE IF NOT EXISTS shipment_items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        shipment_id INTEGER,
-        box_no TEXT,
-        sr_no INTEGER,
-        description TEXT,
-        hs_code TEXT,
-        unit_type TEXT,
-        quantity INTEGER,
-        unit_weight REAL,
-        igst REAL,
-        unit_rate REAL,
-        amount REAL,
-        FOREIGN KEY (shipment_id) REFERENCES shipments(id)
-      );
-
-      CREATE TABLE IF NOT EXISTS tracking (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        shipment_id INTEGER,
-        status TEXT,
-        location TEXT,
-        event_time TEXT,
-        FOREIGN KEY (shipment_id) REFERENCES shipments(id)
-      );
-
-      CREATE TABLE IF NOT EXISTS countries (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE,
-        code TEXT UNIQUE
-      );
-    `);
+    await db.execAsync(schemaSql);
 
     // 2. Migrations for existing database
-    const tableInfo = await db.allAsync("PRAGMA table_info(customers)");
-    const columns = tableInfo.map(c => c.name);
-    
-    if (!columns.includes('password')) await db.execAsync("ALTER TABLE customers ADD COLUMN password TEXT");
-    if (!columns.includes('address')) await db.execAsync("ALTER TABLE customers ADD COLUMN address TEXT");
-    if (!columns.includes('staff_allotment')) await db.execAsync("ALTER TABLE customers ADD COLUMN staff_allotment TEXT");
-    if (!columns.includes('pincode')) await db.execAsync("ALTER TABLE customers ADD COLUMN pincode TEXT");
-    if (!columns.includes('state')) await db.execAsync("ALTER TABLE customers ADD COLUMN state TEXT");
-    if (!columns.includes('gst_charges')) await db.execAsync("ALTER TABLE customers ADD COLUMN gst_charges BOOLEAN DEFAULT 1");
-    if (!columns.includes('api_access')) await db.execAsync("ALTER TABLE customers ADD COLUMN api_access TEXT");
-    if (!columns.includes('sac_code')) await db.execAsync("ALTER TABLE customers ADD COLUMN sac_code TEXT");
-    if (!columns.includes('credit_days')) await db.execAsync("ALTER TABLE customers ADD COLUMN credit_days INTEGER");
-    if (!columns.includes('cft')) await db.execAsync("ALTER TABLE customers ADD COLUMN cft TEXT");
-    if (!columns.includes('domestic_rate_group')) await db.execAsync("ALTER TABLE customers ADD COLUMN domestic_rate_group TEXT");
-    if (!columns.includes('international_rate_group')) await db.execAsync("ALTER TABLE customers ADD COLUMN international_rate_group TEXT");
-    if (!columns.includes('domestic_fuel_group')) await db.execAsync("ALTER TABLE customers ADD COLUMN domestic_fuel_group TEXT");
-    if (!columns.includes('international_fuel_group')) await db.execAsync("ALTER TABLE customers ADD COLUMN international_fuel_group TEXT");
-    if (!columns.includes('mis_emails')) await db.execAsync("ALTER TABLE customers ADD COLUMN mis_emails TEXT");
-    if (!columns.includes('mis_format')) await db.execAsync("ALTER TABLE customers ADD COLUMN mis_format TEXT");
-    if (!columns.includes('customer_type')) await db.execAsync("ALTER TABLE customers ADD COLUMN customer_type TEXT DEFAULT 'Domestic'");
-    if (!columns.includes('parent_company')) await db.execAsync("ALTER TABLE customers ADD COLUMN parent_company TEXT");
-    if (!columns.includes('payment_type')) await db.execAsync("ALTER TABLE customers ADD COLUMN payment_type TEXT DEFAULT 'Credit'");
+    await ensureColumnsExist('customers', {
+      password: "TEXT",
+      address: "TEXT",
+      staff_allotment: "TEXT",
+      pincode: "TEXT",
+      state: "TEXT",
+      gst_charges: "BOOLEAN DEFAULT 1",
+      api_access: "TEXT",
+      sac_code: "TEXT",
+      credit_days: "INTEGER",
+      cft: "TEXT",
+      domestic_rate_group: "TEXT",
+      international_rate_group: "TEXT",
+      domestic_fuel_group: "TEXT",
+      international_fuel_group: "TEXT",
+      mis_emails: "TEXT",
+      mis_format: "TEXT",
+      customer_type: "TEXT DEFAULT 'Domestic'",
+      parent_company: "TEXT",
+      payment_type: "TEXT DEFAULT 'Credit'"
+    });
 
-    const shipmentInfo = await db.allAsync("PRAGMA table_info(shipments)");
-    const sCols = shipmentInfo.map(c => c.name);
-    
-    const expectedShipmentCols = {
+    await ensureColumnsExist('shipments', {
       customer_id: "INTEGER",
       user_id: "INTEGER",
       airway_no: "TEXT",
@@ -401,22 +161,9 @@ const init = async () => {
       shipper_image: "TEXT",
       branch: "TEXT",
       eway_bill_no: "TEXT"
-    };
+    });
 
-    for (const [colName, colType] of Object.entries(expectedShipmentCols)) {
-      if (!sCols.includes(colName)) {
-        try {
-          await db.execAsync(`ALTER TABLE shipments ADD COLUMN ${colName} ${colType}`);
-          console.log(`Migrated shipments table: added column ${colName}`);
-        } catch (alterErr) {
-          console.error(`Failed to add column ${colName} to shipments table:`, alterErr);
-        }
-      }
-    }
-
-    const packageInfo = await db.allAsync("PRAGMA table_info(packages)");
-    const pCols = packageInfo.map(c => c.name);
-    const expectedPackageCols = {
+    await ensureColumnsExist('packages', {
       shipment_id: "INTEGER",
       box_no: "TEXT",
       actual_wt: "REAL",
@@ -426,21 +173,9 @@ const init = async () => {
       vol_wt: "REAL",
       chargeable_wt: "REAL",
       per_box_wt: "REAL"
-    };
-    for (const [colName, colType] of Object.entries(expectedPackageCols)) {
-      if (!pCols.includes(colName)) {
-        try {
-          await db.execAsync(`ALTER TABLE packages ADD COLUMN ${colName} ${colType}`);
-          console.log(`Migrated packages table: added column ${colName}`);
-        } catch (alterErr) {
-          console.error(`Failed to add column ${colName} to packages table:`, alterErr);
-        }
-      }
-    }
+    });
 
-    const itemInfo = await db.allAsync("PRAGMA table_info(shipment_items)");
-    const iCols = itemInfo.map(c => c.name);
-    const expectedItemCols = {
+    await ensureColumnsExist('shipment_items', {
       shipment_id: "INTEGER",
       box_no: "TEXT",
       sr_no: "INTEGER",
@@ -452,17 +187,7 @@ const init = async () => {
       igst: "REAL",
       unit_rate: "REAL",
       amount: "REAL"
-    };
-    for (const [colName, colType] of Object.entries(expectedItemCols)) {
-      if (!iCols.includes(colName)) {
-        try {
-          await db.execAsync(`ALTER TABLE shipment_items ADD COLUMN ${colName} ${colType}`);
-          console.log(`Migrated shipment_items table: added column ${colName}`);
-        } catch (alterErr) {
-          console.error(`Failed to add column ${colName} to shipment_items table:`, alterErr);
-        }
-      }
-    }
+    });
 
     // 3. Seeding
     const userCount = (await db.getAsync('SELECT count(*) as count FROM users')).count;
@@ -512,29 +237,27 @@ const init = async () => {
       }
     }
 
-    // Migrate modes table — add type column if missing
-    const modeInfo = await db.allAsync("PRAGMA table_info(modes)");
-    if (!modeInfo.map(c => c.name).includes('type')) {
-      await db.execAsync("ALTER TABLE modes ADD COLUMN type TEXT DEFAULT 'Domestic'");
-    }
+    // Migrate modes and company_settings tables using ensureColumnsExist
+    await ensureColumnsExist('modes', {
+      type: "TEXT DEFAULT 'Domestic'"
+    });
 
-    // Migrate company_settings columns if table already existed with fewer columns
-    const companyInfo = await db.allAsync("PRAGMA table_info(company_settings)");
-    const cCols = companyInfo.map(c => c.name);
-    if (!cCols.includes('gst_no')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN gst_no TEXT");
-    if (!cCols.includes('pan')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN pan TEXT");
-    if (!cCols.includes('export_invoice_series')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN export_invoice_series TEXT");
-    if (!cCols.includes('import_invoice_series')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN import_invoice_series TEXT");
-    if (!cCols.includes('domestic_invoice_series')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN domestic_invoice_series TEXT");
-    if (!cCols.includes('website')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN website TEXT");
-    if (!cCols.includes('branch_wise_invoice')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN branch_wise_invoice INTEGER DEFAULT 0");
-    if (!cCols.includes('invoice_terms')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN invoice_terms TEXT");
-    if (!cCols.includes('account_name')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN account_name TEXT");
-    if (!cCols.includes('account_number')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN account_number TEXT");
-    if (!cCols.includes('ifsc')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN ifsc TEXT");
-    if (!cCols.includes('branch_name')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN branch_name TEXT");
-    if (!cCols.includes('bank_name')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN bank_name TEXT");
-    if (!cCols.includes('bank_terms')) await db.execAsync("ALTER TABLE company_settings ADD COLUMN bank_terms TEXT");
+    await ensureColumnsExist('company_settings', {
+      gst_no: "TEXT",
+      pan: "TEXT",
+      export_invoice_series: "TEXT",
+      import_invoice_series: "TEXT",
+      domestic_invoice_series: "TEXT",
+      website: "TEXT",
+      branch_wise_invoice: "INTEGER DEFAULT 0",
+      invoice_terms: "TEXT",
+      account_name: "TEXT",
+      account_number: "TEXT",
+      ifsc: "TEXT",
+      branch_name: "TEXT",
+      bank_name: "TEXT",
+      bank_terms: "TEXT"
+    });
 
     // Seed default companies (idempotent — uses name check)
     const seedCompany = async (name, gst_no, email, address, pan, contact_no, website, domestic_invoice_series) => {

@@ -326,7 +326,7 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
     };
 
     return (
-        <div className="bg-[#f0f2f5] min-h-screen p-1 flex flex-col gap-1">
+        <div className="bg-[#f0f2f5] min-h-full p-1 flex flex-col gap-1">
             {/* Header */}
             <div className="flex items-center justify-between bg-white px-4 py-1.5 rounded border border-slate-200 shadow-sm">
                 <div className="flex items-center gap-2">

@@ -123,6 +123,8 @@
     }
   body {
     @apply bg-background text-foreground;
+    max-width: 100%;
+    overflow-x: hidden;
     }
   input:not([type="password"]):not([type="email"]):not([type="number"]):not([name="website"]):not([name="logo"]),
   textarea:not([name="website"]):not([name="logo"]) {
@@ -130,6 +132,8 @@
   }
   html {
     @apply font-sans;
+    max-width: 100%;
+    overflow-x: hidden;
     }
 }
 
@@ -138,4 +142,29 @@ input:focus, select:focus, textarea:focus, button:focus {
   border-color: #eab308 !important; /* yellow-500 */
   box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.4) !important;
   outline: none !important;
+}
+
+/* Custom scrollbar styling for a cleaner, modern look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.7);
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
 }

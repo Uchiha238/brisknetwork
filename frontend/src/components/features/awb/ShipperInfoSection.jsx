@@ -1,6 +1,6 @@
 import React from 'react';
 import { RotateCcw } from 'lucide-react';
-import { FormField } from './FormField';
+import { FormField, getCountryCallingCode } from './FormField';
 
 export function ShipperInfoSection({
   formData,
@@ -27,6 +27,21 @@ export function ShipperInfoSection({
       }
     }
   }, [highlightedIndex]);
+
+  const callingCode = getCountryCallingCode(formData.shipper_country) || '+91';
+  const fullPhone = formData.shipper_phone || '';
+  const displayPhone = fullPhone.startsWith(callingCode) ? fullPhone.slice(callingCode.length) : fullPhone.replace(/^\+\d+/, '');
+
+  const handlePhoneChange = (e) => {
+    const digits = e.target.value.replace(/[^\d]/g, '');
+    handleChange({
+      target: {
+        name: 'shipper_phone',
+        value: callingCode + digits,
+        type: 'text'
+      }
+    });
+  };
 
   return (
     <div className="flex flex-col">
@@ -101,7 +116,7 @@ export function ShipperInfoSection({
         </FormField>
 
         <div className="grid grid-cols-[1fr_85px] gap-1">
-          <FormField onChange={handleChange} label="Code" name="shipper_code" labelWidth="95px" value={formData.shipper_code} />
+          <FormField onChange={handleChange} label="Code" name="shipper_code" labelWidth="95px" value={formData.shipper_code} readOnly tabIndex={-1} />
           <div className="flex items-center gap-1">
             <input type="checkbox" name="shipper_update" checked={formData.shipper_update} onChange={handleChange} className="h-2.5 w-2.5" />
             <span className="text-[7px] font-bold text-slate-500 uppercase leading-none">Update address book?</span>
@@ -129,8 +144,22 @@ export function ShipperInfoSection({
           <input list="countries-list" name="shipper_country" value={formData.shipper_country} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none" />
         </FormField>
 
-        {/* Cleaned up Phone Number Input */}
-        <FormField onChange={handleChange} label="Phone Number" name="shipper_phone" isRed labelWidth="95px" value={formData.shipper_phone} />
+        {/* Cleaned up Phone Number Input with Static Prefix */}
+        <FormField label="Phone Number" isRed labelWidth="95px">
+          <div className="flex w-full h-[22px] border border-slate-300 rounded overflow-hidden">
+            <span className="bg-slate-100 px-1.5 flex items-center justify-center text-[10px] font-bold border-r border-slate-200 select-none text-slate-500 h-full">
+              {callingCode}
+            </span>
+            <input
+              type="text"
+              name="shipper_phone"
+              value={displayPhone}
+              onChange={handlePhoneChange}
+              placeholder="PHONE NUMBER"
+              className="flex-1 h-full px-2 text-[11px] font-bold text-slate-900 outline-none uppercase bg-[#fcfcfc] focus:bg-white"
+            />
+          </div>
+        </FormField>
 
         <FormField onChange={handleChange} label="Email Address" name="shipper_email" labelWidth="95px" value={formData.shipper_email} />
 

@@ -10,6 +10,9 @@ export function DashboardLayout({ children, currentPage, setCurrentPage, user, o
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
@@ -64,8 +67,59 @@ export function DashboardLayout({ children, currentPage, setCurrentPage, user, o
     { id: 'reports', label: 'Reports', icon: BarChart3 },
   ];
 
+  // Flat list of all searchable routes/pages
+  const searchablePages = [];
+  navItems.forEach(item => {
+    if (item.dropdownItems) {
+      item.dropdownItems.forEach(sub => {
+        searchablePages.push({
+          label: sub.label,
+          id: sub.id,
+          category: item.label,
+          icon: item.icon
+        });
+      });
+    } else {
+      searchablePages.push({
+        label: item.label,
+        id: item.id,
+        category: 'Navigation',
+        icon: item.icon
+      });
+    }
+  });
+
+  const filteredSearchPages = searchQuery.trim()
+    ? searchablePages.filter(p => 
+        p.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.category.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
+
+  const handleKeyDown = (e) => {
+    if (!filteredSearchPages.length) return;
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev + 1) % filteredSearchPages.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev - 1 + filteredSearchPages.length) % filteredSearchPages.length);
+    } else if (e.key === 'Enter') {
+      if (highlightedIndex >= 0 && highlightedIndex < filteredSearchPages.length) {
+        e.preventDefault();
+        const selectedPage = filteredSearchPages[highlightedIndex];
+        setCurrentPage(selectedPage.id);
+        setSearchQuery('');
+        setShowSearchSuggestions(false);
+      }
+    } else if (e.key === 'Escape') {
+      setShowSearchSuggestions(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen w-full bg-[#f8fafc] flex flex-col font-sans">
+    <div className="min-h-screen w-full bg-[#f8fafc] flex flex-col font-sans overflow-x-hidden">
       
       {/* Top Navbar */}
       <header className="sticky top-0 z-50 w-full bg-white border-b border-slate-100 shadow-sm px-4 md:px-8 h-[70px] flex items-center justify-between">
@@ -107,11 +161,11 @@ export function DashboardLayout({ children, currentPage, setCurrentPage, user, o
                     }}
                     className={`h-[70px] relative flex flex-col items-center justify-center gap-1.5 px-4 transition-all group ${
                       isActive 
-                      ? 'text-blue-700 font-black border-b-4 border-blue-600' 
-                      : 'text-slate-500 hover:text-slate-800 border-b-4 border-transparent hover:border-slate-200'
+                      ? 'text-blue-700 font-black border-b-4 border-blue-600 bg-blue-50/20' 
+                      : 'text-slate-700 hover:text-blue-700 font-bold border-b-4 border-transparent hover:border-blue-100 hover:bg-slate-50/30'
                     }`}
                   >
-                    <Icon className={`h-4 w-4 ${isActive ? 'text-blue-700' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                    <Icon className={`h-4.5 w-4.5 transition-colors ${isActive ? 'text-blue-700 stroke-[2.5px]' : 'text-slate-500 group-hover:text-blue-600 stroke-[2px]'}`} />
                     <span className={`text-[11px] uppercase tracking-wider text-center ${item.id === 'cms' ? 'leading-[1] max-w-[80px]' : 'whitespace-nowrap'}`}>
                       {item.id === 'cms' ? (
                         <>CMS<br />Management</>
@@ -120,7 +174,7 @@ export function DashboardLayout({ children, currentPage, setCurrentPage, user, o
                       )}
                     </span>
                     {hasDropdown && (
-                      <ChevronDown className={`h-3 w-3 absolute right-0.5 top-1/2 -translate-y-1/2 opacity-50 transition-transform ${activeDropdown === item.id ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`h-3 w-3 absolute right-0.5 top-1/2 -translate-y-1/2 opacity-70 group-hover:opacity-100 transition-transform ${activeDropdown === item.id ? 'rotate-180' : ''}`} />
                     )}
                   </button>
 
@@ -134,10 +188,10 @@ export function DashboardLayout({ children, currentPage, setCurrentPage, user, o
                             setCurrentPage(subItem.id);
                             setActiveDropdown(null);
                           }}
-                          className={`w-full text-left px-5 py-2 text-xs font-semibold transition-colors ${
+                          className={`w-full text-left px-5 py-2 text-xs font-bold transition-colors ${
                             currentPage === subItem.id 
-                            ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600' 
-                            : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600'
+                            ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600 font-extrabold' 
+                            : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700 hover:bg-blue-50/40'
                           }`}
                         >
                           {subItem.label}
@@ -152,29 +206,79 @@ export function DashboardLayout({ children, currentPage, setCurrentPage, user, o
         </div>
 
         {/* Right Side: Profile & Actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 shrink-0">
           
-          <div className="hidden xl:flex items-center gap-2 px-4 py-1.5 bg-slate-50 rounded-full border border-slate-100 mr-2">
-            <Search className="h-4 w-4 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Quick search..." 
-              className="bg-transparent border-none text-xs focus:ring-0 w-32 outline-none"
-            />
+          <div 
+            className="hidden md:flex flex-col relative"
+            onFocus={() => setShowSearchSuggestions(true)}
+            onBlur={(e) => {
+              // Delay to let click events trigger before closing suggestions
+              setTimeout(() => {
+                setShowSearchSuggestions(false);
+              }, 200);
+            }}
+          >
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100/80 hover:bg-slate-200/50 rounded-lg border border-transparent focus-within:bg-white focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all duration-200 mr-4">
+              <Search className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+              <input 
+                type="text" 
+                placeholder="Quick search..." 
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setHighlightedIndex(-1);
+                }}
+                onKeyDown={handleKeyDown}
+                className="bg-transparent border-none text-xs w-36 focus:w-48 transition-all duration-300 outline-none font-semibold text-slate-800 placeholder:text-slate-400"
+              />
+            </div>
+            
+            {showSearchSuggestions && filteredSearchPages.length > 0 && (
+              <div className="absolute top-[40px] left-0 w-64 bg-white border border-slate-150 shadow-2xl rounded-xl py-2 z-[999] max-h-72 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="px-3 py-1 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 mb-1">
+                  Matching Pages & Forms ({filteredSearchPages.length})
+                </div>
+                {filteredSearchPages.map((page, idx) => {
+                  const PageIcon = page.icon;
+                  const isHighlighted = idx === highlightedIndex;
+                  return (
+                    <button
+                      key={page.id}
+                      onClick={() => {
+                        setCurrentPage(page.id);
+                        setSearchQuery('');
+                      }}
+                      onMouseEnter={() => setHighlightedIndex(idx)}
+                      className={`w-full text-left px-4 py-2 flex items-center gap-2.5 transition-colors group/item cursor-pointer ${
+                        isHighlighted 
+                        ? 'bg-blue-50 text-blue-700 font-extrabold border-l-4 border-blue-600 pl-3' 
+                        : 'hover:bg-blue-50/50 hover:text-blue-700'
+                      }`}
+                    >
+                      <PageIcon className={`h-3.5 w-3.5 shrink-0 ${isHighlighted ? 'text-blue-600' : 'text-slate-400 group-hover/item:text-blue-600'}`} />
+                      <div className="flex flex-col">
+                        <span className={`text-xs leading-tight ${isHighlighted ? 'text-blue-700 font-black' : 'font-bold text-slate-800 group-hover/item:text-blue-700'}`}>{page.label}</span>
+                        <span className={`text-[9px] font-bold uppercase tracking-tight leading-none mt-0.5 ${isHighlighted ? 'text-blue-500' : 'text-slate-400'}`}>{page.category}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center gap-3 pl-4 border-l border-slate-100">
-            <div className="flex flex-col items-end hidden sm:flex">
-              <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest">{user?.username || 'Guest'}</span>
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{user?.role === 'admin' ? 'Admin Controller' : 'Staff Member'}</span>
+          <div className="flex items-center gap-3 pl-4 border-l border-slate-100 shrink-0">
+            <div className="flex flex-col items-end hidden sm:flex shrink-0">
+              <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest whitespace-nowrap">{user?.username || 'Guest'}</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tight whitespace-nowrap">{user?.role === 'admin' ? 'Admin Controller' : 'Staff Member'}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="h-10 w-10 rounded-full bg-blue-50 border-2 border-blue-100 shadow-sm flex items-center justify-center overflow-hidden">
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="h-10 w-10 rounded-full bg-blue-50 border-2 border-blue-100 shadow-sm flex items-center justify-center overflow-hidden shrink-0">
                  <User className="h-5 w-5 text-blue-600" />
               </div>
               <button 
                 onClick={onLogout}
-                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all shrink-0"
                 title="Logout"
               >
                 <LogOut className="h-5 w-5" />

@@ -335,7 +335,7 @@ export function AddShipmentForm() {
   );
 
   return (
-    <div className="bg-[#f0f2f5] min-h-screen p-4 scroll-smooth">
+    <div className="bg-[#f0f2f5] min-h-full p-4 scroll-smooth">
       {/* Header Bar */}
       <div className="flex items-center justify-between bg-white border-b border-slate-200 px-6 py-3 mb-6 shadow-sm rounded-lg sticky top-0 z-50">
         <div>
@@ -411,10 +411,10 @@ export function AddShipmentForm() {
 
                 <div className="grid grid-cols-2 gap-2">
                    <FormField label="BOOKING DATE" name="booking_date" type="date" value={formData.booking_date} />
-                   <div className="flex items-center gap-2 pl-2 group">
-                      <span className="text-[10px] font-bold text-slate-400 group-hover:text-slate-600">TIME</span>
-                      <input name="booking_time" type="time" value={formData.booking_time} onChange={handleChange} className="w-full h-8 px-2 border border-slate-300 rounded text-[11px] font-bold" />
-                   </div>
+                    <div className="flex items-center gap-2 pl-2 group">
+                       <span className="text-[10px] font-bold text-slate-400 group-hover:text-slate-600">TIME</span>
+                       <input name="booking_time" type="time" value={formData.booking_time} onChange={handleChange} disabled readOnly className="w-full h-8 px-2 border border-slate-300 rounded text-[11px] font-bold bg-slate-100 cursor-not-allowed pointer-events-none" />
+                    </div>
                 </div>
 
                 <FormField label="USPS NUMBER" name="usps_number" value={formData.usps_number} />

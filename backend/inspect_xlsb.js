@@ -1,19 +1,26 @@
-const xlsx = require('xlsx');
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('courier.db');
 
-const filePath = 'C:\\Users\\shambu\\OneDrive\\Desktop\\omcourier\\Copy of PINCODE_03062022.xlsb';
+db.serialize(() => {
+  db.all("PRAGMA table_info(countries)", [], (err, columns) => {
+    if (err) {
+      console.error(err);
+      return;
+    }
+    console.log('Countries table columns:', columns);
+    
+    db.all("SELECT * FROM countries", [], (err, rows) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      console.log('Countries table rows:', rows);
+      db.close();
+    });
+  });
+});
 
-try {
-  const workbook = xlsx.readFile(filePath);
-  console.log('Sheet Names:', workbook.SheetNames);
-  
-  const firstSheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[firstSheetName];
-  
-  const data = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
-  console.log('Headers:', data[0]);
-  for (let i = 1; i <= 10; i++) {
-    console.log(`Row ${i}:`, data[i]);
-  }
-} catch (e) {
-  console.error("Error reading file", e);
-}
+
+
+
+

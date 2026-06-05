@@ -243,7 +243,7 @@ export function AddInternationalShipment({ onBack }) {
     }), { actual: 0, vol: 0, chargeable: 0 });
 
     return (
-        <div className="bg-[#f8fafc] min-h-screen p-4 flex flex-col gap-4">
+        <div className="bg-[#f8fafc] min-h-full p-4 flex flex-col gap-4">
             {/* Top Toolbar */}
             <div className="bg-white px-6 py-3 rounded-lg shadow-sm border border-slate-200 flex justify-between items-center">
                 <div className="flex items-center gap-4">

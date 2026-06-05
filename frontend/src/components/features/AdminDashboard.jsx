@@ -60,16 +60,18 @@ export function AdminDashboard() {
   const totalStatusCount = pieData.reduce((acc, curr) => acc + curr.value, 0);
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-8 bg-[#f8fafc] min-h-screen">
+    <div className="flex flex-col gap-6 p-4 md:p-8 bg-[#f8fafc] min-h-full">
       
       {/* Page Header */}
-      <div className="flex justify-between items-end mb-2">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 py-3 border-b border-slate-100 mb-2">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
-          <p className="text-sm text-slate-500">Welcome to OM Courier Admin</p>
-        </div>
-        <div className="text-xs font-medium text-slate-500">
-          Home / <span className="text-slate-800">Dashboard</span>
+          <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+            <span>Home</span>
+            <span className="text-slate-300">/</span>
+            <span className="text-blue-600 font-extrabold">Dashboard</span>
+          </div>
+          <h1 className="text-xl font-black text-slate-800 tracking-tight uppercase">Dashboard</h1>
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Welcome to OM Courier Admin Portal</p>
         </div>
       </div>
 

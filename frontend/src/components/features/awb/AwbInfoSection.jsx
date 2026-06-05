@@ -11,6 +11,8 @@ export function AwbInfoSection({
   setFormData,
   masters
 }) {
+  const [isAwbEditable, setIsAwbEditable] = React.useState(false);
+
   return (
     <div className="flex flex-col">
       <div className="px-2 py-1 border-b border-slate-300 bg-slate-50">
@@ -19,7 +21,7 @@ export function AwbInfoSection({
       <div className="p-1.5 space-y-0.5">
         <div className="grid grid-cols-2 gap-1">
           <FormField onChange={handleChange} label="DATE" name="booking_date" isRed labelWidth="40px" type="date" value={formData.booking_date} tabIndex={-1} />
-          <FormField onChange={handleChange} label="TIME" name="booking_time" labelWidth="40px" value={formData.booking_time} />
+          <FormField onChange={handleChange} label="TIME" name="booking_time" labelWidth="40px" value={formData.booking_time} disabled tabIndex={-1} />
         </div>
 
         <FormField onChange={handleChange} label="Company" isRed labelWidth="85px">
@@ -85,8 +87,21 @@ export function AwbInfoSection({
 
         <FormField onChange={handleChange} label="AWB Number" name="airway_no" isRed labelWidth="85px">
           <div className="flex gap-1 w-full h-full">
-            <input name="airway_no" value={formData.airway_no} onChange={handleChange} className="flex-1 h-full px-1 bg-slate-100 border border-slate-300 text-[10px] font-bold outline-none" />
-            <button type="button" className="bg-slate-400 text-white text-[8px] font-bold px-2 h-full uppercase">Edit</button>
+            <input
+              name="airway_no"
+              value={formData.airway_no}
+              onChange={handleChange}
+              readOnly={!isAwbEditable}
+              tabIndex={isAwbEditable ? undefined : -1}
+              className={`flex-1 h-full px-1 border border-slate-300 text-[10px] font-bold outline-none ${!isAwbEditable ? 'bg-slate-100 cursor-not-allowed pointer-events-none' : 'bg-white'}`}
+            />
+            <button
+              type="button"
+              onClick={() => setIsAwbEditable(prev => !prev)}
+              className={`text-white text-[8px] font-bold px-2 h-full uppercase transition-colors ${isAwbEditable ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-400 hover:bg-slate-500'}`}
+            >
+              {isAwbEditable ? 'Save' : 'Edit'}
+            </button>
           </div>
         </FormField>
 
@@ -95,7 +110,7 @@ export function AwbInfoSection({
         {shipmentType === 'domestic' ? (
           <div className="grid grid-cols-[1fr_95px_70px] gap-1">
             <FormField onChange={handleChange} label="Destination" name="consignee_country" isRed labelWidth="85px">
-              <input name="consignee_country" value="INDIA" readOnly tabIndex={-1} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none bg-slate-100" />
+              <input list="countries-list" name="consignee_country" value={formData.consignee_country} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none" />
             </FormField>
             <FormField onChange={handleChange} label="PIN" name="consignee_zip" isRed labelWidth="25px" value={formData.consignee_zip} />
             <FormField onChange={handleChange} label="Zone" name="consignee_zone" labelWidth="35px" value={formData.consignee_zone} />
