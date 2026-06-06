@@ -1,6 +1,6 @@
 import React from 'react';
 import { RotateCcw } from 'lucide-react';
-import { FormField, getCountryCallingCode } from './FormField';
+import { FormField, getCountryCallingCode } from '../../shared/FormField';
 
 export function ShipperInfoSection({
   formData,

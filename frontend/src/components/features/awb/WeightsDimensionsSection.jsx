@@ -1,5 +1,5 @@
 import React from 'react';
-import { SectionHeader } from './FormField';
+import { SectionHeader } from '../../shared/FormField';
 
 export function WeightsDimensionsSection({
   formData,
@@ -115,7 +115,14 @@ export function WeightsDimensionsSection({
         </div>
         <div className="flex items-center gap-2">
           <label className="text-[9px] font-black text-slate-500 uppercase">Gst Amount</label>
-          <input type="number" name="igst_ch" value={formData.igst_ch} onChange={handleChange} className="w-24 h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-white text-slate-900" />
+          <input 
+            type="number" 
+            name="gst_amount" 
+            value={((parseFloat(formData.cgst_ch) || 0) + (parseFloat(formData.sgst_ch) || 0)).toFixed(2)} 
+            readOnly 
+            tabIndex={-1} 
+            className="w-24 h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-slate-100 text-slate-900 cursor-not-allowed" 
+          />
         </div>
         <div className="flex items-center gap-2">
           <label className="text-[9px] font-black text-slate-500 uppercase">Total Amount</label>

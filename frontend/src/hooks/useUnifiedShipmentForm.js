@@ -1,9 +1,61 @@
 import { useState, useEffect } from 'react';
-import { api } from '../services/api';
+import { api, getCompanies, getStates, getCountries, getModes, getBranches } from '../services/api';
 import { calcVolumetricWt, calcChargeableWt, roundToHalfKg, isDomesticCountry } from '../utils/weight';
-import { getCountryCallingCode } from '../components/features/awb/FormField';
+import { getCountryCallingCode } from '../components/shared/FormField';
 
-export function useUnifiedShipmentForm(initialType = 'domestic') {
+
+const parseGstDate = (dateStr) => {
+  if (!dateStr) return null;
+  if (dateStr.includes('-')) {
+    const parts = dateStr.split('-');
+    if (parts[0].length === 4) {
+      return new Date(dateStr);
+    } else {
+      return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+    }
+  }
+  return new Date(dateStr);
+};
+
+const getActiveGstRates = (bookingDate) => {
+  const defaultMock = [
+    { sr: 1, from: '2026-04-01', to: '2027-03-31', cgst: '9.00', sgst: '9.00' },
+  ];
+  const saved = localStorage.getItem('om-courier-gst-settings');
+  let records = defaultMock;
+  if (saved) {
+    try {
+      records = JSON.parse(saved);
+    } catch (e) {
+      records = defaultMock;
+    }
+  }
+  const date = new Date(bookingDate);
+  
+  if (isNaN(date.getTime())) {
+    return { cgst: 9, sgst: 9 };
+  }
+  
+  date.setHours(0, 0, 0, 0);
+  
+  for (const r of records) {
+    const fromDate = parseGstDate(r.from);
+    const toDate = parseGstDate(r.to);
+    if (fromDate && toDate) {
+      fromDate.setHours(0, 0, 0, 0);
+      toDate.setHours(0, 0, 0, 0);
+      if (date >= fromDate && date <= toDate) {
+        return {
+          cgst: parseFloat(r.cgst) || 0,
+          sgst: parseFloat(r.sgst) || 0
+        };
+      }
+    }
+  }
+  return { cgst: 9, sgst: 9 };
+};
+
+export function useUnifiedShipmentForm(initialType = 'domestic', editingShipmentId = null) {
   const [shipmentType, setShipmentType] = useState(initialType);
   const [customers, setCustomers] = useState([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
@@ -14,9 +66,11 @@ export function useUnifiedShipmentForm(initialType = 'domestic') {
   const [showShipperSuggestions, setShowShipperSuggestions] = useState(false);
   const [showConsigneeSuggestions, setShowConsigneeSuggestions] = useState(false);
   const [lastFetchedRateKey, setLastFetchedRateKey] = useState('');
+  const [lastFetchedFuelKey, setLastFetchedFuelKey] = useState('');
+  const [fuelPricePct, setFuelPricePct] = useState(0);
   const [formData, setFormData] = useState({
     booking_company: '',
-    airway_no: 'BRK' + Math.floor(100000 + Math.random() * 900000),
+    airway_no: (initialType === 'domestic' ? 'DOM' : 'INT') + Math.floor(100000 + Math.random() * 900000),
     edit_awb: false,
     email: 'OPSOMCOURIER@GMAIL.COM',
     payment_mode: 'CASH',
@@ -74,7 +128,7 @@ export function useUnifiedShipmentForm(initialType = 'domestic') {
     consignee_zone: '',
     consignee_country: 'INDIA',
     consignee_phone: '',
-    consignee_email: '@GMAIL.COM',
+    consignee_email: '',
     consignee_save: false,
     consignee_update: false,
 
@@ -121,14 +175,13 @@ export function useUnifiedShipmentForm(initialType = 'domestic') {
     sub_total: 0,
     cgst_ch: 0,
     sgst_ch: 0,
-    igst_ch: 0,
     grand_total: 0,
 
     // Invoice
     create_invoice: false,
     invoice_type: 'INVOICE',
     note: 'GIFT',
-    items: [{ box_no: '1', sr_no: 1, description: '', hs_code: '', unit_type: 'PCS', quantity: 1, unit_weight: 0, igst: 0, unit_rate: 0, amount: 0 }],
+    items: [{ box_no: '1', sr_no: 1, description: '', hs_code: '', unit_type: 'PCS', quantity: 1, unit_weight: 0, unit_rate: 0, amount: 0 }],
 
     // Behavior
     save_as_new_customer: false,
@@ -156,8 +209,7 @@ export function useUnifiedShipmentForm(initialType = 'domestic') {
       })
       .catch(err => console.error('Fetch customers error:', err));
 
-    fetch('/api/company')
-      .then(res => res.json())
+    getCompanies()
       .then(data => {
         setCompanies(data);
         if (data.length > 0) {
@@ -166,26 +218,191 @@ export function useUnifiedShipmentForm(initialType = 'domestic') {
       })
       .catch(err => console.error('Fetch companies error:', err));
 
-    fetch('/api/masters/states')
-      .then(res => res.json())
+    getStates()
       .then(data => setMasters(prev => ({ ...prev, states: data })))
       .catch(err => console.error(err));
 
-    fetch('/api/masters/countries')
-      .then(res => res.json())
+    getCountries()
       .then(data => setMasters(prev => ({ ...prev, countries: data })))
       .catch(err => console.error(err));
 
-    fetch('/api/modes')
-      .then(res => res.json())
+    getModes()
       .then(data => setMasters(prev => ({ ...prev, modes: data })))
       .catch(err => console.error(err));
 
-    fetch('/api/branches')
-      .then(res => res.json())
+    getBranches()
       .then(data => setMasters(prev => ({ ...prev, branches: data })))
       .catch(err => console.error(err));
   }, []);
+
+  useEffect(() => {
+    if (editingShipmentId) return;
+
+    setFormData(prev => {
+      const currentNo = prev.airway_no || '';
+      const digits = currentNo.replace(/^\D+/, '') || Math.floor(100000 + Math.random() * 900000).toString();
+      const prefix = shipmentType === 'domestic' ? 'DOM' : 'INT';
+      return {
+        ...prev,
+        airway_no: prefix + digits
+      };
+    });
+  }, [shipmentType, editingShipmentId]);
+
+  useEffect(() => {
+    if (!editingShipmentId) return;
+
+    api.getShipment(editingShipmentId)
+      .then(res => {
+        if (res && res.success && res.shipment) {
+          const s = res.shipment;
+          
+          setShipmentType(s.type || 'domestic');
+          
+          if (s.customer_id) {
+            setSelectedCustomerId(s.customer_id.toString());
+            const cust = customers.find(c => c.id.toString() === s.customer_id.toString());
+            if (cust) {
+              setShipperSearch(cust.name || cust.parent_company || '');
+            } else {
+              setShipperSearch(s.shipper_name || '');
+            }
+          }
+          
+          setConsigneeSearch(s.consignee_name || '');
+          
+          setFormData(prev => ({
+            ...prev,
+            booking_company: s.booking_company || prev.booking_company,
+            airway_no: s.airway_no || '',
+            email: s.shipper_email || s.email || prev.email,
+            payment_mode: (s.bill_type || 'CASH').toUpperCase(),
+            contact_no: s.shipper_phone || s.contact_no || prev.contact_no,
+            account_code: s.account_code || '',
+            origin_hub: s.origin_hub || 'MUMBAI',
+            origin_zone: s.origin_zone || '',
+            destination: s.destination || (s.type === 'domestic' ? s.consignee_city : s.consignee_country) || '',
+            dest_zone: s.dest_zone || '',
+            product: s.product || '',
+            booking_date: s.booking_date || '',
+            booking_time: s.booking_time || '',
+            usps_number: s.usps_number || '',
+            forward_no: s.forward_no || '',
+            eway_bill_no: s.eway_bill_no || '',
+            service: s.service || '',
+            mode: s.mode || '',
+            duty: s.duty || '',
+            ref_no: s.ref_no || '',
+            shipment_value: s.shipment_value ?? '',
+            currency: s.currency || 'INR',
+            invoice_date: s.invoice_date || '',
+            invoice_no: s.invoice_no || '',
+            content: s.description || s.content || '',
+            
+            // Shipper Info
+            shipper_code: s.shipper_code || '',
+            shipper_company: s.shipper_company || '',
+            shipper_name: s.shipper_name || '',
+            shipper_address1: s.shipper_address1 || '',
+            shipper_address2: s.shipper_address2 || '',
+            shipper_address3: s.shipper_address3 || '',
+            shipper_zip: s.shipper_zip || '',
+            shipper_city: s.shipper_city || '',
+            shipper_state: s.shipper_state || '',
+            shipper_zone: s.shipper_zone || '',
+            shipper_country: s.shipper_country || 'INDIA',
+            shipper_phone: s.shipper_phone || '',
+            shipper_email: s.shipper_email || '',
+            shipper_kyc_type: s.shipper_kyc_type || 'PAN CARD',
+            shipper_kyc_no: s.shipper_kyc_no || '',
+            
+            // Consignee Info
+            consignee_code: s.consignee_code || '',
+            consignee_company: s.consignee_company || '',
+            consignee_name: s.consignee_name || '',
+            consignee_address1: s.consignee_address1 || '',
+            consignee_address2: s.consignee_address2 || '',
+            consignee_address3: s.consignee_address3 || '',
+            consignee_zip: s.consignee_zip || '',
+            consignee_city: s.consignee_city || '',
+            consignee_state: s.consignee_state || '',
+            consignee_zone: s.consignee_zone || '',
+            consignee_country: s.consignee_country || 'INDIA',
+            consignee_phone: s.consignee_phone || '',
+            consignee_email: s.consignee_email || '',
+            
+            // Weights
+            pcs: s.pcs || 1,
+            actual_weight: s.actual_weight || 0,
+            volumetric_weight: s.volumetric_weight || 0,
+            chargeable_weight: s.chargeable_weight || 0,
+            packages: s.packages && s.packages.length > 0 
+              ? s.packages.map(p => ({
+                  box_no: p.box_no || '1',
+                  actual_wt: p.actual_wt || 0,
+                  length: p.length || 0,
+                  breadth: p.breadth || 0,
+                  height: p.height || 0,
+                  vol_wt: p.vol_wt || 0,
+                  chargeable_wt: p.chargeable_wt || 0
+                }))
+              : [{ box_no: '1', actual_wt: 0, length: 0, breadth: 0, height: 0, vol_wt: 0, chargeable_wt: 0 }],
+              
+            // Billing
+            freight_ch: s.freight_charges || 0,
+            pickup_ch: s.pickup_ch || 0,
+            cod_ch: s.cod_ch || 0,
+            other_ch: s.other_ch || 0,
+            fuel_surcharge: s.fuel_amount || 0,
+            transport_ch: s.transport_ch || 0,
+            remote_area_ch: s.remote_area_ch || 0,
+            awb_ch: s.awb_ch || 0,
+            ras_ch: s.ras_ch || 0,
+            ers_ch: s.ers_ch || 0,
+            odd_dimension_ch: s.odd_dimension_ch || 0,
+            address_change_ch: s.address_change_ch || 0,
+            dg_ch: s.dg_ch || 0,
+            import_duty_ch: s.import_duty_ch || 0,
+            adc_noc_ch: s.adc_noc_ch || 0,
+            electronic_item_ch: s.electronic_item_ch || 0,
+            odd_weight_ch: s.odd_weight_ch || 0,
+            packing_ch: s.packing_ch || 0,
+            handling_ch: s.handling_ch || 0,
+            
+            destination_ch: s.destination_ch || 0,
+            clearance_ch: s.clearance_ch || 0,
+            ess_ch: s.ess_ch || 0,
+            oda_ch: s.oda_ch || 0,
+            ddp_ch: s.ddp_ch || 0,
+            
+            charges_date: s.charges_date || '',
+            
+            cgst_ch: s.gst_amount / 2 || 0,
+            sgst_ch: s.gst_amount / 2 || 0,
+            
+            grand_total: s.total_charges || 0,
+            
+            items: s.items && s.items.length > 0
+              ? s.items.map(it => ({
+                  box_no: it.box_no || '1',
+                  sr_no: it.sr_no || 1,
+                  description: it.description || '',
+                  hs_code: it.hs_code || '',
+                  unit_type: it.unit_type || 'PCS',
+                  quantity: it.quantity || 1,
+                  unit_weight: it.unit_weight || 0,
+                  unit_rate: it.unit_rate || 0,
+                  amount: it.amount || 0
+                }))
+              : [{ box_no: '1', sr_no: 1, description: '', hs_code: '', unit_type: 'PCS', quantity: 1, unit_weight: 0, unit_rate: 0, amount: 0 }],
+            
+            branch: s.branch || '',
+            eway_bill_no: s.eway_bill_no || ''
+          }));
+        }
+      })
+      .catch(err => console.error("Error loading shipment details:", err));
+  }, [editingShipmentId, customers]);
 
   useEffect(() => {
       if (formData.shipper_state) {
@@ -335,6 +552,79 @@ export function useUnifiedShipmentForm(initialType = 'domestic') {
     }
   }, [formData.consignee_zone, formData.chargeable_weight, formData.service, formData.mode, formData.product, lastFetchedRateKey]);
 
+  // Fetch active fuel price percentage from backend
+  useEffect(() => {
+    if (!selectedCustomerId || !formData.service || !formData.booking_date) {
+      setFuelPricePct(0);
+      return;
+    }
+
+    const customer = customers.find(c => c.id.toString() === selectedCustomerId.toString());
+    if (!customer) return;
+
+    const fuelGroupName = shipmentType === 'domestic' 
+      ? customer.domestic_fuel_group 
+      : customer.international_fuel_group;
+
+    if (!fuelGroupName) {
+      setFuelPricePct(0);
+      return;
+    }
+
+    let courier = 'All';
+    const serviceUpper = (formData.service || '').toUpperCase();
+    if (serviceUpper.includes('DHL')) {
+      courier = 'DHL';
+    } else if (serviceUpper.includes('FEDEX')) {
+      courier = 'Fedex';
+    } else if (serviceUpper.includes('UPS')) {
+      courier = 'UPS';
+    } else if (serviceUpper.includes('ARAMEX')) {
+      courier = 'Aramex';
+    } else if (serviceUpper.includes('TNT')) {
+      courier = 'TNT';
+    } else if (serviceUpper.includes('TRACKON')) {
+      courier = 'TRACKON';
+    } else if (serviceUpper.includes('BLUEDART')) {
+      courier = 'BLUEDART';
+    } else if (serviceUpper.includes('DELHIVERY')) {
+      courier = 'Delhivery';
+    } else if (serviceUpper.includes('DTDC')) {
+      courier = 'DTDC';
+    } else if (serviceUpper.includes('OM COURIER')) {
+      courier = 'OM COURIER';
+    }
+
+    const currentKey = `${fuelGroupName}-${shipmentType}-${courier}-${formData.booking_date}`;
+    if (currentKey === lastFetchedFuelKey) return;
+
+    const url = `http://localhost:5000/api/fuel-entries/lookup?fuel_group_name=${encodeURIComponent(fuelGroupName)}&company_type=${encodeURIComponent(shipmentType)}&courier=${encodeURIComponent(courier)}&booking_date=${encodeURIComponent(formData.booking_date)}`;
+    
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.success) {
+          const pct = parseFloat(data.fuel_price_pct) || 0;
+          setFuelPricePct(pct);
+          setLastFetchedFuelKey(currentKey);
+        }
+      })
+      .catch(err => console.error("Error looking up fuel price:", err));
+
+  }, [selectedCustomerId, formData.service, formData.booking_date, shipmentType, customers, lastFetchedFuelKey]);
+
+  // Calculate fuel surcharge amount locally when freight charge or percentage changes
+  useEffect(() => {
+    const freight = parseFloat(formData.freight_ch) || 0;
+    const surcharge = parseFloat(((freight * fuelPricePct) / 100).toFixed(2));
+    setFormData(prev => {
+      if (prev.fuel_surcharge !== surcharge) {
+        return { ...prev, fuel_surcharge: surcharge };
+      }
+      return prev;
+    });
+  }, [formData.freight_ch, fuelPricePct]);
+
   useEffect(() => {
     const totalActualWt = formData.packages.reduce((sum, pkg) => sum + (parseFloat(pkg.actual_wt) || 0), 0);
     const totalVolWt = formData.packages.reduce((sum, pkg) => sum + (parseFloat(pkg.vol_wt) || 0), 0);
@@ -362,7 +652,7 @@ export function useUnifiedShipmentForm(initialType = 'domestic') {
         formData.oda_ch, formData.ddp_ch
     ].reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
 
-    const taxes = [formData.cgst_ch, formData.sgst_ch, formData.igst_ch].reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+    const taxes = [formData.cgst_ch, formData.sgst_ch].reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
     
     setFormData(prev => ({
         ...prev,
@@ -376,8 +666,40 @@ export function useUnifiedShipmentForm(initialType = 'domestic') {
     formData.dg_ch, formData.import_duty_ch, formData.adc_noc_ch, formData.electronic_item_ch,
     formData.odd_weight_ch, formData.packing_ch, formData.handling_ch,
     formData.destination_ch, formData.clearance_ch, formData.ess_ch, formData.oda_ch,
-    formData.ddp_ch, formData.cgst_ch, formData.sgst_ch, formData.igst_ch
+    formData.ddp_ch, formData.cgst_ch, formData.sgst_ch
   ]);
+
+  useEffect(() => {
+    const customer = customers.find(c => c.id.toString() === selectedCustomerId.toString());
+    const isGstApplicable = !customer || customer.gst_charges === undefined || customer.gst_charges === 'Yes' || customer.gst_charges === 1 || customer.gst_charges === true;
+    
+    if (!isGstApplicable) {
+      setFormData(prev => {
+        if (prev.cgst_ch !== 0 || prev.sgst_ch !== 0) {
+          return { ...prev, cgst_ch: 0, sgst_ch: 0 };
+        }
+        return prev;
+      });
+      return;
+    }
+    
+    const { cgst, sgst } = getActiveGstRates(formData.booking_date);
+    const subTotal = parseFloat(formData.sub_total) || 0;
+    
+    const cgstAmount = parseFloat(((subTotal * cgst) / 100).toFixed(2));
+    const sgstAmount = parseFloat(((subTotal * sgst) / 100).toFixed(2));
+    
+    setFormData(prev => {
+      if (prev.cgst_ch !== cgstAmount || prev.sgst_ch !== sgstAmount) {
+        return {
+          ...prev,
+          cgst_ch: cgstAmount,
+          sgst_ch: sgstAmount
+        };
+      }
+      return prev;
+    });
+  }, [formData.sub_total, formData.booking_date, selectedCustomerId, customers]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -428,6 +750,7 @@ export function useUnifiedShipmentForm(initialType = 'domestic') {
                             
                             if (!isShipper) {
                                 updateObj['consignee_country'] = 'INDIA';
+                                updateObj['destination'] = data.data.city ? data.data.city.toUpperCase() : 'INDIA';
                                 setShipmentType('domestic');
                             }
                             
@@ -474,11 +797,13 @@ export function useUnifiedShipmentForm(initialType = 'domestic') {
         if (name === 'consignee_country') {
             const isDomestic = isDomesticCountry(value);
             setShipmentType(isDomestic ? 'domestic' : 'international');
-            
-            if (!isDomestic && prev.currency === 'INR') {
-                newData.currency = 'USD';
-            } else if (isDomestic && prev.currency === 'USD') {
-                newData.currency = 'INR';
+            newData.destination = (isDomestic ? prev.consignee_city : value.toUpperCase());
+        }
+
+        if (name === 'consignee_city') {
+            const isDomestic = isDomesticCountry(prev.consignee_country);
+            if (isDomestic) {
+                newData.destination = value.toUpperCase();
             }
         }
 
@@ -577,6 +902,15 @@ export function useUnifiedShipmentForm(initialType = 'domestic') {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (formData.consignee_email && formData.consignee_email.trim() !== '') {
+      const emailVal = formData.consignee_email.trim().toUpperCase();
+      const gmailRegex = /^[A-Z0-9._%+-]+@GMAIL\.COM$/;
+      if (!gmailRegex.test(emailVal)) {
+        alert("Consignee Email must be a valid @GMAIL.COM address.");
+        return;
+      }
+    }
     
     let customerIdToUse = selectedCustomerId;
     let currentCustomers = [...customers];
@@ -748,19 +1082,30 @@ export function useUnifiedShipmentForm(initialType = 'domestic') {
 
     const payload = { 
         ...formData, 
+        destination: (shipmentType === 'domestic' ? formData.consignee_city : formData.consignee_country) || 'N/A',
         customer_id: customerIdToUse, 
         user_id: 1, 
         type: shipmentType,
         bill_amount: parseFloat(formData.freight_ch) || 0,
         fuel_amount: parseFloat(formData.fuel_surcharge) || 0,
-        gst_amount: (parseFloat(formData.cgst_ch) || 0) + (parseFloat(formData.sgst_ch) || 0) + (parseFloat(formData.igst_ch) || 0),
+        gst_amount: (parseFloat(formData.cgst_ch) || 0) + (parseFloat(formData.sgst_ch) || 0),
         total_charges: parseFloat(formData.grand_total) || 0
     };
     
     try {
-      const data = await api.createShipment(payload);
+      let data;
+      if (editingShipmentId) {
+        data = await api.updateShipment(editingShipmentId, payload);
+      } else {
+        data = await api.createShipment(payload);
+      }
+
       if (data.success) {
-        alert(`${shipmentType.toUpperCase()} AWB Created Successfully! AWB: ${formData.airway_no}`);
+        if (editingShipmentId) {
+          alert(`${shipmentType.toUpperCase()} AWB Updated Successfully! AWB: ${formData.airway_no}`);
+        } else {
+          alert(`${shipmentType.toUpperCase()} AWB Created Successfully! AWB: ${formData.airway_no}`);
+        }
         window.location.reload();
       } else {
         alert('Error: ' + data.error);
@@ -825,20 +1170,24 @@ export function useUnifiedShipmentForm(initialType = 'domestic') {
       if (!customer) return;
       setSelectedConsigneeId(customer.id);
       setConsigneeSearch(customer.name || customer.parent_company || '');
-      setFormData(prev => ({
-          ...prev,
-          consignee_code: customer.code || '',
-          consignee_company: customer.parent_company || customer.name || '',
-          consignee_name: customer.name || '',
-          consignee_address1: customer.address || '',
-          consignee_address2: '',
-          consignee_address3: '',
-          consignee_zip: customer.pincode || '',
-          consignee_city: customer.city || '',
-          consignee_state: customer.state || '',
-          consignee_phone: customer.phone || '',
-          consignee_email: customer.email || '@GMAIL.COM',
-      }));
+      setFormData(prev => {
+          const isDomestic = isDomesticCountry(prev.consignee_country);
+          return {
+              ...prev,
+              consignee_code: customer.code || '',
+              consignee_company: customer.parent_company || customer.name || '',
+              consignee_name: customer.name || '',
+              consignee_address1: customer.address || '',
+              consignee_address2: '',
+              consignee_address3: '',
+              consignee_zip: customer.pincode || '',
+              consignee_city: customer.city || '',
+              consignee_state: customer.state || '',
+              consignee_phone: customer.phone || '',
+              consignee_email: customer.email || '',
+              destination: (isDomestic ? customer.city : prev.consignee_country) || ''
+          };
+      });
   };
 
   const selectedCompany = companies.find(c => c.company_name === formData.booking_company);

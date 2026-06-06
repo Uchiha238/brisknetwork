@@ -7,6 +7,7 @@ const COMPANY_TYPES = ['Domestic', 'International'];
 const CUSTOMERS = ['All'];
 
 const emptyForm = {
+  fuel_group_id: '',
   fuel_courier: 'All',
   fuel_price_pct: '',
   company_type: 'Domestic',
@@ -67,21 +68,54 @@ function FieldSelect({ label, id, value, onChange, options, className = '' }) {
   );
 }
 
-// ─────────────── Add Fuel Group modal ───────────────
-function AddFuelGroupModal({ onClose, onSave }) {
+// Format date to DD/MM/YYYY
+const formatDate = (dateStr) => {
+  if (!dateStr) return '—';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateStr;
+};
+
+// Calculate Active Status dynamically based on date range
+const getStatus = (fromDate, toDate) => {
+  if (!fromDate || !toDate) return 'Inactive';
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (todayStr >= fromDate && todayStr <= toDate) {
+    return 'Active';
+  }
+  return 'Expired';
+};
+
+// ─────────────── Add/Edit Fuel Group modal ───────────────
+function AddFuelGroupModal({ onClose, onSave, editingGroup }) {
   const [form, setForm] = useState(emptyGroup);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+
+  useEffect(() => {
+    if (editingGroup) {
+      setForm({
+        name: editingGroup.name,
+        type: editingGroup.type.toLowerCase() === 'international' ? 'International' : 'Domestic'
+      });
+    } else {
+      setForm(emptyGroup);
+    }
+  }, [editingGroup]);
 
   const handleSave = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) { setErr('Name is required.'); return; }
     setSaving(true); setErr('');
     try {
-      const res = await fetch(GROUP_API, {
-        method: 'POST',
+      const url = editingGroup ? `${GROUP_API}/${editingGroup.id}` : GROUP_API;
+      const method = editingGroup ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.name.trim(), type: form.type }),
+        body: JSON.stringify({ name: form.name.trim(), type: form.type.toLowerCase() }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Save failed');
@@ -94,7 +128,9 @@ function AddFuelGroupModal({ onClose, onSave }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 bg-[#1e3a8a]">
-          <h2 className="text-[13px] font-black text-white uppercase tracking-widest">Add Fuel Group</h2>
+          <h2 className="text-[13px] font-black text-white uppercase tracking-widest">
+            {editingGroup ? 'Edit Fuel Group' : 'Add Fuel Group'}
+          </h2>
           <button onClick={onClose} className="text-white/70 hover:text-white text-lg font-bold leading-none">✕</button>
         </div>
         <form onSubmit={handleSave} className="p-6 space-y-4">
@@ -119,7 +155,7 @@ function AddFuelGroupModal({ onClose, onSave }) {
             <button type="submit" disabled={saving}
               className="flex-1 bg-[#1e3a8a] hover:bg-[#1e40af] disabled:opacity-60 text-white font-black uppercase text-[11px] tracking-widest py-2.5 rounded transition-all flex items-center justify-center gap-2">
               {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              {saving ? 'Saving...' : 'Save Group'}
+              {saving ? 'Saving...' : editingGroup ? 'Update Group' : 'Save Group'}
             </button>
             <button type="button" onClick={onClose}
               className="flex-1 border-2 border-slate-200 hover:border-slate-300 text-slate-600 font-black uppercase text-[11px] tracking-widest py-2.5 rounded transition-all">
@@ -134,13 +170,18 @@ function AddFuelGroupModal({ onClose, onSave }) {
 
 // ─────────────── Main Component ───────────────
 export function FuelGroup() {
-  const [view, setView] = useState('list'); // 'list' | 'add-fuel' | 'edit-fuel'
+  const [view, setView] = useState('list'); // 'list' | 'detail' | 'add-fuel'
   const [showGroupModal, setShowGroupModal] = useState(false);
+  const [editingGroup, setEditingGroup] = useState(null);
 
   const [fuelGroups, setFuelGroups] = useState([]);
   const [fuelEntries, setFuelEntries] = useState([]);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [groupEntries, setGroupEntries] = useState([]);
+  
   const [loadingGroups, setLoadingGroups] = useState(true);
   const [loadingEntries, setLoadingEntries] = useState(true);
+  const [loadingGroupEntries, setLoadingGroupEntries] = useState(false);
   const [groupError, setGroupError] = useState('');
 
   const [form, setForm] = useState(emptyForm);
@@ -168,7 +209,22 @@ export function FuelGroup() {
     finally { setLoadingEntries(false); }
   };
 
+  const fetchGroupEntries = async (groupId) => {
+    if (!groupId) return;
+    try { setLoadingGroupEntries(true);
+      const res = await fetch(`${FUEL_API}?fuel_group_id=${groupId}`);
+      setGroupEntries(await res.json());
+    } catch (_) {}
+    finally { setLoadingGroupEntries(false); }
+  };
+
   useEffect(() => { fetchGroups(); fetchEntries(); }, []);
+
+  useEffect(() => {
+    if (selectedGroup) {
+      fetchGroupEntries(selectedGroup.id);
+    }
+  }, [selectedGroup]);
 
   // ── slab helpers ──
   const updateSlab = (key, idx, field, val) => {
@@ -187,18 +243,22 @@ export function FuelGroup() {
   // ── open add fuel form ──
   const openAddFuel = () => {
     setEditingEntry(null);
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      fuel_group_id: selectedGroup ? selectedGroup.id.toString() : '',
+      company_type: selectedGroup ? (selectedGroup.type.toLowerCase() === 'international' ? 'International' : 'Domestic') : 'Domestic'
+    });
     setFormError('');
     setView('add-fuel');
   };
 
   const openEditFuel = (entry) => {
     setEditingEntry(entry);
-    // split rate_slabs back into two arrays
     const allSlabs = entry.rate_slabs || [];
     const half = Math.ceil(allSlabs.length / 2);
     setForm({
       ...emptyForm,
+      fuel_group_id: entry.fuel_group_id ? entry.fuel_group_id.toString() : '',
       fuel_courier: entry.fuel_courier || 'All',
       fuel_price_pct: entry.fuel_price_pct ?? '',
       company_type: entry.company_type || 'Domestic',
@@ -233,7 +293,21 @@ export function FuelGroup() {
         ...form.rate_slabs.filter(s => s.from || s.to || s.rate),
         ...form.rate_slabs2.filter(s => s.from || s.to || s.rate),
       ];
-      const payload = { ...form, rate_slabs: combined };
+      let companyType = form.company_type || 'Domestic';
+      if (form.fuel_group_id) {
+        const matchingGroup = fuelGroups.find(g => g.id.toString() === form.fuel_group_id.toString());
+        if (matchingGroup) {
+          companyType = matchingGroup.type.toLowerCase() === 'international' ? 'International' : 'Domestic';
+        }
+      }
+      
+      const payload = { 
+        ...form, 
+        fuel_price_pct: parseFloat(form.fuel_price_pct) || 0,
+        company_type: companyType,
+        rate_slabs: combined, 
+        fuel_group_id: form.fuel_group_id ? parseInt(form.fuel_group_id) : null 
+      };
       delete payload.rate_slabs2;
 
       const url = editingEntry ? `${FUEL_API}/${editingEntry.id}` : FUEL_API;
@@ -241,8 +315,14 @@ export function FuelGroup() {
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Save failed');
-      await fetchEntries();
-      setView('list');
+      
+      if (selectedGroup) {
+        await fetchGroupEntries(selectedGroup.id);
+        setView('detail');
+      } else {
+        await fetchEntries();
+        setView('list');
+      }
     } catch (err) { setFormError(err.message); }
     finally { setSaving(false); }
   };
@@ -259,11 +339,22 @@ export function FuelGroup() {
     try {
       await fetch(`${FUEL_API}/${id}`, { method: 'DELETE' });
       setDeletingEntryId(null);
-      await fetchEntries();
+      if (selectedGroup) {
+        await fetchGroupEntries(selectedGroup.id);
+      } else {
+        await fetchEntries();
+      }
     } catch (e) { alert('Error: ' + e.message); }
   };
 
   const f = (key) => e => setForm(prev => ({ ...prev, [key]: e.target.value }));
+
+  const handlePriceChange = (e) => {
+    const val = e.target.value;
+    if (val === '' || /^\d*\.?\d*$/.test(val)) {
+      setForm(prev => ({ ...prev, fuel_price_pct: val }));
+    }
+  };
 
   // ══════════════════════════════════════════════════════════
   //  ADD / EDIT FUEL FORM VIEW
@@ -273,7 +364,7 @@ export function FuelGroup() {
       <div className="flex flex-col min-h-[calc(100vh-70px)] bg-slate-50 font-sans">
         {/* Top bar */}
         <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3">
-          <button onClick={() => setView('list')} className="p-1 hover:bg-slate-100 rounded transition-colors">
+          <button onClick={() => setView(selectedGroup ? 'detail' : 'list')} className="p-1 hover:bg-slate-100 rounded transition-colors">
             <ArrowLeft className="h-4 w-4 text-slate-600" />
           </button>
           <h2 className="text-[13px] font-black text-[#1a2f4c] uppercase tracking-wide">
@@ -281,13 +372,13 @@ export function FuelGroup() {
           </h2>
         </div>
 
-        <form onSubmit={handleFuelSubmit} className="flex-1 p-4 md:p-6">
-          <div className="w-full max-w-5xl mx-auto bg-white border border-slate-200 rounded shadow-sm overflow-hidden">
+        <form onSubmit={handleFuelSubmit} className="flex-1 p-4 md:p-6 flex items-center justify-center">
+          <div className="w-full max-w-lg bg-white border-2 border-slate-200 rounded shadow-md overflow-hidden">
 
             {/* Form title bar */}
-            <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
-              <h3 className="text-[12px] font-black text-slate-700 uppercase tracking-wide">
-                {editingEntry ? 'Edit Fuel' : 'Add Fuel'}
+            <div className="px-4 py-3 bg-[#1a2f4c] border-b border-slate-200">
+              <h3 className="text-[12px] font-black text-white uppercase tracking-wide">
+                {editingEntry ? 'Edit Fuel Settings' : 'Add Fuel Settings'}
               </h3>
             </div>
 
@@ -298,128 +389,95 @@ export function FuelGroup() {
               </div>
             )}
 
-            {/* Two-column grid for form fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-              {/* LEFT column */}
-              <div className="divide-y divide-slate-100">
-                <FieldSelect label="Fuel Courier" id="sel-courier" value={form.fuel_courier} onChange={f('fuel_courier')} options={COURIERS} />
-                <FieldSelect label="Company Type" id="sel-company-type" value={form.company_type} onChange={f('company_type')} options={COMPANY_TYPES} />
-                <FieldSelect label="Customer" id="sel-customer" value={form.customer} onChange={f('customer')} options={CUSTOMERS} />
-                <FieldInput label="Fov Above" id="inp-fov-above" value={form.fov_above} onChange={f('fov_above')} placeholder="Enter Fov Above" type="number" />
-                <FieldInput label="Fov Below" id="inp-fov-below" value={form.fov_below} onChange={f('fov_below')} placeholder="Enter Fov Below" type="number" />
-                <FieldInput label="Appointment Min" id="inp-appt-min" value={form.appointment_min} onChange={f('appointment_min')} placeholder="Enter Appointment Min" type="number" />
-                <FieldInput label="Fuel From Date" id="inp-fuel-from" value={form.fuel_from_date} onChange={f('fuel_from_date')} placeholder="" type="date" />
-                <FieldInput label="CFT" id="inp-cft" value={form.cft} onChange={f('cft')} placeholder="Enter CFT" type="number" />
-                {/* Calculate Fuel Charge On */}
-                <div className="grid grid-cols-[160px_1fr] items-center gap-2 py-2 px-4 border-b border-slate-100">
-                  <label className="text-[11px] font-black text-slate-600 uppercase tracking-wide leading-tight">Calculate Fuel Charge On</label>
-                  <div className="flex items-center gap-4">
-                    {['Freight', 'Total Amount'].map(opt => (
-                      <label key={opt} className="flex items-center gap-1.5 cursor-pointer">
-                        <input type="radio" name="calculate_on" value={opt} checked={form.calculate_on === opt}
-                          onChange={f('calculate_on')} className="accent-[#1e3a8a]" />
-                        <span className="text-[11px] font-bold text-slate-600">{opt}</span>
-                      </label>
-                    ))}
-                  </div>
+            <div className="p-6 space-y-4">
+              {/* Fuel Group Selector/Display */}
+              {!selectedGroup ? (
+                <div className="grid grid-cols-[140px_1fr] items-center gap-2 py-1">
+                  <label className="text-[11px] font-black text-slate-600 uppercase tracking-wide leading-tight">Fuel Group</label>
+                  <select
+                    value={form.fuel_group_id || ''}
+                    onChange={e => {
+                      const gId = e.target.value;
+                      const matchingGroup = fuelGroups.find(g => g.id.toString() === gId.toString());
+                      setForm(f => ({
+                        ...f,
+                        fuel_group_id: gId,
+                        company_type: matchingGroup ? (matchingGroup.type.toLowerCase() === 'international' ? 'International' : 'Domestic') : 'Domestic'
+                      }));
+                    }}
+                    className="h-9 px-3 border border-slate-300 rounded text-[11px] font-bold text-slate-700 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-50 transition-all bg-white w-full"
+                  >
+                    <option value="">None (Global)</option>
+                    {fuelGroups.map(g => <option key={g.id} value={g.id}>{g.name} ({g.type.toUpperCase()})</option>)}
+                  </select>
                 </div>
-                <FieldInput label="COD Fixed" id="inp-cod" value={form.cod_fixed} onChange={f('cod_fixed')} placeholder="Enter COD" type="number" />
+              ) : (
+                <div className="grid grid-cols-[140px_1fr] items-center gap-2 py-1">
+                  <span className="text-[11px] font-black text-slate-600 uppercase tracking-wide">Fuel Group</span>
+                  <span className="text-[12px] font-bold text-slate-800 uppercase bg-slate-100 px-3 py-1.5 rounded">{selectedGroup.name}</span>
+                </div>
+              )}
+
+              {/* Fuel Courier */}
+              <div className="grid grid-cols-[140px_1fr] items-center gap-2 py-1">
+                <label className="text-[11px] font-black text-slate-600 uppercase tracking-wide leading-tight">Fuel Courier <span className="text-red-500">*</span></label>
+                <select
+                  value={form.fuel_courier}
+                  onChange={f('fuel_courier')}
+                  required
+                  className="h-9 px-3 border border-slate-300 rounded text-[11px] font-bold text-slate-700 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-50 transition-all bg-white w-full"
+                >
+                  <option value="">-Select Courier Company-</option>
+                  {COURIERS.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
 
-              {/* RIGHT column */}
-              <div className="divide-y divide-slate-100">
-                <FieldInput label="Fuel Price %" id="inp-fuel-price" value={form.fuel_price_pct} onChange={f('fuel_price_pct')} placeholder="Enter Fuel Price" type="number" />
-                <FieldInput label="Docket Charge" id="inp-docket" value={form.docket_charge} onChange={f('docket_charge')} placeholder="Enter Docket Charge" type="number" />
-                <FieldInput label="Fov Min" id="inp-fov-min" value={form.fov_min} onChange={f('fov_min')} placeholder="Enter Fov Min" type="number" />
-                {/* empty row to align with Fov Above */}
-                <div className="py-2 px-4 border-b border-slate-100 h-[44px]" />
-                <FieldInput label="Fov Base" id="inp-fov-base" value={form.fov_base} onChange={f('fov_base')} placeholder="Enter Fov Base" type="number" />
-                <FieldInput label="Appointment Per KG" id="inp-appt-pkg" value={form.appointment_per_kg} onChange={f('appointment_per_kg')} placeholder="Enter Appointment Per KG" type="number" />
-                <FieldInput label="Fuel To Date" id="inp-fuel-to" value={form.fuel_to_date} onChange={f('fuel_to_date')} placeholder="" type="date" />
-                <FieldInput label="Air CFT" id="inp-air-cft" value={form.air_cft} onChange={f('air_cft')} placeholder="Enter Air CFT" type="number" />
-                {/* spacer for radio row */}
-                <div className="py-2 px-4 border-b border-slate-100 h-[44px]" />
-                <FieldInput label="ToPay Fixed" id="inp-topay" value={form.topay_fixed} onChange={f('topay_fixed')} placeholder="Enter To Pay Charges" type="number" />
+              {/* Fuel Price % */}
+              <div className="grid grid-cols-[140px_1fr] items-center gap-2 py-1">
+                <label className="text-[11px] font-black text-slate-600 uppercase tracking-wide leading-tight">Fuel Price % <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  required
+                  value={form.fuel_price_pct}
+                  onChange={handlePriceChange}
+                  placeholder="ENTER FUEL PRICE"
+                  className="h-9 px-3 border border-slate-300 rounded text-[11px] font-bold text-slate-700 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-50 transition-all w-full placeholder:text-slate-400 placeholder:font-bold"
+                />
               </div>
-            </div>
 
-            {/* Rate Slabs */}
-            <div className="border-t border-slate-200 p-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Slab Group 1 */}
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Rate Slabs (Group 1)</span>
-                  </div>
-                  <table className="w-full text-[11px] border border-slate-200 rounded overflow-hidden">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200">
-                        <th className="px-2 py-2 font-black text-slate-600 uppercase text-left">From</th>
-                        <th className="px-2 py-2 font-black text-slate-600 uppercase text-left">To</th>
-                        <th className="px-2 py-2 font-black text-slate-600 uppercase text-left">Rate%</th>
-                        <th className="px-2 py-2 w-16"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {form.rate_slabs.map((slab, idx) => (
-                        <tr key={idx} className="border-b border-slate-100">
-                          <td className="px-1 py-1"><input type="number" value={slab.from} onChange={e => updateSlab('rate_slabs', idx, 'from', e.target.value)} className="w-full h-7 px-1.5 border border-slate-300 rounded text-[11px] outline-none focus:border-blue-500" /></td>
-                          <td className="px-1 py-1"><input type="number" value={slab.to} onChange={e => updateSlab('rate_slabs', idx, 'to', e.target.value)} className="w-full h-7 px-1.5 border border-slate-300 rounded text-[11px] outline-none focus:border-blue-500" /></td>
-                          <td className="px-1 py-1"><input type="number" value={slab.rate} onChange={e => updateSlab('rate_slabs', idx, 'rate', e.target.value)} className="w-full h-7 px-1.5 border border-slate-300 rounded text-[11px] outline-none focus:border-blue-500" /></td>
-                          <td className="px-1 py-1">
-                            <div className="flex gap-1">
-                              <button type="button" onClick={() => addSlab('rate_slabs')} className="bg-green-500 hover:bg-green-600 text-white w-6 h-6 rounded text-xs font-black flex items-center justify-center">+</button>
-                              <button type="button" onClick={() => removeSlab('rate_slabs', idx)} className="bg-red-500 hover:bg-red-600 text-white w-6 h-6 rounded text-xs font-black flex items-center justify-center">−</button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              {/* Fuel From Date */}
+              <div className="grid grid-cols-[140px_1fr] items-center gap-2 py-1">
+                <label className="text-[11px] font-black text-slate-600 uppercase tracking-wide leading-tight">Fuel From Date <span className="text-red-500">*</span></label>
+                <input
+                  type="date"
+                  required
+                  value={form.fuel_from_date}
+                  onChange={f('fuel_from_date')}
+                  className="h-9 px-3 border border-slate-300 rounded text-[11px] font-bold text-slate-700 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-50 transition-all w-full"
+                />
+              </div>
 
-                {/* Slab Group 2 */}
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Rate Slabs (Group 2)</span>
-                  </div>
-                  <table className="w-full text-[11px] border border-slate-200 rounded overflow-hidden">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200">
-                        <th className="px-2 py-2 font-black text-slate-600 uppercase text-left">From</th>
-                        <th className="px-2 py-2 font-black text-slate-600 uppercase text-left">To</th>
-                        <th className="px-2 py-2 font-black text-slate-600 uppercase text-left">Rate%</th>
-                        <th className="px-2 py-2 w-16"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {form.rate_slabs2.map((slab, idx) => (
-                        <tr key={idx} className="border-b border-slate-100">
-                          <td className="px-1 py-1"><input type="number" value={slab.from} onChange={e => updateSlab('rate_slabs2', idx, 'from', e.target.value)} className="w-full h-7 px-1.5 border border-slate-300 rounded text-[11px] outline-none focus:border-blue-500" /></td>
-                          <td className="px-1 py-1"><input type="number" value={slab.to} onChange={e => updateSlab('rate_slabs2', idx, 'to', e.target.value)} className="w-full h-7 px-1.5 border border-slate-300 rounded text-[11px] outline-none focus:border-blue-500" /></td>
-                          <td className="px-1 py-1"><input type="number" value={slab.rate} onChange={e => updateSlab('rate_slabs2', idx, 'rate', e.target.value)} className="w-full h-7 px-1.5 border border-slate-300 rounded text-[11px] outline-none focus:border-blue-500" /></td>
-                          <td className="px-1 py-1">
-                            <div className="flex gap-1">
-                              <button type="button" onClick={() => addSlab('rate_slabs2')} className="bg-green-500 hover:bg-green-600 text-white w-6 h-6 rounded text-xs font-black flex items-center justify-center">+</button>
-                              <button type="button" onClick={() => removeSlab('rate_slabs2', idx)} className="bg-red-500 hover:bg-red-600 text-white w-6 h-6 rounded text-xs font-black flex items-center justify-center">−</button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              {/* Fuel To Date */}
+              <div className="grid grid-cols-[140px_1fr] items-center gap-2 py-1">
+                <label className="text-[11px] font-black text-slate-600 uppercase tracking-wide leading-tight">Fuel To Date <span className="text-red-500">*</span></label>
+                <input
+                  type="date"
+                  required
+                  value={form.fuel_to_date}
+                  onChange={f('fuel_to_date')}
+                  className="h-9 px-3 border border-slate-300 rounded text-[11px] font-bold text-slate-700 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-50 transition-all w-full"
+                />
               </div>
             </div>
 
-            {/* Submit button */}
+            {/* Submit / Action buttons */}
             <div className="px-4 py-4 bg-slate-50 border-t border-slate-100 flex items-center gap-3">
               <button type="submit" disabled={saving}
                 className="bg-[#1e3a8a] hover:bg-[#1e40af] disabled:opacity-60 text-white font-black uppercase text-[11px] tracking-widest px-8 py-2.5 rounded shadow-md transition-all hover:scale-[1.02] flex items-center gap-2">
                 {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                {saving ? 'Saving...' : editingEntry ? 'Update Fuel' : 'Add Rate'}
+                {saving ? 'Saving...' : editingEntry ? 'Update Rate' : 'Add Rate'}
               </button>
-              <button type="button" onClick={() => setView('list')}
+              <button type="button" onClick={() => setView(selectedGroup ? 'detail' : 'list')}
                 className="border border-slate-300 text-slate-600 font-black uppercase text-[11px] tracking-widest px-6 py-2.5 rounded transition-all hover:bg-slate-100">
                 Cancel
               </button>
@@ -428,12 +486,149 @@ export function FuelGroup() {
         </form>
 
         {/* Footer */}
-        <div className="mt-4 pb-4 text-center border-t border-slate-100">
+        <div className="mt-auto pb-4 text-center border-t border-slate-100">
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em] pt-4">
             COPYRIGHT © 2026 LOGISTICS SOFTWARE SVP INFOTECH. ALL RIGHTS RESERVED. FOR SUPPORT CALL{' '}
             <span className="text-red-500">+91-9022062666</span>
           </p>
         </div>
+      </div>
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════
+  //  GROUP DASHBOARD / DETAIL VIEW
+  // ══════════════════════════════════════════════════════════
+  if (view === 'detail') {
+    return (
+      <div className="flex flex-col min-h-[calc(100vh-70px)] bg-slate-50/30 p-4 md:p-8 font-sans">
+        {/* Page Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => {
+                setSelectedGroup(null);
+                setView('list');
+              }} 
+              className="p-1.5 hover:bg-slate-100 rounded-full transition-colors border border-slate-200 bg-white shadow-sm"
+            >
+              <ArrowLeft className="h-4 w-4 text-slate-600" />
+            </button>
+            <div>
+              <h1 className="text-[16px] font-black text-slate-800 uppercase tracking-tight">
+                {selectedGroup.name} Dashboard
+              </h1>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                Type: <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ml-1 ${selectedGroup.type === 'international' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{selectedGroup.type}</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              onClick={openAddFuel}
+              className="bg-[#1e3a8a] hover:bg-[#1e40af] text-white border-none px-4 py-2 rounded text-[11px] font-bold uppercase tracking-wide transition-all active:scale-95 shadow-sm flex items-center gap-1"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add Fuel
+            </Button>
+          </div>
+        </div>
+
+        {/* Group Fuel Entries Table */}
+        <div className="bg-white border-2 border-slate-200 rounded overflow-hidden mb-10 text-[11px]">
+          <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+              Fuel Prices & Validity for {selectedGroup.name}
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            {loadingGroupEntries ? (
+              <div className="flex items-center justify-center gap-2 py-10 text-slate-400 font-bold text-[12px]">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading entries...
+              </div>
+            ) : groupEntries.length === 0 ? (
+              <div className="flex items-center justify-center py-10 text-slate-400 font-bold text-[12px]">
+                No fuel price rules added to this group yet. Click "+ Add Fuel" to define one.
+              </div>
+            ) : (
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-white border-b-2 border-slate-200 text-slate-800 uppercase font-black">
+                    <th className="px-4 py-3 border-r border-slate-100 w-12">Sr.</th>
+                    <th className="px-4 py-3 border-r border-slate-100">Courier</th>
+                    <th className="px-4 py-3 border-r border-slate-100 text-right">Fuel Price (%)</th>
+                    <th className="px-4 py-3 border-r border-slate-100">Fuel From</th>
+                    <th className="px-4 py-3 border-r border-slate-100">Fuel To</th>
+                    <th className="px-4 py-3 border-r border-slate-100">Fuel Status</th>
+                    <th className="px-4 py-3">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {groupEntries.map((row, index) => {
+                    const status = getStatus(row.fuel_from_date, row.fuel_to_date);
+                    return (
+                      <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-3 font-bold text-slate-500 border-r border-slate-100">{index + 1}</td>
+                        <td className="px-4 py-3 font-bold text-slate-700 border-r border-slate-100 uppercase">
+                          {row.fuel_courier}-{row.company_type}
+                        </td>
+                        <td className="px-4 py-3 font-bold text-slate-900 border-r border-slate-100 text-right">
+                          {row.fuel_price_pct ?? '—'}%
+                        </td>
+                        <td className="px-4 py-3 font-bold text-slate-600 border-r border-slate-100">
+                          {formatDate(row.fuel_from_date)}
+                        </td>
+                        <td className="px-4 py-3 font-bold text-slate-600 border-r border-slate-100">
+                          {formatDate(row.fuel_to_date)}
+                        </td>
+                        <td className="px-4 py-3 border-r border-slate-100">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-2">
+                            <button onClick={() => openEditFuel(row)} className="bg-[#4ade80] hover:bg-[#22c55e] text-white p-1.5 rounded shadow-sm">
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button onClick={() => setDeletingEntryId(row.id)} className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded shadow-sm">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-auto pt-8 pb-4 text-center border-t border-slate-100 opacity-80">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">
+            COPYRIGHT © 2026 LOGISTICS SOFTWARE SVP INFOTECH. ALL RIGHTS RESERVED. FOR SUPPORT CALL <span className="text-red-500">+91-9022062666</span>
+          </p>
+        </div>
+
+        {/* Delete Entry Confirm */}
+        {deletingEntryId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm mx-4 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-red-100 p-2 rounded-full"><Trash2 className="h-5 w-5 text-red-600" /></div>
+                <div>
+                  <h2 className="text-[13px] font-black text-slate-800 uppercase">Confirm Delete</h2>
+                  <p className="text-[11px] text-slate-500">This cannot be undone.</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => handleDeleteEntry(deletingEntryId)} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-black uppercase text-[11px] py-2.5 rounded">Delete</button>
+                <button onClick={() => setDeletingEntryId(null)} className="flex-1 border-2 border-slate-200 text-slate-600 font-black uppercase text-[11px] py-2.5 rounded">Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -492,13 +687,41 @@ export function FuelGroup() {
                 {fuelGroups.map(row => (
                   <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                     <td className="px-4 py-3 font-bold text-slate-500 border-r border-slate-100">{row.id}</td>
-                    <td className="px-4 py-3 font-bold text-slate-700 border-r border-slate-100 uppercase">{row.name}</td>
+                    <td className="px-4 py-3 font-bold text-slate-700 border-r border-slate-100 uppercase">
+                      <button
+                        onClick={() => {
+                          setSelectedGroup(row);
+                          setView('detail');
+                        }}
+                        className="text-[#1e3a8a] hover:underline font-bold text-left uppercase"
+                      >
+                        {row.name}
+                      </button>
+                    </td>
                     <td className="px-4 py-3 border-r border-slate-100">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${row.type === 'International' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{row.type}</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${row.type.toLowerCase() === 'international' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{row.type}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
-                        <button className="bg-[#4ade80] hover:bg-[#22c55e] text-white p-1.5 rounded shadow-sm"><Pencil className="h-3.5 w-3.5" /></button>
+                        <button 
+                          onClick={() => {
+                            setSelectedGroup(row);
+                            setView('detail');
+                          }} 
+                          title="View Dashboard" 
+                          className="bg-[#1e3a8a] hover:bg-[#1e40af] text-white p-1 rounded shadow-sm flex items-center justify-center gap-1 px-2.5 h-[28px]"
+                        >
+                          <span className="text-[9px] font-black uppercase">Dashboard</span>
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setEditingGroup(row);
+                            setShowGroupModal(true);
+                          }}
+                          className="bg-[#4ade80] hover:bg-[#22c55e] text-white p-1.5 rounded shadow-sm"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
                         <button onClick={() => setDeletingGroupId(row.id)} className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded shadow-sm"><Trash2 className="h-3.5 w-3.5" /></button>
                       </div>
                     </td>
@@ -513,15 +736,15 @@ export function FuelGroup() {
       {/* Fuel Entries Table */}
       <div className="bg-white border-2 border-slate-200 rounded overflow-hidden mb-10 text-[11px]">
         <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200">
-          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Fuel Entries</span>
+          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Global Fuel Entries</span>
         </div>
         <div className="overflow-x-auto">
           {loadingEntries ? (
             <div className="flex items-center justify-center gap-2 py-10 text-slate-400 font-bold text-[12px]">
               <Loader2 className="h-4 w-4 animate-spin" /> Loading...
             </div>
-          ) : fuelEntries.length === 0 ? (
-            <div className="flex items-center justify-center py-10 text-slate-400 font-bold text-[12px]">No fuel entries yet. Click "Add Fuel" to create one.</div>
+          ) : fuelEntries.filter(row => !row.fuel_group_id).length === 0 ? (
+            <div className="flex items-center justify-center py-10 text-slate-400 font-bold text-[12px]">No global fuel entries yet. Click "Add Fuel" to create one.</div>
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
@@ -530,6 +753,7 @@ export function FuelGroup() {
                   <th className="px-4 py-3 border-r border-slate-100">Courier</th>
                   <th className="px-4 py-3 border-r border-slate-100">Type</th>
                   <th className="px-4 py-3 border-r border-slate-100">Customer</th>
+                  <th className="px-4 py-3 border-r border-slate-100">Group</th>
                   <th className="px-4 py-3 border-r border-slate-100">Fuel %</th>
                   <th className="px-4 py-3 border-r border-slate-100">Date Range</th>
                   <th className="px-4 py-3 border-r border-slate-100">Calc On</th>
@@ -537,25 +761,31 @@ export function FuelGroup() {
                 </tr>
               </thead>
               <tbody>
-                {fuelEntries.map(row => (
-                  <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 font-bold text-slate-500 border-r border-slate-100">{row.id}</td>
-                    <td className="px-4 py-3 font-bold text-slate-700 border-r border-slate-100 uppercase">{row.fuel_courier}</td>
-                    <td className="px-4 py-3 border-r border-slate-100">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${row.company_type === 'International' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{row.company_type}</span>
-                    </td>
-                    <td className="px-4 py-3 font-bold text-slate-600 border-r border-slate-100">{row.customer}</td>
-                    <td className="px-4 py-3 font-bold text-slate-600 border-r border-slate-100">{row.fuel_price_pct ?? '—'}%</td>
-                    <td className="px-4 py-3 font-bold text-slate-600 border-r border-slate-100">{row.fuel_from_date || '—'} → {row.fuel_to_date || '—'}</td>
-                    <td className="px-4 py-3 font-bold text-slate-600 border-r border-slate-100">{row.calculate_on}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button onClick={() => openEditFuel(row)} className="bg-[#4ade80] hover:bg-[#22c55e] text-white p-1.5 rounded shadow-sm"><Pencil className="h-3.5 w-3.5" /></button>
-                        <button onClick={() => setDeletingEntryId(row.id)} className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded shadow-sm"><Trash2 className="h-3.5 w-3.5" /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {fuelEntries.filter(row => !row.fuel_group_id).map(row => {
+                  const matchingGroup = fuelGroups.find(g => g.id === row.fuel_group_id);
+                  return (
+                    <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3 font-bold text-slate-500 border-r border-slate-100">{row.id}</td>
+                      <td className="px-4 py-3 font-bold text-slate-700 border-r border-slate-100 uppercase">{row.fuel_courier}</td>
+                      <td className="px-4 py-3 border-r border-slate-100">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${row.company_type === 'International' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>{row.company_type}</span>
+                      </td>
+                      <td className="px-4 py-3 font-bold text-slate-600 border-r border-slate-100">{row.customer}</td>
+                      <td className="px-4 py-3 font-bold text-[#1e3a8a] border-r border-slate-100 uppercase">
+                        {matchingGroup ? matchingGroup.name : '—'}
+                      </td>
+                      <td className="px-4 py-3 font-bold text-slate-600 border-r border-slate-100">{row.fuel_price_pct ?? '—'}%</td>
+                      <td className="px-4 py-3 font-bold text-slate-600 border-r border-slate-100">{formatDate(row.fuel_from_date)} → {formatDate(row.fuel_to_date)}</td>
+                      <td className="px-4 py-3 font-bold text-slate-600 border-r border-slate-100">{row.calculate_on}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2">
+                          <button onClick={() => openEditFuel(row)} className="bg-[#4ade80] hover:bg-[#22c55e] text-white p-1.5 rounded shadow-sm"><Pencil className="h-3.5 w-3.5" /></button>
+                          <button onClick={() => setDeletingEntryId(row.id)} className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded shadow-sm"><Trash2 className="h-3.5 w-3.5" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -575,8 +805,9 @@ export function FuelGroup() {
       {/* Add Fuel Group Modal */}
       {showGroupModal && (
         <AddFuelGroupModal
-          onClose={() => setShowGroupModal(false)}
-          onSave={() => { setShowGroupModal(false); fetchGroups(); }}
+          editingGroup={editingGroup}
+          onClose={() => { setShowGroupModal(false); setEditingGroup(null); }}
+          onSave={() => { setShowGroupModal(false); setEditingGroup(null); fetchGroups(); }}
         />
       )}
 

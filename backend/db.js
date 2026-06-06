@@ -189,6 +189,10 @@ const init = async () => {
       amount: "REAL"
     });
 
+    await ensureColumnsExist('fuel_entries', {
+      fuel_group_id: "INTEGER"
+    });
+
     // 3. Seeding
     const userCount = (await db.getAsync('SELECT count(*) as count FROM users')).count;
     if (userCount === 0) {

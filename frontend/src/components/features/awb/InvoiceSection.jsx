@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormField } from './FormField';
+import { FormField } from '../../shared/FormField';
 
 export function InvoiceSection({
   formData,

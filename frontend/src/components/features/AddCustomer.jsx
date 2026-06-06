@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Save, User, MapPin, ShieldCheck, Mail, Phone, Lock, FileText, Settings, Pencil, Trash2, Search, Download } from "lucide-react"
-import { api } from '../../services/api';
+import { api, getStates, getRateGroups, getFuelGroups } from '../../services/api';
+import { useSearch } from '../../hooks/useSearch';
 
 const InputGroup = ({ label, name, type = "text", value, placeholder, options, onChange, className = "", widthClass = "w-full" }) => (
     <div className={`flex flex-col gap-0.5 ${className} ${widthClass}`}>
@@ -63,8 +64,8 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
     });
 
     const [customers, setCustomers] = useState([]);
-    const [searchTerm, setSearchTerm] = useState('');
     const [isEditing, setIsEditing] = useState(false);
+
     const [masters, setMasters] = useState({
         states: [],
         cities: [],
@@ -106,13 +107,12 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
 
     useEffect(() => {
         fetchCustomers();
-        // Fetch all masters except cities
         Promise.all([
-            fetch('/api/masters/states').then(res => res.json()),
-            fetch('/api/masters/rate-groups?type=domestic').then(res => res.json()),
-            fetch('/api/masters/rate-groups?type=international').then(res => res.json()),
-            fetch('/api/masters/fuel-groups?type=domestic').then(res => res.json()),
-            fetch('/api/masters/fuel-groups?type=international').then(res => res.json()),
+            getStates(),
+            getRateGroups('domestic'),
+            getRateGroups('international'),
+            getFuelGroups('domestic'),
+            getFuelGroups('international'),
         ]).then(([states, drg, irg, dfg, ifg]) => {
             setMasters(prev => ({
                 ...prev,

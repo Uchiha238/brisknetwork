@@ -26,7 +26,6 @@ export function InvoiceItemsTable({
               <th className="px-2 py-1 text-[9px] font-bold text-slate-500 uppercase border border-slate-200">UNIT TYPE</th>
               <th className="px-2 py-1 text-[9px] font-bold text-slate-500 uppercase border border-slate-200">QUANTITY</th>
               <th className="px-2 py-1 text-[9px] font-bold text-slate-500 uppercase border border-slate-200">UNIT WEIGHT</th>
-              <th className="px-2 py-1 text-[9px] font-bold text-slate-500 uppercase border border-slate-200">IGST</th>
               <th className="px-2 py-1 text-[9px] font-bold text-slate-500 uppercase border border-slate-200">UNIT RATES</th>
               <th className="px-2 py-1 text-[9px] font-bold text-slate-500 uppercase text-right border border-slate-200">AMOUNT</th>
               <th className="px-2 py-1 w-10 border border-slate-200"></th>
@@ -87,14 +86,7 @@ export function InvoiceItemsTable({
                     className="w-16 h-6 px-1 text-[11px] font-bold text-center rounded outline-none"
                   />
                 </td>
-                <td className="px-2 py-1 border border-slate-200">
-                  <input
-                    type="number"
-                    value={item.igst}
-                    onChange={e => handleArrayChange('items', idx, 'igst', parseFloat(e.target.value))}
-                    className="w-16 h-6 px-1 text-[11px] font-bold text-center rounded outline-none"
-                  />
-                </td>
+
                 <td className="px-2 py-1 border border-slate-200">
                   <input
                     type="number"
@@ -113,7 +105,7 @@ export function InvoiceItemsTable({
         </table>
         <div className="p-2 bg-slate-50 flex justify-between items-center border-t border-slate-200">
           <Button
-            onClick={() => addArrayItem('items', { box_no: '1', sr_no: 1, description: '', hs_code: '', unit_type: 'PCS', quantity: 1, unit_weight: 0, igst: 0, unit_rate: 0, amount: 0 })}
+            onClick={() => addArrayItem('items', { box_no: '1', sr_no: 1, description: '', hs_code: '', unit_type: 'PCS', quantity: 1, unit_weight: 0, unit_rate: 0, amount: 0 })}
             className="h-6 bg-[#65a30d] hover:bg-[#4d7c0f] text-white text-[9px] font-black uppercase shadow-md shadow-green-100 gap-1 px-2 py-0.5"
           >
             <Plus className="h-2.5 w-2.5" /> ADD ITEM

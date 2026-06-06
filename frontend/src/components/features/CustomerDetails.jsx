@@ -3,14 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, FileText, LayoutGrid, CheckCircle2, AlertCircle, Edit2, Trash2, Download, Filter, MoreHorizontal, X, Pencil } from "lucide-react"
 import { api } from '../../services/api';
+import { useSearch } from '../../hooks/useSearch';
 
 export function CustomerDetails({ setCurrentPage, setEditingCustomer: setGlobalEditingCustomer }) {
   const [customers, setCustomers] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const { term: searchTerm, setTerm: setSearchTerm, filtered: filteredCustomers } = useSearch(customers, ['name', 'code', 'city']);
   const [editingCustomer, setEditingCustomer] = useState(null);
-  const [formData, setFormData] = useState({
-    code: '', name: '', phone: '', email: '', city: '', gst_no: ''
-  });
 
   const fetchCustomers = async () => {
     try {
@@ -57,11 +55,6 @@ export function CustomerDetails({ setCurrentPage, setEditingCustomer: setGlobalE
     setCurrentPage('add-customer');
   };
 
-  const filteredCustomers = customers.filter(c => 
-    c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.city?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 bg-white min-h-[calc(100vh-70px)] font-sans">

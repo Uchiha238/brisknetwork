@@ -1,0 +1,235 @@
+Admin,,,,
+Sr.,Courier Name,Country,Zone,Type
+1,DHL,United Arab Emirates,1,Export
+2,DHL,Bangladesh,1,Export
+3,DHL,Bhutan,1,Export
+4,DHL,Sri Lanka,1,Export
+5,DHL,Maldives,1,Export
+6,DHL,Nepal,1,Export
+7,DHL,Hong Kong,2,Export
+8,DHL,Malaysia,2,Export
+9,DHL,Singapore,2,Export
+10,DHL,Thailand,2,Export
+11,DHL,China,3,Export
+12,DHL,Bahrain,4,Export
+13,DHL,Iran,4,Export
+14,DHL,Jordan,4,Export
+15,DHL,Kuwait,4,Export
+16,DHL,Lebanon,4,Export
+17,DHL,Oman,4,Export
+18,DHL,Pakistan,4,Export
+19,DHL,Qatar,4,Export
+20,DHL,Saudi Arabia,4,Export
+21,DHL,Syria,4,Export
+22,DHL,Yemen,4,Export
+23,DHL,Brunei,5,Export
+24,DHL,Indonesia,5,Export
+25,DHL,Japan,5,Export
+26,DHL,Cambodia,5,Export
+27,DHL,"Korea, The D.P.R of",5,Export
+28,DHL,"Korea, Republic Of",5,Export
+29,DHL,Lao People's Democratic Republic,5,Export
+30,DHL,Myanmar,5,Export
+31,DHL,Mongolia,5,Export
+32,DHL,Macau,5,Export
+33,DHL,"Philippines, The",5,Export
+34,DHL,East Timor,5,Export
+35,DHL,Taiwan,5,Export
+36,DHL,Vietnam,5,Export
+37,DHL,New Zealand,6,Export
+38,DHL,Papua New Guinea,6,Export
+39,DHL,Australia,14,Export
+40,DHL,Austria,7,Export
+41,DHL,Belgium,7,Export
+42,DHL,Switzerland,7,Export
+43,DHL,"Czech Republic, The",7,Export
+44,DHL,Germany,7,Export
+45,DHL,Denmark,7,Export
+46,DHL,Spain,7,Export
+47,DHL,France,7,Export
+48,DHL,United Kingdom,7,Export
+49,DHL,Hungary,7,Export
+50,DHL,"Ireland, Republic Of",7,Export
+51,DHL,Italy,7,Export
+52,DHL,Liechtenstein,7,Export
+53,DHL,Luxembourg,7,Export
+54,DHL,Monaco,7,Export
+55,DHL,"Netherlands, The",7,Export
+56,DHL,Poland,7,Export
+57,DHL,Portugal,7,Export
+58,DHL,Romania,7,Export
+59,DHL,Sweden,7,Export
+60,DHL,Slovakia,7,Export
+61,DHL,Vatican City State,7,Export
+62,DHL,Andorra,8,Export
+63,DHL,Bulgaria,8,Export
+64,DHL,Belarus,8,Export
+65,DHL,Cyprus,8,Export
+66,DHL,Estonia,8,Export
+67,DHL,Finland,8,Export
+68,DHL,Falkland Islands,8,Export
+69,DHL,Faroe Islands,8,Export
+70,DHL,Guernsey,8,Export
+71,DHL,Gibraltar,8,Export
+72,DHL,Greenland,8,Export
+73,DHL,Greece,8,Export
+74,DHL,"Canary Islands, The",8,Export
+75,DHL,Israel,8,Export
+76,DHL,Iceland,8,Export
+77,DHL,Jersey,8,Export
+78,DHL,Lithuania,8,Export
+79,DHL,Latvia,8,Export
+80,DHL,Malta,8,Export
+81,DHL,Norway,8,Export
+82,DHL,"Russian Federation, The",8,Export
+83,DHL,Slovenia,8,Export
+84,DHL,Turkey,8,Export
+85,DHL,American Samoa,9,Export
+86,DHL,Guam,9,Export
+87,DHL,Marshall Islands,9,Export
+88,DHL,Saipan,9,Export
+89,DHL,Mexico,9,Export
+90,DHL,Puerto Rico,9,Export
+91,DHL,Virgin Islands,9,Export
+92,DHL,Antigua,10,Export
+93,DHL,Anguilla,10,Export
+94,DHL,Argentina,10,Export
+95,DHL,Aruba,10,Export
+96,DHL,Barbados,10,Export
+97,DHL,Bermuda,10,Export
+98,DHL,Bolivia,10,Export
+99,DHL,Brazil,10,Export
+100,DHL,Bahamas,10,Export
+101,DHL,Belize,10,Export
+102,DHL,Chile,10,Export
+103,DHL,Colombia,10,Export
+104,DHL,Costa Rica,10,Export
+105,DHL,Cuba,10,Export
+106,DHL,Dominica,10,Export
+107,DHL,Dominican Republic,10,Export
+108,DHL,Ecuador,10,Export
+109,DHL,Grenada,10,Export
+110,DHL,French Guyana,10,Export
+111,DHL,Guadeloupe,10,Export
+112,DHL,Guatemala,10,Export
+113,DHL,Guyana,10,Export
+114,DHL,Honduras,10,Export
+115,DHL,Haiti,10,Export
+116,DHL,Jamaica,10,Export
+117,DHL,St. Kitts,10,Export
+118,DHL,Cayman Islands,10,Export
+119,DHL,St. Lucia,10,Export
+120,DHL,Martinique,10,Export
+121,DHL,Montserrat,10,Export
+122,DHL,Nicaragua,10,Export
+123,DHL,Panama,10,Export
+124,DHL,Peru,10,Export
+125,DHL,Paraguay,10,Export
+126,DHL,Suriname,10,Export
+127,DHL,El Salvador,10,Export
+128,DHL,Turks and Caicos Islands,10,Export
+129,DHL,Trinidad and Tobago,10,Export
+130,DHL,Uruguay,10,Export
+131,DHL,St. Vincent,10,Export
+132,DHL,Venezuela,10,Export
+133,DHL,Virgin Islands,10,Export
+134,DHL,Bonaire,10,Export
+135,DHL,Curacao,10,Export
+136,DHL,St. Eustatius,10,Export
+137,DHL,St. Maarten,10,Export
+138,DHL,Nevis,10,Export
+139,DHL,St. Barthelemy,10,Export
+140,DHL,South Africa,10,Export
+141,DHL,Afghanistan,11,Export
+142,DHL,Albania,11,Export
+143,DHL,Armenia,11,Export
+144,DHL,Angola,11,Export
+145,DHL,Azerbaijan,11,Export
+146,DHL,Bosnia and Herzegovina,11,Export
+147,DHL,Burkina Faso,11,Export
+148,DHL,Burundi,11,Export
+149,DHL,Benin,11,Export
+150,DHL,Botswana,11,Export
+151,DHL,"Congo, The Democratic Republic",11,Export
+152,DHL,Central African Republic,11,Export
+153,DHL,Congo,11,Export
+154,DHL,Cote d'Ivoire,11,Export
+155,DHL,Cook Islands,11,Export
+156,DHL,Cameroon,11,Export
+157,DHL,Cape Verde,11,Export
+158,DHL,Djibouti,11,Export
+159,DHL,Algeria,11,Export
+160,DHL,Egypt,11,Export
+161,DHL,Eritrea,11,Export
+162,DHL,Ethiopia,11,Export
+163,DHL,Fiji,11,Export
+164,DHL,"Micronesia, Federated States of",11,Export
+165,DHL,Gabon,11,Export
+166,DHL,Georgia,11,Export
+167,DHL,Ghana,11,Export
+168,DHL,Gambia,11,Export
+169,DHL,Guinea Republic,11,Export
+170,DHL,Guinea-Equatorial,11,Export
+171,DHL,Guinea-Bissau,11,Export
+172,DHL,Croatia,11,Export
+173,DHL,Iraq,11,Export
+174,DHL,Kenya,11,Export
+175,DHL,Kyrgyzstan,11,Export
+176,DHL,Kiribati,11,Export
+177,DHL,Comoros,11,Export
+178,DHL,Kosovo,11,Export
+179,DHL,Kazakhstan,11,Export
+180,DHL,Liberia,11,Export
+181,DHL,Lesotho,11,Export
+182,DHL,Libya,11,Export
+183,DHL,Morocco,11,Export
+184,DHL,"Moldova, Republic Of",11,Export
+185,DHL,"Montenegro, Republic of",11,Export
+186,DHL,Madagascar,11,Export
+187,DHL,"Macedonia, Republic of",11,Export
+188,DHL,Mali,11,Export
+189,DHL,Mauritania,11,Export
+190,DHL,Mauritius,11,Export
+191,DHL,Malawi,11,Export
+192,DHL,Mozambique,11,Export
+193,DHL,Namibia,11,Export
+194,DHL,New Caledonia,11,Export
+195,DHL,Niger,11,Export
+196,DHL,Nigeria,11,Export
+197,DHL,"Nauru, Republic Of",11,Export
+198,DHL,Niue,11,Export
+199,DHL,Tahiti,11,Export
+200,DHL,Palau,11,Export
+201,DHL,"Reunion, Island Of",11,Export
+202,DHL,"Serbia, Republic of",11,Export
+203,DHL,Rwanda,11,Export
+204,DHL,Solomon Islands,11,Export
+205,DHL,Seychelles,11,Export
+206,DHL,Sudan,11,Export
+207,DHL,Saint Helena,11,Export
+208,DHL,Sierra Leone,11,Export
+209,DHL,San Marino,11,Export
+210,DHL,Senegal,11,Export
+211,DHL,Somalia,11,Export
+212,DHL,South Sudan,11,Export
+213,DHL,Sao Tome and Principe,11,Export
+214,DHL,Swaziland,11,Export
+215,DHL,Chad,11,Export
+216,DHL,Togo,11,Export
+217,DHL,Tajikistan,11,Export
+218,DHL,Tunisia,11,Export
+219,DHL,Tonga,11,Export
+220,DHL,Tuvalu,11,Export
+221,DHL,Tanzania,11,Export
+222,DHL,Ukraine,11,Export
+223,DHL,Uganda,11,Export
+224,DHL,Uzbekistan,11,Export
+225,DHL,Vanuatu,11,Export
+226,DHL,Samoa,11,Export
+227,DHL,"Somaliland, Rep of",11,Export
+228,DHL,Mayotte,11,Export
+229,DHL,Zambia,11,Export
+230,DHL,Zimbabwe,11,Export
+231,DHL,United States Of America,12,Export
+232,DHL,Canada,13,Export
+233,DHL,Turkmenistan,11,Export

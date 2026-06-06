@@ -1,6 +1,6 @@
 import React from 'react';
 import { RotateCcw } from 'lucide-react';
-import { FormField, getCountryCallingCode } from './FormField';
+import { FormField, getCountryCallingCode } from '../../shared/FormField';
 import { isDomesticCountry } from '../../../utils/weight';
 
 export function ConsigneeInfoSection({
@@ -46,52 +46,7 @@ export function ConsigneeInfoSection({
     });
   };
 
-  const fullEmail = formData.consignee_email || '';
-  let emailUser = '';
-  let emailDomain = 'GMAIL.COM';
-  if (fullEmail.includes('@')) {
-    const parts = fullEmail.split('@');
-    emailUser = parts[0];
-    emailDomain = parts[1] || '';
-  } else {
-    emailUser = fullEmail;
-  }
 
-  const handleEmailUserChange = (e) => {
-    const val = e.target.value.toUpperCase();
-    if (val.includes('@')) {
-      const parts = val.split('@');
-      const userPart = parts[0] || '';
-      const domainPart = parts.slice(1).join('@') || 'GMAIL.COM';
-      handleChange({
-        target: {
-          name: 'consignee_email',
-          value: userPart + '@' + domainPart,
-          type: 'text'
-        }
-      });
-    } else {
-      handleChange({
-        target: {
-          name: 'consignee_email',
-          value: val + '@' + emailDomain,
-          type: 'text'
-        }
-      });
-    }
-  };
-
-  const handleEmailDomainChange = (e) => {
-    const val = e.target.value.toUpperCase();
-    const cleanDomain = val.replace(/@/g, '');
-    handleChange({
-      target: {
-        name: 'consignee_email',
-        value: emailUser + '@' + cleanDomain,
-        type: 'text'
-      }
-    });
-  };
 
   return (
     <div className="flex flex-col">
@@ -211,30 +166,7 @@ export function ConsigneeInfoSection({
           </div>
         </FormField>
 
-        <FormField label="Email Address" labelWidth="105px" inputMaxWidth="320px">
-          <div className="flex items-center w-full h-full text-[12px] font-bold text-slate-900 border border-slate-300 rounded overflow-hidden focus-within:border-blue-500 transition-colors bg-white">
-            <input
-              type="text"
-              placeholder="USERNAME"
-              value={emailUser}
-              onChange={handleEmailUserChange}
-              style={{ border: 'none', outline: 'none', boxShadow: 'none' }}
-              className="flex-1 h-full px-2 uppercase bg-white text-slate-900"
-            />
-            <div className="flex items-center h-full bg-slate-50 border-l border-slate-200 px-2 text-slate-500 select-none">
-              <span className="font-bold text-[11px] mr-1 text-slate-400">@</span>
-              <input
-                type="text"
-                placeholder="DOMAIN.COM"
-                value={emailDomain}
-                onChange={handleEmailDomainChange}
-                tabIndex={-1}
-                style={{ border: 'none', outline: 'none', boxShadow: 'none', width: '90px' }}
-                className="h-full uppercase bg-transparent text-slate-500 focus:text-slate-900 px-0"
-              />
-            </div>
-          </div>
-        </FormField>
+        <FormField onChange={handleChange} label="Email Address" name="consignee_email" labelWidth="105px" value={formData.consignee_email || ''} inputMaxWidth="320px" placeholder="ENTER EMAIL ADDRESS" />
       </div>
     </div>
   );

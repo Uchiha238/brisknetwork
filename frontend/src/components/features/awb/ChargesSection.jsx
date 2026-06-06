@@ -1,5 +1,5 @@
 import React from 'react';
-import { SectionHeader } from './FormField';
+import { SectionHeader } from '../../shared/FormField';
 
 export function ChargesSection({
   formData,
@@ -108,49 +108,49 @@ export function ChargesSection({
             </div>
           </div>
           <div className="p-4">
-            <div className="grid grid-cols-2 gap-x-12 gap-y-2">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
               <div className="space-y-2">
-                <div className="grid grid-cols-[140px_1fr] items-center gap-2">
+                <div className="grid grid-cols-[115px_1fr] items-center gap-2">
                   <label className="text-[13px] font-medium text-slate-700">Freight</label>
-                  <input type="number" name="freight_ch" value={formData.freight_ch} onChange={handleChange} className="h-[35px] px-3 border border-slate-300 rounded text-[14px]" />
+                  <input type="number" name="freight_ch" value={formData.freight_ch} onChange={handleChange} className="w-full h-[35px] px-3 border border-slate-300 rounded text-[14px] outline-none focus:border-blue-500" />
                 </div>
-                <div className="grid grid-cols-[140px_1fr] items-center gap-2">
+                <div className="grid grid-cols-[115px_1fr] items-center gap-2">
                   <label className="text-[13px] font-medium text-slate-700">Destination</label>
-                  <input type="number" name="destination_ch" value={formData.destination_ch} onChange={handleChange} className="h-[35px] px-3 border border-slate-300 rounded text-[14px]" />
+                  <input type="number" name="destination_ch" value={formData.destination_ch} onChange={handleChange} className="w-full h-[35px] px-3 border border-slate-300 rounded text-[14px] outline-none focus:border-blue-500" />
                 </div>
-                <div className="grid grid-cols-[140px_1fr] items-center gap-2">
+                <div className="grid grid-cols-[115px_1fr] items-center gap-2">
                   <label className="text-[13px] font-medium text-slate-700">ESS</label>
-                  <input type="number" name="ess_ch" value={formData.ess_ch} onChange={handleChange} className="h-[35px] px-3 border border-slate-300 rounded text-[14px]" />
+                  <input type="number" name="ess_ch" value={formData.ess_ch} onChange={handleChange} className="w-full h-[35px] px-3 border border-slate-300 rounded text-[14px] outline-none focus:border-blue-500" />
                 </div>
-                <div className="grid grid-cols-[140px_1fr] items-center gap-2">
+                <div className="grid grid-cols-[115px_1fr] items-center gap-2">
                   <label className="text-[13px] font-medium text-slate-700">ODA</label>
-                  <input type="number" name="oda_ch" value={formData.oda_ch} onChange={handleChange} className="h-[35px] px-3 border border-slate-300 rounded text-[14px]" />
+                  <input type="number" name="oda_ch" value={formData.oda_ch} onChange={handleChange} className="w-full h-[35px] px-3 border border-slate-300 rounded text-[14px] outline-none focus:border-blue-500" />
                 </div>
-                <div className="grid grid-cols-[140px_1fr] items-center gap-2">
+                <div className="grid grid-cols-[115px_1fr] items-center gap-2">
                   <label className="text-[13px] font-bold text-slate-700">Total</label>
-                  <input type="number" value={formData.sub_total} readOnly tabIndex={-1} className="h-[35px] px-3 border border-slate-300 rounded bg-slate-100 text-[14px] font-bold" />
+                  <input type="number" value={formData.sub_total} readOnly tabIndex={-1} className="w-full h-[35px] px-3 border border-slate-300 rounded bg-slate-100 text-[14px] font-bold outline-none" />
                 </div>
               </div>
               <div className="space-y-2">
-                <div className="grid grid-cols-[140px_1fr] items-center gap-2">
+                <div className="grid grid-cols-[115px_1fr] items-center gap-2">
                   <label className="text-[13px] font-medium text-slate-700">Transport</label>
-                  <input type="number" name="transport_ch" value={formData.transport_ch} onChange={handleChange} className="h-[35px] px-3 border border-slate-300 rounded text-[14px]" />
+                  <input type="number" name="transport_ch" value={formData.transport_ch} onChange={handleChange} className="w-full h-[35px] px-3 border border-slate-300 rounded text-[14px] outline-none focus:border-blue-500" />
                 </div>
-                <div className="grid grid-cols-[140px_1fr] items-center gap-2">
+                <div className="grid grid-cols-[115px_1fr] items-center gap-2">
                   <label className="text-[13px] font-medium text-slate-700">Clearance</label>
-                  <input type="number" name="clearance_ch" value={formData.clearance_ch} onChange={handleChange} className="h-[35px] px-3 border border-slate-300 rounded text-[14px]" />
+                  <input type="number" name="clearance_ch" value={formData.clearance_ch} onChange={handleChange} className="w-full h-[35px] px-3 border border-slate-300 rounded text-[14px] outline-none focus:border-blue-500" />
                 </div>
-                <div className="grid grid-cols-[140px_1fr] items-center gap-2">
+                <div className="grid grid-cols-[115px_1fr] items-center gap-2">
                   <label className="text-[13px] font-medium text-slate-700">OtherCh.</label>
-                  <input type="number" name="other_ch" value={formData.other_ch} onChange={handleChange} className="h-[35px] px-3 border border-slate-300 rounded text-[14px]" />
+                  <input type="number" name="other_ch" value={formData.other_ch} onChange={handleChange} className="w-full h-[35px] px-3 border border-slate-300 rounded text-[14px] outline-none focus:border-blue-500" />
                 </div>
-                <div className="grid grid-cols-[140px_1fr] items-center gap-2">
+                <div className="grid grid-cols-[115px_1fr] items-center gap-2">
                   <label className="text-[13px] font-medium text-slate-700">DDP.</label>
-                  <input type="number" name="ddp_ch" value={formData.ddp_ch} onChange={handleChange} className="h-[35px] px-3 border border-slate-300 rounded text-[14px]" />
+                  <input type="number" name="ddp_ch" value={formData.ddp_ch} onChange={handleChange} className="w-full h-[35px] px-3 border border-slate-300 rounded text-[14px] outline-none focus:border-blue-500" />
                 </div>
-                <div className="grid grid-cols-[140px_1fr] items-center gap-2">
+                <div className="grid grid-cols-[115px_1fr] items-center gap-2">
                   <label className="text-[13px] font-medium text-slate-700">Fuel Surcharge</label>
-                  <input type="number" name="fuel_surcharge" value={formData.fuel_surcharge} onChange={handleChange} className="h-[35px] px-3 border border-slate-300 rounded bg-slate-100 text-[14px] font-bold" />
+                  <input type="number" name="fuel_surcharge" value={formData.fuel_surcharge} onChange={handleChange} className="w-full h-[35px] px-3 border border-slate-300 rounded bg-slate-100 text-[14px] font-bold outline-none" />
                 </div>
               </div>
             </div>

@@ -66,6 +66,7 @@ const schemaSql = `
     cod_fixed REAL,
     topay_fixed REAL,
     rate_slabs TEXT DEFAULT '[]',
+    fuel_group_id INTEGER,
     created_at TEXT DEFAULT (datetime('now'))
   );
 

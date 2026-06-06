@@ -27,6 +27,7 @@ function App() {
   const [user, setUser] = useState({ name: 'Admin', role: 'admin' })
   const [currentPage, setCurrentPage] = useState("dashboard")
   const [editingCustomer, setEditingCustomer] = useState(null)
+  const [editingShipmentId, setEditingShipmentId] = useState(null)
 
   useEffect(() => {
     const savedUser = localStorage.getItem('om-courier-user');
@@ -45,16 +46,26 @@ function App() {
     localStorage.removeItem('om-courier-user');
   };
 
+  const handlePageChange = (page) => {
+    setEditingShipmentId(null);
+    setCurrentPage(page);
+  };
+
+  const handleEditShipment = (id) => {
+    setEditingShipmentId(id);
+    setCurrentPage("add-shipment");
+  };
+
   if (!user) {
     return <Login onLogin={handleLogin} />;
   }
 
   return (
-    <DashboardLayout currentPage={currentPage} setCurrentPage={setCurrentPage} user={user} onLogout={handleLogout}>
+    <DashboardLayout currentPage={currentPage} setCurrentPage={handlePageChange} user={user} onLogout={handleLogout}>
       {currentPage === "dashboard" && <AdminDashboard />}
-      {currentPage === "add-shipment" && <AddUnifiedShipmentForm initialType="domestic" />}
+      {currentPage === "add-shipment" && <AddUnifiedShipmentForm initialType="domestic" editingShipmentId={editingShipmentId} />}
       {currentPage === "gst-setting" && <GstSetting />}
-      {currentPage === "view-customer" && <CustomerDetails setCurrentPage={setCurrentPage} setEditingCustomer={setEditingCustomer} />}
+      {currentPage === "view-customer" && <CustomerDetails setCurrentPage={handlePageChange} setEditingCustomer={setEditingCustomer} />}
       {currentPage === "courier-master" && <CourierMaster />}
       {currentPage === "mode-master" && <ModeMaster />}
       {currentPage === "int-zone" && <InternationalZone />}
@@ -83,7 +94,7 @@ function App() {
       )}
       {currentPage === "company-setting" && <CompanySetting />}
       {currentPage === "mail-config" && <MailConfig />}
-      {currentPage === "list-shipments" && <ListShipments />}
+      {currentPage === "list-shipments" && <ListShipments onEditShipment={handleEditShipment} />}
 
     </DashboardLayout>
   )

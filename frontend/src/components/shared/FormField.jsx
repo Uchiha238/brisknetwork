@@ -28,6 +28,7 @@ export const FormField = ({ label, name, type = "text", value, placeholder, requ
     </div>
   </div>
 );
+
 export const getCountryCallingCode = (countryName) => {
   if (!countryName) return '+91'; // default fallback to India
   const upper = countryName.trim().toUpperCase();
@@ -52,4 +53,3 @@ export const getCountryCallingCode = (countryName) => {
   if (upper === 'SOUTH AFRICA' || upper === 'ZA') return '+27';
   return '+1'; // international fallback
 };
-

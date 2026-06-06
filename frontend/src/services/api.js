@@ -1,85 +1,51 @@
 const BASE_URL = '/api';
 
+// ─── Core fetch wrapper ──────────────────────────────────────────────────────
+async function apiFetch(endpoint, options = {}) {
+  const res = await fetch(`${BASE_URL}${endpoint}`, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options,
+  });
+  return res.json();
+}
+
+function jsonBody(method, data) {
+  return { method, body: JSON.stringify(data) };
+}
+
+// ─── Masters ─────────────────────────────────────────────────────────────────
+export const getStates     = ()     => apiFetch('/masters/states');
+export const getCountries  = ()     => apiFetch('/masters/countries');
+export const getModes      = ()     => apiFetch('/modes');
+export const getBranches   = ()     => apiFetch('/branches');
+export const getCompanies  = ()     => apiFetch('/company');
+export const getRateGroups = (type) => apiFetch(`/masters/rate-groups?type=${type}`);
+export const getFuelGroups = (type) => apiFetch(`/masters/fuel-groups?type=${type}`);
+
+// ─── Legacy api object (kept for existing callers) ───────────────────────────
 export const api = {
   // Auth
-  login: async (credentials) => {
-    const res = await fetch(`${BASE_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(credentials),
-    });
-    return res.json();
-  },
+  login: (credentials) =>
+    apiFetch('/login', jsonBody('POST', credentials)),
 
   // Dashboard
-  getDashboardStats: async () => {
-    const res = await fetch(`${BASE_URL}/dashboard`);
-    return res.json();
-  },
+  getDashboardStats: () => apiFetch('/dashboard'),
 
   // Customers
-  getCustomers: async () => {
-    const res = await fetch(`${BASE_URL}/customers`);
-    return res.json();
-  },
-  
-  createCustomer: async (customerData) => {
-    const res = await fetch(`${BASE_URL}/customers`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(customerData),
-    });
-    return res.json();
-  },
-
-  updateCustomer: async (id, customerData) => {
-    const res = await fetch(`${BASE_URL}/customers/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(customerData),
-    });
-    return res.json();
-  },
-
-  deleteCustomer: async (id) => {
-    const res = await fetch(`${BASE_URL}/customers/${id}`, {
-      method: 'DELETE',
-    });
-    return res.json();
-  },
+  getCustomers:    ()               => apiFetch('/customers'),
+  createCustomer:  (data)           => apiFetch('/customers',     jsonBody('POST', data)),
+  updateCustomer:  (id, data)       => apiFetch(`/customers/${id}`, jsonBody('PUT', data)),
+  deleteCustomer:  (id)             => apiFetch(`/customers/${id}`, { method: 'DELETE' }),
 
   // Shipments
-  getShipments: async () => {
-    const res = await fetch(`${BASE_URL}/shipments`);
-    return res.json();
-  },
-
-  createShipment: async (shipmentData) => {
-    const res = await fetch(`${BASE_URL}/shipments`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(shipmentData),
-    });
-    return res.json();
-  },
-
-  updateShipmentStatus: async (id, statusData) => {
-    const res = await fetch(`${BASE_URL}/shipments/${id}/status`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(statusData),
-    });
-    return res.json();
-  },
-
-  getShipmentTracking: async (id) => {
-    const res = await fetch(`${BASE_URL}/shipments/${id}/tracking`);
-    return res.json();
-  },
+  getShipments:         ()         => apiFetch('/shipments'),
+  getShipment:          (id)       => apiFetch(`/shipments/${id}`),
+  createShipment:       (data)     => apiFetch('/shipments',        jsonBody('POST', data)),
+  updateShipment:       (id, data) => apiFetch(`/shipments/${id}`,  jsonBody('PUT', data)),
+  deleteShipment:       (id)       => apiFetch(`/shipments/${id}`,  { method: 'DELETE' }),
+  updateShipmentStatus: (id, data) => apiFetch(`/shipments/${id}/status`, jsonBody('PUT', data)),
+  getShipmentTracking:  (id)       => apiFetch(`/shipments/${id}/tracking`),
 
   // Reports
-  getExportReport: async () => {
-    const res = await fetch(`${BASE_URL}/reports/export`);
-    return res.json();
-  }
+  getExportReport: () => apiFetch('/reports/export'),
 };

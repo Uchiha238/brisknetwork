@@ -1,8 +1,63 @@
 const sqlite3 = require('sqlite3').verbose();
-const xlsx = require('xlsx');
+const fs = require('fs');
 const path = require('path');
 
 const db = new sqlite3.Database('./courier.db');
+
+const parseCSV = (filePath, skipRows = 0) => {
+  const content = fs.readFileSync(filePath, 'utf8');
+  const lines = [];
+  let currentLine = [];
+  let currentVal = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i];
+    const nextChar = content[i + 1];
+    
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        currentVal += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      currentLine.push(currentVal.trim());
+      currentVal = '';
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') {
+        i++;
+      }
+      currentLine.push(currentVal.trim());
+      lines.push(currentLine);
+      currentLine = [];
+      currentVal = '';
+    } else {
+      currentVal += char;
+    }
+  }
+  
+  if (currentVal || currentLine.length > 0) {
+    currentLine.push(currentVal.trim());
+    lines.push(currentLine);
+  }
+  
+  if (lines.length <= skipRows) return [];
+  
+  const headers = lines[skipRows];
+  const results = [];
+  for (let r = skipRows + 1; r < lines.length; r++) {
+    const row = lines[r];
+    if (row.length === 0 || (row.length === 1 && row[0] === '')) continue;
+    const obj = {};
+    headers.forEach((h, index) => {
+      obj[h] = row[index] || '';
+    });
+    results.push(obj);
+  }
+  return results;
+};
 
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS local_pincodes (
@@ -13,10 +68,9 @@ db.serialize(() => {
     zone TEXT
   )`);
 
-  console.log("Reading XLSB file...");
-  const wb = xlsx.readFile('../Copy of PINCODE_03062022.xlsb');
-  const sheetName = wb.SheetNames[0];
-  const data = xlsx.utils.sheet_to_json(wb.Sheets[sheetName]);
+  console.log("Reading CSV file...");
+  const csvPath = path.resolve(__dirname, '../Copy of PINCODE_03062022.csv');
+  const data = parseCSV(csvPath, 0);
 
   console.log(`Pincodes to import: ${data.length}`);
 
@@ -35,3 +89,4 @@ db.serialize(() => {
     db.close();
   });
 });
+

@@ -1,11 +1,12 @@
 import React from 'react';
-import { SectionHeader } from './FormField';
+import { SectionHeader } from '../../shared/FormField';
 
 export function FinalChargeSection({
   formData,
   handleChange,
   masters,
-  handleSubmit
+  handleSubmit,
+  editingShipmentId = null
 }) {
   return (
     <div className="mt-1 border border-slate-300 bg-white">
@@ -35,10 +36,7 @@ export function FinalChargeSection({
           <label className="text-[10px] font-black text-slate-700 uppercase">SGST Tax</label>
           <input type="number" name="sgst_ch" value={formData.sgst_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
         </div>
-        <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-          <label className="text-[10px] font-black text-slate-700 uppercase">IGST Tax</label>
-          <input type="number" name="igst_ch" value={formData.igst_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
-        </div>
+
         <div className="grid grid-cols-[140px_1fr] items-center gap-1">
           <label className="text-[10px] font-black text-slate-900 uppercase">Grand Total</label>
           <input 
@@ -52,7 +50,7 @@ export function FinalChargeSection({
 
         <div className="flex gap-2 pt-3">
           <button onClick={handleSubmit} className="bg-[#1e3a8a] hover:bg-[#1e40af] text-white text-[11px] font-black uppercase tracking-wider px-6 py-2 rounded shadow-md transition-all hover:scale-[1.02]">
-            Submit
+            {editingShipmentId ? 'Update' : 'Submit'}
           </button>
           <button onClick={() => window.location.reload()} className="bg-[#1e3a8a] hover:bg-[#1e40af] text-white text-[11px] font-black uppercase tracking-wider px-6 py-2 rounded shadow-md transition-all hover:scale-[1.02]">
             New

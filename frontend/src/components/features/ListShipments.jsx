@@ -1,13 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
-import { Search, Download, FileText, Calendar, MapPin, Package, RefreshCw, Layers } from "lucide-react";
+import { Search, Download, FileText, Calendar, MapPin, Package, RefreshCw, Layers, Pencil, Trash2 } from "lucide-react";
 
-export function ListShipments() {
+export function ListShipments({ onEditShipment }) {
   const [shipments, setShipments] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+
+  const handleDeleteClick = (id) => {
+    setDeletingId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingId) return;
+    try {
+      const res = await api.deleteShipment(deletingId);
+      if (res && res.success) {
+        setShipments(prev => prev.filter(s => s.id !== deletingId));
+        alert("Shipment deleted successfully!");
+      } else {
+        alert("Failed to delete shipment: " + (res.error || "Unknown error"));
+      }
+    } catch (err) {
+      console.error("Delete shipment error:", err);
+      alert("Error deleting shipment.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const fetchShipments = async () => {
     setLoading(true);
@@ -44,7 +67,7 @@ export function ListShipments() {
       s.booking_date,
       s.customer_name || s.shipper_name || 'N/A',
       s.origin_hub,
-      s.destination,
+      s.destination || (s.type?.toLowerCase() === 'domestic' ? s.consignee_city : s.consignee_country),
       s.pcs,
       s.actual_weight,
       s.chargeable_weight,
@@ -70,12 +93,13 @@ export function ListShipments() {
 
   const filteredShipments = shipments.filter(s => {
     // Search filter
+    const sDest = s.destination || (s.type?.toLowerCase() === 'domestic' ? s.consignee_city : s.consignee_country) || '';
     const matchesSearch = 
       (s.airway_no && s.airway_no.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (s.customer_name && s.customer_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (s.shipper_name && s.shipper_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (s.consignee_name && s.consignee_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (s.destination && s.destination.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (sDest && sDest.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (s.origin_hub && s.origin_hub.toLowerCase().includes(searchTerm.toLowerCase()));
 
     // Type filter
@@ -179,11 +203,11 @@ export function ListShipments() {
                 <th className="p-4 w-60 text-[10px] font-black uppercase tracking-wider text-slate-800">Shipper / Customer</th>
                 <th className="p-4 w-48 text-[10px] font-black uppercase tracking-wider text-slate-800">Consignee</th>
                 <th className="p-4 w-32 text-[10px] font-black uppercase tracking-wider text-slate-800">Destination</th>
-                <th className="p-4 w-24 text-[10px] font-black uppercase tracking-wider text-slate-800">Pcs</th>
                 <th className="p-4 w-28 text-[10px] font-black uppercase tracking-wider text-slate-800">Chargeable Wt</th>
                 <th className="p-4 w-28 text-[10px] font-black uppercase tracking-wider text-slate-800">Total Charges</th>
                 <th className="p-4 w-28 text-[10px] font-black uppercase tracking-wider text-slate-800">Pay Mode</th>
                 <th className="p-4 w-32 text-[10px] font-black uppercase tracking-wider text-slate-800">Status</th>
+                <th className="p-4 w-32 text-[10px] font-black uppercase tracking-wider text-slate-800">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -224,15 +248,12 @@ export function ListShipments() {
                     <td className="p-4">
                       <div className="flex items-center gap-1">
                         <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
-                        <span className="text-[11px] font-black text-slate-700 uppercase">{s.destination || 'N/A'}</span>
+                        <span className="text-[11px] font-black text-slate-700 uppercase">
+                          {s.destination || (s.type?.toLowerCase() === 'domestic' ? s.consignee_city : s.consignee_country) || 'N/A'}
+                        </span>
                       </div>
                     </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-1">
-                        <Package className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                        <span className="text-[11px] font-black text-slate-700 font-mono">{s.pcs || 1}</span>
-                      </div>
-                    </td>
+
                     <td className="p-4 text-[11px] font-black text-slate-700 font-mono">
                       {s.chargeable_weight ? `${parseFloat(s.chargeable_weight).toFixed(2)} KG` : '0.00 KG'}
                     </td>
@@ -253,12 +274,48 @@ export function ListShipments() {
                         {s.status || 'BOOKED'}
                       </span>
                     </td>
+                    <td className="p-4">
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => onEditShipment && onEditShipment(s.id)}
+                          title="Edit Shipment"
+                          className="bg-green-500 hover:bg-green-600 text-white p-1.5 rounded shadow-sm transition-colors"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteClick(s.id)}
+                          title="Delete Shipment"
+                          className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded shadow-sm transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
         </div>
+
+        {deletingId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm mx-4 p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-red-100 p-2 rounded-full"><Trash2 className="h-5 w-5 text-red-600" /></div>
+                <div>
+                  <h2 className="text-[13px] font-black text-slate-800 uppercase">Confirm Delete</h2>
+                  <p className="text-[11px] text-slate-500">Are you sure you want to delete this shipment? This cannot be undone.</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={confirmDelete} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-black uppercase text-[11px] py-2.5 rounded">Delete</button>
+                <button onClick={() => setDeletingId(null)} className="flex-1 border-2 border-slate-200 text-slate-600 font-black uppercase text-[11px] py-2.5 rounded">Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer Branding */}

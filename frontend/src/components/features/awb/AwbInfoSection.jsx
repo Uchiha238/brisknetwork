@@ -1,5 +1,6 @@
 import React from 'react';
-import { FormField } from './FormField';
+import { FormField } from '../../shared/FormField';
+
 
 export function AwbInfoSection({
   formData,
@@ -109,8 +110,8 @@ export function AwbInfoSection({
 
         {shipmentType === 'domestic' ? (
           <div className="grid grid-cols-[1fr_95px_70px] gap-1">
-            <FormField onChange={handleChange} label="Destination" name="consignee_country" isRed labelWidth="85px">
-              <input list="countries-list" name="consignee_country" value={formData.consignee_country} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none" />
+            <FormField onChange={handleChange} label="Destination" name="consignee_city" isRed labelWidth="85px">
+              <input name="consignee_city" value={formData.consignee_city || ''} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none" />
             </FormField>
             <FormField onChange={handleChange} label="PIN" name="consignee_zip" isRed labelWidth="25px" value={formData.consignee_zip} />
             <FormField onChange={handleChange} label="Zone" name="consignee_zone" labelWidth="35px" value={formData.consignee_zone} />

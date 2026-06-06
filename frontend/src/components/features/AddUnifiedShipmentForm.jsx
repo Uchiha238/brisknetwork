@@ -10,7 +10,7 @@ import { FinalChargeSection } from './awb/FinalChargeSection';
 import { InvoiceItemsTable } from './awb/InvoiceItemsTable';
 import { useUnifiedShipmentForm } from '../../hooks/useUnifiedShipmentForm';
 
-export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
+export function AddUnifiedShipmentForm({ initialType = 'domestic', editingShipmentId = null }) {
   const {
     shipmentType, setShipmentType,
     companies,
@@ -30,7 +30,7 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
     handleSelectShipper,
     handleSelectConsignee,
     handleSubmit
-  } = useUnifiedShipmentForm(initialType);
+  } = useUnifiedShipmentForm(initialType, editingShipmentId);
 
   return (
     <div className="bg-white min-h-full p-1 font-sans selection:bg-blue-100">
@@ -49,13 +49,15 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
               onClick={handleSubmit}
               className="bg-blue-500 hover:bg-blue-600 text-white text-[9px] font-bold px-3 py-1 rounded shadow-sm transition-colors uppercase"
             >
-               Create AWB and Print Label
+               {editingShipmentId ? 'Update AWB' : 'Create AWB and Print Label'}
             </button>
          </div>
       </div>
 
       <div className="mb-1">
-         <h2 className="text-[14px] font-bold text-slate-800 uppercase px-1 pb-1">Add AWB</h2>
+         <h2 className="text-[14px] font-bold text-slate-800 uppercase px-1 pb-1">
+           {editingShipmentId ? `Edit AWB (AWB: ${formData.airway_no})` : 'Add AWB'}
+         </h2>
       </div>
 
       {/* Main 3-Column Layout */}
@@ -123,6 +125,7 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic' }) {
           handleChange={handleChange}
           masters={masters}
           handleSubmit={handleSubmit}
+          editingShipmentId={editingShipmentId}
         />
       </div>
 
