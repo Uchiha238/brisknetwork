@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useAsync } from '@/hooks/useAsync';
+import { useConfirmDelete, ConfirmDeleteModal } from '@/hooks/useConfirmDelete';
 import { ArrowLeft, Loader2, AlertCircle, Building2, GitBranch, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -128,30 +130,21 @@ export function BranchForm({ company, editData, onBack, onSave }) {
 
 /* ─── BranchList ─── */
 export function BranchList({ company, onBack, onAddBranch, onEditBranch }) {
-  const [branches,   setBranches]  = useState([]);
-  const [loading,    setLoading]   = useState(true);
-  const [error,      setError]     = useState('');
-  const [deletingId, setDeletingId] = useState(null);
-
-  const load = async () => {
-    try {
-      setLoading(true); setError('');
+  const { data: branches, loading, error, refetch: load } = useAsync(
+    async () => {
       const res = await fetch(`${BAPI}?company_id=${company.id}`);
       if (!res.ok) throw new Error('Failed to fetch');
-      setBranches(await res.json());
-    } catch (e) { setError(e.message); }
-    finally { setLoading(false); }
-  };
+      return res.json();
+    },
+    [company.id]
+  );
 
-  useEffect(() => { load(); }, [company.id]);
-
-  const handleDelete = async id => {
+  const { deletingId, requestDelete, cancelDelete, confirmDelete } = useConfirmDelete(async id => {
     try {
       await fetch(`${BAPI}/${id}`, { method: 'DELETE' });
-      setDeletingId(null);
       load();
     } catch (e) { alert('Error: ' + e.message); }
-  };
+  });
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-70px)] bg-slate-50/30 p-4 md:p-8 font-sans">
@@ -220,7 +213,7 @@ export function BranchList({ company, onBack, onAddBranch, onEditBranch }) {
                           className="bg-[#4ade80] hover:bg-[#22c55e] text-white p-1.5 rounded transition-colors shadow-sm">
                           <Pencil className="h-3 w-3"/>
                         </button>
-                        <button onClick={() => setDeletingId(b.id)}
+                        <button onClick={() => requestDelete(b.id)}
                           className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded transition-colors shadow-sm">
                           <Trash2 className="h-3 w-3"/>
                         </button>
@@ -241,21 +234,7 @@ export function BranchList({ company, onBack, onAddBranch, onEditBranch }) {
       </div>
 
       {deletingId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-red-100 p-2.5 rounded-full"><Trash2 className="h-5 w-5 text-red-600"/></div>
-              <div>
-                <h2 className="text-[13px] font-black text-slate-800 uppercase">Confirm Delete</h2>
-                <p className="text-[11px] text-slate-500">This action cannot be undone.</p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => handleDelete(deletingId)} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-black uppercase text-[11px] tracking-wide py-2.5 rounded-lg">Delete</button>
-              <button onClick={() => setDeletingId(null)} className="flex-1 border-2 border-slate-200 text-slate-600 font-black uppercase text-[11px] tracking-wide py-2.5 rounded-lg">Cancel</button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDeleteModal onConfirm={confirmDelete} onCancel={cancelDelete} />
       )}
     </div>
   );

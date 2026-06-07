@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useAsync } from '@/hooks/useAsync';
+import { useConfirmDelete, ConfirmDeleteModal } from '@/hooks/useConfirmDelete';
 import { Plus, Loader2, AlertCircle, Building2, GitBranch, Pencil, Trash2, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CompanyForm } from './company/CompanyForm';
@@ -11,23 +13,15 @@ export function CompanySetting() {
   const [editCompany,  setEditCompany] = useState(null);
   const [selCompany,   setSelCompany]  = useState(null);
   const [editBranch,   setEditBranch]  = useState(null);
-  const [companies,    setCompanies]   = useState([]);
-  const [loading,      setLoading]     = useState(true);
-  const [error,        setError]       = useState('');
-  const [deletingId,   setDeletingId]  = useState(null);
   const [branchMenuId, setBranchMenuId] = useState(null);
 
-  const fetchCompanies = async () => {
-    try {
-      setLoading(true); setError('');
+  const { data: companies, loading, error, refetch: fetchCompanies } = useAsync(
+    async () => {
       const res = await fetch(API);
       if (!res.ok) throw new Error('Failed to fetch');
-      setCompanies(await res.json());
-    } catch (e) { setError(e.message); }
-    finally { setLoading(false); }
-  };
-
-  useEffect(() => { fetchCompanies(); }, []);
+      return res.json();
+    }
+  );
 
   useEffect(() => {
     const close = () => setBranchMenuId(null);
@@ -35,10 +29,10 @@ export function CompanySetting() {
     return () => document.removeEventListener('click', close);
   }, []);
 
-  const handleDelete = async id => {
-    try { await fetch(`${API}/${id}`, { method: 'DELETE' }); setDeletingId(null); fetchCompanies(); }
+  const { deletingId, requestDelete, cancelDelete, confirmDelete } = useConfirmDelete(async id => {
+    try { await fetch(`${API}/${id}`, { method: 'DELETE' }); fetchCompanies(); }
     catch (e) { alert('Error: ' + e.message); }
-  };
+  });
 
   // ── routing ──
   if (view === 'company-form')
@@ -143,7 +137,7 @@ export function CompanySetting() {
                             </div>
                           )}
                         </div>
-                        <button onClick={() => setDeletingId(row.id)}
+                        <button onClick={() => requestDelete(row.id)}
                           className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded transition-colors shadow-sm" title="Delete">
                           <Trash2 className="h-3.5 w-3.5"/>
                         </button>
@@ -164,21 +158,7 @@ export function CompanySetting() {
       </div>
 
       {deletingId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-red-100 p-2.5 rounded-full"><Trash2 className="h-5 w-5 text-red-600"/></div>
-              <div>
-                <h2 className="text-[13px] font-black text-slate-800 uppercase">Confirm Delete</h2>
-                <p className="text-[11px] text-slate-500">This action cannot be undone.</p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => handleDelete(deletingId)} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-black uppercase text-[11px] tracking-wide py-2.5 rounded-lg">Delete</button>
-              <button onClick={() => setDeletingId(null)} className="flex-1 border-2 border-slate-200 text-slate-600 font-black uppercase text-[11px] tracking-wide py-2.5 rounded-lg">Cancel</button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDeleteModal onConfirm={confirmDelete} onCancel={cancelDelete} />
       )}
     </div>
   );

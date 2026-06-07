@@ -1,25 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
+import { useAsync } from '@/hooks/useAsync';
+import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 import { Search, Download, FileText, Calendar, MapPin, Package, RefreshCw, Layers, Pencil, Trash2 } from "lucide-react";
 
 export function ListShipments({ onEditShipment }) {
-  const [shipments, setShipments] = useState([]);
+  const { data: shipments, setData: setShipments, loading, refetch: fetchShipments } = useAsync(
+    () => api.getShipments()
+  );
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [loading, setLoading] = useState(false);
-  const [deletingId, setDeletingId] = useState(null);
 
-  const handleDeleteClick = (id) => {
-    setDeletingId(id);
-  };
-
-  const confirmDelete = async () => {
-    if (!deletingId) return;
+  const { deletingId, requestDelete: handleDeleteClick, cancelDelete, confirmDelete } = useConfirmDelete(async id => {
     try {
-      const res = await api.deleteShipment(deletingId);
+      const res = await api.deleteShipment(id);
       if (res && res.success) {
-        setShipments(prev => prev.filter(s => s.id !== deletingId));
+        setShipments(prev => prev.filter(s => s.id !== id));
         alert("Shipment deleted successfully!");
       } else {
         alert("Failed to delete shipment: " + (res.error || "Unknown error"));
@@ -27,26 +24,8 @@ export function ListShipments({ onEditShipment }) {
     } catch (err) {
       console.error("Delete shipment error:", err);
       alert("Error deleting shipment.");
-    } finally {
-      setDeletingId(null);
     }
-  };
-
-  const fetchShipments = async () => {
-    setLoading(true);
-    try {
-      const data = await api.getShipments();
-      setShipments(data);
-    } catch (err) {
-      console.error('Fetch shipments error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchShipments();
-  }, []);
+  });
 
   const handleExportCSV = () => {
     if (shipments.length === 0) return;
@@ -311,7 +290,7 @@ export function ListShipments({ onEditShipment }) {
               </div>
               <div className="flex gap-3">
                 <button onClick={confirmDelete} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-black uppercase text-[11px] py-2.5 rounded">Delete</button>
-                <button onClick={() => setDeletingId(null)} className="flex-1 border-2 border-slate-200 text-slate-600 font-black uppercase text-[11px] py-2.5 rounded">Cancel</button>
+                <button onClick={cancelDelete} className="flex-1 border-2 border-slate-200 text-slate-600 font-black uppercase text-[11px] py-2.5 rounded">Cancel</button>
               </div>
             </div>
           </div>
