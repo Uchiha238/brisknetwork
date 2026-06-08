@@ -1,8 +1,21 @@
-const sqlite3 = require('sqlite3').verbose();
+require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
+const sqlcipher = require('@journeyapps/sqlcipher').verbose();
 const path = require('path');
 
+// ── Encryption key from environment ──────────────────────────────────
+const ENCRYPTION_KEY = process.env.DB_ENCRYPTION_KEY;
+if (!ENCRYPTION_KEY) {
+  console.error('FATAL: DB_ENCRYPTION_KEY is not set. Create a backend/.env file with this variable.');
+  process.exit(1);
+}
+
+// ── Open the encrypted database ──────────────────────────────────────
 const dbPath = path.resolve(__dirname, 'courier.db');
-const db = new sqlite3.Database(dbPath);
+const db = new sqlcipher.Database(dbPath);
+
+// Set the encryption key — must be the very first statement
+db.run(`PRAGMA key = '${ENCRYPTION_KEY}'`);
+db.run('PRAGMA cipher_compatibility = 4');
 
 // Helper for Promisified queries
 db.allAsync = (sql, params = []) => {

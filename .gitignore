@@ -19,3 +19,5 @@ dist-ssr
 .DS_Store
 *.sw?
 .vite
+.env
+courier_plain_backup.db
