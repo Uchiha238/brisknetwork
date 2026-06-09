@@ -61,7 +61,7 @@ router.get('/international-zone', asyncHandler(async (req, res) => {
 
 // --- International Rate Route ---
 router.get('/international-rate', asyncHandler(async (req, res) => {
-  const { courier, weight, zone } = req.query;
+  const { courier, weight, zone, product, mode } = req.query;
   if (!courier || !weight || !zone) {
     return res.status(400).json({ success: false, error: 'courier, weight, and zone parameters are required' });
   }
@@ -70,22 +70,25 @@ router.get('/international-rate', asyncHandler(async (req, res) => {
   const weightVal = parseFloat(weight);
   const zoneVal = zone.toString().trim();
   
+  const modeVal = (mode || 'EXPORT').toString().trim().toUpperCase();
+  const docTypeVal = (product || 'DOCUMENTS').toString().trim().toUpperCase() === 'PARCEL' ? 'NON-DOC' : 'DOC';
+  
   if (isNaN(weightVal)) {
     return res.status(400).json({ success: false, error: 'weight must be a valid number' });
   }
   
   // Find the smallest to_weight that is greater than or equal to the requested weight
   let row = await db.getAsync(
-    'SELECT rate, fixed_perkg, to_weight FROM international_rates WHERE courier = ? AND zone = ? AND to_weight >= ? ORDER BY to_weight ASC LIMIT 1',
-    [courierUpper, zoneVal, weightVal]
+    'SELECT rate, fixed_perkg, to_weight FROM international_rates WHERE courier = ? AND export_import = ? AND doc_type = ? AND zone = ? AND to_weight >= ? ORDER BY to_weight ASC LIMIT 1',
+    [courierUpper, modeVal, docTypeVal, zoneVal, weightVal]
   );
 
   // Fallback: If no slab is >= requested weight, use the maximum available weight slab
   let isFallback = false;
   if (!row) {
     row = await db.getAsync(
-      'SELECT rate, fixed_perkg, to_weight FROM international_rates WHERE courier = ? AND zone = ? ORDER BY to_weight DESC LIMIT 1',
-      [courierUpper, zoneVal]
+      'SELECT rate, fixed_perkg, to_weight FROM international_rates WHERE courier = ? AND export_import = ? AND doc_type = ? AND zone = ? ORDER BY to_weight DESC LIMIT 1',
+      [courierUpper, modeVal, docTypeVal, zoneVal]
     );
     if (row) {
       isFallback = true;

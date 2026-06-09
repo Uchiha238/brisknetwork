@@ -181,11 +181,12 @@ export function createFieldHandlers({ setFormData, setSelectedCustomerId, setShi
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    const isSelect = e.target.tagName === 'SELECT';
     
     setFormData(prev => {
         let newData = {
             ...prev,
-            [name]: type === 'checkbox' ? checked : (type === 'number' ? value : value.toUpperCase())
+            [name]: type === 'checkbox' ? checked : (type === 'number' || isSelect ? value : value.toUpperCase())
         };
 
         if (name === 'payment_mode') {

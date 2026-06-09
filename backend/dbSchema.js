@@ -204,8 +204,11 @@ const schemaSql = `
     other_ch REAL,
     ddp_ch REAL,
     charges_date TEXT,
+    mode TEXT,
+    invoice_id INTEGER,
     FOREIGN KEY (customer_id) REFERENCES customers(id),
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (invoice_id) REFERENCES invoices(id)
   );
 
   CREATE TABLE IF NOT EXISTS packages (
@@ -265,12 +268,32 @@ const schemaSql = `
   CREATE TABLE IF NOT EXISTS international_rates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     courier TEXT,
+    export_import TEXT,
+    doc_type TEXT,
+    rate_type TEXT,
     from_weight REAL,
     to_weight REAL,
     zone TEXT,
     rate REAL,
     fixed_perkg INTEGER,
-    UNIQUE(courier, to_weight, zone)
+    UNIQUE(courier, export_import, doc_type, to_weight, zone)
+  );
+
+  CREATE TABLE IF NOT EXISTS invoices (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    invoice_number TEXT UNIQUE,
+    invoice_date TEXT,
+    customer_id INTEGER,
+    from_date TEXT,
+    to_date TEXT,
+    invoice_type TEXT,
+    sub_total REAL,
+    cgst REAL,
+    sgst REAL,
+    igst REAL,
+    grand_total REAL,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (customer_id) REFERENCES customers(id)
   );
 `;
 

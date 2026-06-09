@@ -76,6 +76,7 @@ app.use('/api/masters', require('./routes/masters'));
 app.use('/api/company', require('./routes/company'));
 app.use('/api/branches', require('./routes/branches'));
 app.use('/api/fuel-entries', require('./routes/fuel'));
+app.use('/api/invoices', require('./routes/invoices'));
 app.use('/api', require('./routes/shipping'));
 app.use('/api', require('./routes/misc'));
 

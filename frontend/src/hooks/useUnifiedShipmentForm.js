@@ -80,7 +80,8 @@ export function useUnifiedShipmentForm(initialType = 'domestic', editingShipment
       customers, formData,
       setSelectedCustomerId, setSelectedConsigneeId,
       setShipperSearch, setConsigneeSearch, setFormData,
-      shipperSearch, consigneeSearch
+      shipperSearch, consigneeSearch,
+      selectedCustomerId
     });
 
   // ── Derived data ──

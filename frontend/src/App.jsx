@@ -22,6 +22,9 @@ import { Login } from "./components/features/Login"
 import { CompanySetting } from "./components/features/CompanySetting"
 import { MailConfig } from "./components/features/MailConfig"
 import { ListShipments } from "./components/features/ListShipments"
+import { InvoiceManager } from "./components/features/InvoiceManager"
+import { PrintInvoice } from "./components/features/PrintInvoice"
+
 
 function App() {
   const [user, setUser] = useState({ name: 'Admin', role: 'admin' })
@@ -56,9 +59,17 @@ function App() {
     setCurrentPage("add-shipment");
   };
 
+  const urlParams = new URLSearchParams(window.location.search);
+  const printInvoiceId = urlParams.get('print-invoice');
+
+  if (printInvoiceId) {
+    return <PrintInvoice invoiceId={printInvoiceId} />;
+  }
+
   if (!user) {
     return <Login onLogin={handleLogin} />;
   }
+
 
   return (
     <DashboardLayout currentPage={currentPage} setCurrentPage={handlePageChange} user={user} onLogout={handleLogout}>
@@ -95,6 +106,22 @@ function App() {
       {currentPage === "company-setting" && <CompanySetting />}
       {currentPage === "mail-config" && <MailConfig />}
       {currentPage === "list-shipments" && <ListShipments onEditShipment={handleEditShipment} />}
+      {currentPage === "export-invoice" && (
+        <InvoiceManager mode="generate" type="Export" setCurrentPage={handlePageChange} />
+      )}
+      {currentPage === "export-final-invoice" && (
+        <InvoiceManager mode="list" type="Export" setCurrentPage={handlePageChange} />
+      )}
+      {currentPage === "import-invoice" && (
+        <InvoiceManager mode="generate" type="Import" setCurrentPage={handlePageChange} />
+      )}
+      {currentPage === "import-final-invoice" && (
+        <InvoiceManager mode="list" type="Import" setCurrentPage={handlePageChange} />
+      )}
+      {currentPage === "freight-invoice" && (
+        <InvoiceManager mode="list" type="Domestic" setCurrentPage={handlePageChange} />
+      )}
+
 
     </DashboardLayout>
   )

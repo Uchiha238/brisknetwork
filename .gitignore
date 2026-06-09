@@ -21,3 +21,4 @@ dist-ssr
 .vite
 .env
 courier_plain_backup.db
+scratch/

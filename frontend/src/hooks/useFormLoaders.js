@@ -372,10 +372,11 @@ export function useInternationalRateLookup({ formData, setFormData, lastFetchedR
     }
     
     if (zone && weight > 0 && courier) {
-      const currentKey = `${courier}-${zone}-${weight}-${mode}`;
+      const product = formData.product || 'DOCUMENTS';
+      const currentKey = `${courier}-${zone}-${weight}-${mode}-${product}`;
       if (currentKey === lastFetchedRateKey) return;
       
-      fetch(`/api/international-rate?courier=${encodeURIComponent(courier)}&zone=${encodeURIComponent(zone)}&weight=${encodeURIComponent(weight)}`)
+      fetch(`/api/international-rate?courier=${encodeURIComponent(courier)}&zone=${encodeURIComponent(zone)}&weight=${encodeURIComponent(weight)}&product=${encodeURIComponent(product)}&mode=${encodeURIComponent(mode)}`)
         .then(res => {
           if (!res.ok) throw new Error("Rate not found");
           return res.json();

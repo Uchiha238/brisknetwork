@@ -172,7 +172,9 @@ export function createSubmitHandler({
             international_fuel_group: 'Group A',
             mis_emails: '',
             mis_format: 'SR.No Date Consigner Consignee Destination Pincode Invoice',
-            payment_type: isCredit ? 'Credit' : 'Cash'
+            payment_type: isCredit ? 'Credit' : 'Cash',
+            is_consignee: 1,
+            shipper_id: customerIdToUse || null
         };
 
         try {
@@ -206,7 +208,9 @@ export function createSubmitHandler({
                 state: formData.consignee_state || existingConsignee.state,
                 pincode: formData.consignee_zip || existingConsignee.pincode,
                 parent_company: formData.consignee_company || existingConsignee.parent_company,
-                gst_charges: existingConsignee.gst_charges ? 'Yes' : 'No'
+                gst_charges: existingConsignee.gst_charges ? 'Yes' : 'No',
+                is_consignee: 1,
+                shipper_id: customerIdToUse || existingConsignee.shipper_id || null
             };
             try {
                 await api.updateCustomer(selectedConsigneeId, updatedConsigneeData);
@@ -270,7 +274,8 @@ export function createShipperConsigneeHandlers({
   customers, formData,
   setSelectedCustomerId, setSelectedConsigneeId,
   setShipperSearch, setConsigneeSearch, setFormData,
-  shipperSearch, consigneeSearch
+  shipperSearch, consigneeSearch,
+  selectedCustomerId
 }) {
 
   const filteredShipperCustomers = customers.filter(cust => {
@@ -279,6 +284,9 @@ export function createShipperConsigneeHandlers({
       
       const matchPayMode = custPayMode.toLowerCase() === currentPayMode.toLowerCase();
       if (!matchPayMode) return false;
+
+      // Make sure we don't show consignees in the shipper dropdown
+      if (cust.is_consignee == 1) return false;
 
       if (!shipperSearch) return true;
       const q = shipperSearch.toLowerCase();
@@ -290,6 +298,16 @@ export function createShipperConsigneeHandlers({
   });
 
   const filteredConsigneeCustomers = customers.filter(cust => {
+      // 1. Only show consignees (hide shippers/credit companies)
+      if (cust.is_consignee != 1) return false;
+
+      // 2. If a shipper is selected, only show consignees saved for this shipper (or global ones)
+      if (selectedCustomerId) {
+          if (cust.shipper_id && cust.shipper_id.toString() !== selectedCustomerId.toString()) {
+              return false;
+          }
+      }
+
       if (!consigneeSearch) return true;
       const q = consigneeSearch.toLowerCase();
       return (

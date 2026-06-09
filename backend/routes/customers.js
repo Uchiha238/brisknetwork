@@ -15,7 +15,8 @@ router.post('/', asyncHandler(async (req, res) => {
     gst_charges, api_access, sac_code, credit_days, cft,
     domestic_rate_group, international_rate_group,
     domestic_fuel_group, international_fuel_group,
-    mis_emails, mis_format, parent_company, customer_type, payment_type
+    mis_emails, mis_format, parent_company, customer_type, payment_type,
+    is_consignee, shipper_id
   } = req.body;
   
   const result = await db.runAsync(`
@@ -25,15 +26,17 @@ router.post('/', asyncHandler(async (req, res) => {
       gst_charges, api_access, sac_code, credit_days, cft,
       domestic_rate_group, international_rate_group,
       domestic_fuel_group, international_fuel_group,
-      mis_emails, mis_format, parent_company, customer_type, payment_type
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      mis_emails, mis_format, parent_company, customer_type, payment_type,
+      is_consignee, shipper_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
     code, name, phone, email, city, gst_no,
     password, address, staff_allotment, pincode, state,
     gst_charges === 'Yes' ? 1 : 0, api_access, sac_code, credit_days, cft,
     domestic_rate_group, international_rate_group,
     domestic_fuel_group, international_fuel_group,
-    mis_emails, mis_format, parent_company, customer_type, payment_type || 'Credit'
+    mis_emails, mis_format, parent_company, customer_type, payment_type || 'Credit',
+    is_consignee ? 1 : 0, shipper_id || null
   ]);
   res.json({ success: true, id: result.lastID });
 }));
@@ -45,7 +48,8 @@ router.put('/:id', asyncHandler(async (req, res) => {
     gst_charges, api_access, sac_code, credit_days, cft,
     domestic_rate_group, international_rate_group,
     domestic_fuel_group, international_fuel_group,
-    mis_emails, mis_format, parent_company, customer_type, payment_type
+    mis_emails, mis_format, parent_company, customer_type, payment_type,
+    is_consignee, shipper_id
   } = req.body;
   
   await db.runAsync(`
@@ -55,7 +59,8 @@ router.put('/:id', asyncHandler(async (req, res) => {
       gst_charges = ?, api_access = ?, sac_code = ?, credit_days = ?, cft = ?,
       domestic_rate_group = ?, international_rate_group = ?,
       domestic_fuel_group = ?, international_fuel_group = ?,
-      mis_emails = ?, mis_format = ?, parent_company = ?, customer_type = ?, payment_type = ?
+      mis_emails = ?, mis_format = ?, parent_company = ?, customer_type = ?, payment_type = ?,
+      is_consignee = ?, shipper_id = ?
     WHERE id = ?
   `, [
     code, name, phone, email, city, gst_no,
@@ -64,6 +69,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
     domestic_rate_group, international_rate_group,
     domestic_fuel_group, international_fuel_group,
     mis_emails, mis_format, parent_company, customer_type, payment_type || 'Credit',
+    is_consignee ? 1 : 0, shipper_id || null,
     req.params.id
   ]);
   res.json({ success: true });

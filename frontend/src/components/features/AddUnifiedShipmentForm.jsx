@@ -32,6 +32,25 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic', editingShipme
     handleSubmit
   } = useUnifiedShipmentForm(initialType, editingShipmentId);
 
+  React.useEffect(() => {
+    const handleFocus = (e) => {
+      if (e.target && e.target.tagName === 'SELECT') {
+        try {
+          // Only show picker if showPicker exists
+          if (typeof e.target.showPicker === 'function') {
+            e.target.showPicker();
+          }
+        } catch (err) {
+          console.warn("showPicker error:", err);
+        }
+      }
+    };
+    document.addEventListener('focus', handleFocus, true);
+    return () => {
+      document.removeEventListener('focus', handleFocus, true);
+    };
+  }, []);
+
   return (
     <div className="bg-white min-h-full p-1 font-sans selection:bg-blue-100">
       <datalist id="countries-list">
