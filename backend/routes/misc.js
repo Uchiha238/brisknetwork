@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const asyncHandler = require('../utils/asyncHandler');
+const validate = require('../utils/validate');
 
 // --- Dashboard Routes ---
 router.get('/dashboard', asyncHandler(async (req, res) => {
@@ -23,6 +24,12 @@ router.get('/mail-config', asyncHandler(async (req, res) => {
 }));
 
 router.post('/mail-config', asyncHandler(async (req, res) => {
+  const reqErr = validate.required(req.body, ['port_no', 'host', 'username', 'password']);
+  if (reqErr) return res.status(400).json({ success: false, error: reqErr });
+
+  const numErr = validate.number(req.body.port_no, 'port_no');
+  if (numErr) return res.status(400).json({ success: false, error: numErr });
+
   const { port_no, host, username, password } = req.body;
   const result = await db.runAsync(
     'INSERT INTO mail_config (port_no, host, username, password) VALUES (?, ?, ?, ?)',
@@ -32,6 +39,12 @@ router.post('/mail-config', asyncHandler(async (req, res) => {
 }));
 
 router.put('/mail-config/:id', asyncHandler(async (req, res) => {
+  const reqErr = validate.required(req.body, ['port_no', 'host', 'username', 'password']);
+  if (reqErr) return res.status(400).json({ success: false, error: reqErr });
+
+  const numErr = validate.number(req.body.port_no, 'port_no');
+  if (numErr) return res.status(400).json({ success: false, error: numErr });
+
   const { port_no, host, username, password } = req.body;
   await db.runAsync(
     'UPDATE mail_config SET port_no=?, host=?, username=?, password=? WHERE id=?',

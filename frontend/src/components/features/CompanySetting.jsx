@@ -5,6 +5,7 @@ import { Plus, Loader2, AlertCircle, Building2, GitBranch, Pencil, Trash2, Eye }
 import { Button } from '@/components/ui/button';
 import { CompanyForm } from './company/CompanyForm';
 import { BranchForm, BranchList } from './company/BranchComponents';
+import { Footer } from "@/components/shared/Footer";
 
 const API = 'http://localhost:5000/api/company';
 
@@ -151,11 +152,7 @@ export function CompanySetting() {
         </div>
       </div>
 
-      <div className="mt-auto pt-8 pb-4 text-center border-t border-slate-100 opacity-80">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">
-          COPYRIGHT © 2026 LOGISTICS SOFTWARE SVP INFOTECH. ALL RIGHTS RESERVED.
-        </p>
-      </div>
+      <Footer theme="svp" />
 
       {deletingId && (
         <ConfirmDeleteModal onConfirm={confirmDelete} onCancel={cancelDelete} />

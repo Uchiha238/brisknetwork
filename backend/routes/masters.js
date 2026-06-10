@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const asyncHandler = require('../utils/asyncHandler');
+const validate = require('../utils/validate');
 
 router.get('/states', asyncHandler(async (req, res) => {
   const states = await db.allAsync('SELECT * FROM states ORDER BY name ASC');
@@ -38,8 +39,10 @@ router.get('/fuel-groups', asyncHandler(async (req, res) => {
 }));
 
 router.post('/fuel-groups', asyncHandler(async (req, res) => {
+  const reqErr = validate.required(req.body, ['name', 'type']);
+  if (reqErr) return res.status(400).json({ success: false, error: reqErr });
+
   const { name, type } = req.body;
-  if (!name || !type) return res.status(400).json({ success: false, error: 'Name and type are required' });
   try {
     const result = await db.runAsync('INSERT INTO fuel_groups (name, type) VALUES (?, ?)', [name.trim(), type]);
     res.json({ success: true, id: result.lastID });
@@ -50,8 +53,10 @@ router.post('/fuel-groups', asyncHandler(async (req, res) => {
 }));
 
 router.put('/fuel-groups/:id', asyncHandler(async (req, res) => {
+  const reqErr = validate.required(req.body, ['name', 'type']);
+  if (reqErr) return res.status(400).json({ success: false, error: reqErr });
+
   const { name, type } = req.body;
-  if (!name || !type) return res.status(400).json({ success: false, error: 'Name and type are required' });
   try {
     await db.runAsync('UPDATE fuel_groups SET name = ?, type = ? WHERE id = ?', [name.trim(), type, req.params.id]);
     res.json({ success: true });

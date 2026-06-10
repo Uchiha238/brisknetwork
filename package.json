@@ -2,6 +2,8 @@
   "name": "om-courier-system",
   "version": "1.0.0",
   "scripts": {
+    "audit:all": "echo === Auditing Root === && npm audit --audit-level=high || cmd /c exit 0 && echo === Auditing Backend === && cd backend && npm audit --audit-level=high || cmd /c exit 0 && echo === Auditing Frontend === && cd ../frontend && npm audit --audit-level=high || cmd /c exit 0",
+    "prestart": "npm run audit:all",
     "start": "concurrently \"npm run backend\" \"npm run frontend\"",
     "backend": "cd backend && node server.js",
     "frontend": "cd frontend && npm run dev",

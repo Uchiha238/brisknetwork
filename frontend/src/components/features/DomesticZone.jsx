@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Search, Pencil, Trash2, Download, Plus, ChevronDown, ArrowLeft } from "lucide-react";
+import { Footer } from "@/components/shared/Footer";
 
 const initialDomesticZones = [
   { id: 1, name: 'LOCAL' },
@@ -110,15 +111,7 @@ export function DomesticZone() {
           </form>
         </div>
 
-        {/* Corporate Footer */}
-        <div className="mt-8 border-t border-slate-100 py-6 text-center space-y-1 bg-white">
-          <p className="text-[10px] font-black text-slate-800 uppercase tracking-widest">
-            COPYRIGHT © 2026 LOGISTICS SOFTWARE SVP INFOTECH. ALL RIGHTS RESERVED. FOR SUPPORT CALL <span className="text-red-500">+91-9022062666</span>
-          </p>
-          <p className="text-[9px] font-bold text-slate-300 uppercase tracking-tight max-w-4xl mx-auto leading-relaxed">
-            FOR LOGISTICS SOFTWARE, MOBILE APPS, WEBSITE DESIGNING, CUSTOM SOFTWARE, ECOMMERCE WEBSITE, MLM SOFTWARE, COLLEGE ADMISSION SOFTWARE CALL 9022062666
-          </p>
-        </div>
+        <Footer theme="svp" />
       </div>
     );
   }
@@ -217,12 +210,7 @@ export function DomesticZone() {
         </div>
       </div>
 
-      {/* Corporate Footer */}
-      <div className="mt-auto pt-8 pb-4 text-center border-t border-slate-100">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">
-          COPYRIGHT © 2026 LOGISTICS SOFTWARE SVP INFOTECH. ALL RIGHTS RESERVED. FOR SUPPORT CALL <span className="text-red-500">+91-9022062666</span>
-        </p>
-      </div>
+      <Footer theme="svp" />
 
     </div>
   );

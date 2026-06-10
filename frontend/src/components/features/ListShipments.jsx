@@ -3,6 +3,7 @@ import { api } from '../../services/api';
 import { useAsync } from '@/hooks/useAsync';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
 import { Search, Download, FileText, Calendar, MapPin, Package, RefreshCw, Layers, Pencil, Trash2 } from "lucide-react";
+import { Footer } from "@/components/shared/Footer";
 
 export function ListShipments({ onEditShipment }) {
   const { data: shipments, setData: setShipments, loading, refetch: fetchShipments } = useAsync(
@@ -297,15 +298,7 @@ export function ListShipments({ onEditShipment }) {
         )}
       </div>
 
-      {/* Footer Branding */}
-      <div className="mt-8 border-t border-slate-100 pt-8 pb-4 text-center space-y-2 opacity-60">
-        <p className="text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">
-          COPYRIGHT © 2026 BRISK NETWORK. ALL RIGHTS RESERVED.
-        </p>
-        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight leading-relaxed">
-          PREMIUM LOGISTICS SOLUTIONS & MANAGEMENT SYSTEMS
-        </p>
-      </div>
+      <Footer theme="brisk" />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import {
   Calendar, FileText, ArrowLeft, CheckSquare, Square, 
   Loader2, AlertCircle, CheckCircle2 
 } from "lucide-react";
+import { Footer } from "@/components/shared/Footer";
 
 export function InvoiceManager({ mode: initialMode, type, setCurrentPage }) {
   const [mode, setMode] = useState(initialMode); // 'list' or 'generate'
@@ -628,15 +629,7 @@ export function InvoiceManager({ mode: initialMode, type, setCurrentPage }) {
         </>
       )}
 
-      {/* Footer Branding */}
-      <div className="mt-8 border-t border-slate-100 pt-8 pb-4 text-center space-y-2 opacity-60">
-        <p className="text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">
-          COPYRIGHT © 2026 BRISK NETWORK. ALL RIGHTS RESERVED.
-        </p>
-        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight leading-relaxed">
-          PREMIUM LOGISTICS SOLUTIONS & MANAGEMENT SYSTEMS
-        </p>
-      </div>
+      <Footer theme="brisk" />
     </div>
   );
 }

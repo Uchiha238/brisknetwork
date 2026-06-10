@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const asyncHandler = require('../utils/asyncHandler');
+const validate = require('../utils/validate');
 
 // 1. Get all generated invoices
 router.get('/', asyncHandler(async (req, res) => {
@@ -16,10 +17,13 @@ router.get('/', asyncHandler(async (req, res) => {
 
 // 2. Get unbilled shipments for invoice generation
 router.get('/unbilled-shipments', asyncHandler(async (req, res) => {
+  const reqErr = validate.required(req.query, ['customer_id', 'from_date', 'to_date', 'invoice_type']);
+  if (reqErr) return res.status(400).json({ success: false, error: reqErr });
+
+  const numErr = validate.number(req.query.customer_id, 'customer_id');
+  if (numErr) return res.status(400).json({ success: false, error: numErr });
+
   const { customer_id, from_date, to_date, invoice_type } = req.query;
-  if (!customer_id || !from_date || !to_date || !invoice_type) {
-    return res.status(400).json({ error: 'Missing required query parameters' });
-  }
 
   let sql = `
     SELECT s.* 
@@ -47,10 +51,13 @@ router.get('/unbilled-shipments', asyncHandler(async (req, res) => {
 
 // 3. Create a new billing invoice
 router.post('/', asyncHandler(async (req, res) => {
+  const reqErr = validate.required(req.body, ['customer_id', 'from_date', 'to_date', 'invoice_type', 'invoice_date']);
+  if (reqErr) return res.status(400).json({ success: false, error: reqErr });
+
+  const numErr = validate.number(req.body.customer_id, 'customer_id');
+  if (numErr) return res.status(400).json({ success: false, error: numErr });
+
   const { customer_id, from_date, to_date, invoice_type, invoice_date } = req.body;
-  if (!customer_id || !from_date || !to_date || !invoice_type || !invoice_date) {
-    return res.status(400).json({ error: 'Missing required parameters' });
-  }
 
   // A. Fetch customer to check GST applicability and state
   const customer = await db.getAsync("SELECT * FROM customers WHERE id = ?", [customer_id]);

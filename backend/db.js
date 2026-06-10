@@ -77,6 +77,85 @@ const init = async () => {
     // 1. Core Tables
     await db.execAsync(schemaSql);
 
+    // Migration for international_rates table (date ranges + unique constraint)
+    try {
+      const rateTableInfo = await db.allAsync("PRAGMA table_info(international_rates)");
+      const hasEffectiveFrom = rateTableInfo.some(c => c.name.toLowerCase() === 'effective_from');
+      if (!hasEffectiveFrom && rateTableInfo.length > 0) {
+        console.log("Migrating international_rates table to support date range...");
+        await db.execAsync("ALTER TABLE international_rates RENAME TO international_rates_old");
+        await db.execAsync(`
+          CREATE TABLE international_rates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            courier TEXT,
+            export_import TEXT,
+            doc_type TEXT,
+            rate_type TEXT,
+            from_weight REAL,
+            to_weight REAL,
+            zone TEXT,
+            rate REAL,
+            fixed_perkg INTEGER,
+            effective_from TEXT DEFAULT '2000-01-01',
+            effective_to TEXT DEFAULT '9999-12-31',
+            UNIQUE(courier, export_import, doc_type, to_weight, zone, effective_from, effective_to)
+          )
+        `);
+        await db.execAsync(`
+          INSERT INTO international_rates (courier, export_import, doc_type, rate_type, from_weight, to_weight, zone, rate, fixed_perkg, effective_from, effective_to)
+          SELECT courier, export_import, doc_type, rate_type, from_weight, to_weight, zone, rate, fixed_perkg, '2000-01-01', '9999-12-31'
+          FROM international_rates_old
+        `);
+        await db.execAsync("DROP TABLE international_rates_old");
+        console.log("Migration of international_rates completed successfully.");
+      }
+    } catch (migErr) {
+      console.error("Error migrating international_rates table:", migErr);
+    }
+
+    // Migration for international_zones table (country_code, date ranges + unique constraint)
+    try {
+      const zoneTableInfo = await db.allAsync("PRAGMA table_info(international_zones)");
+      const hasEffectiveFromZone = zoneTableInfo.some(c => c.name.toLowerCase() === 'effective_from');
+      if (!hasEffectiveFromZone && zoneTableInfo.length > 0) {
+        console.log("Migrating international_zones table to support country_code and date range...");
+        await db.execAsync("ALTER TABLE international_zones RENAME TO international_zones_old");
+        await db.execAsync(`
+          CREATE TABLE international_zones (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            courier TEXT,
+            country TEXT,
+            country_code TEXT,
+            zone TEXT,
+            type TEXT,
+            effective_from TEXT DEFAULT '2000-01-01',
+            effective_to TEXT DEFAULT '9999-12-31',
+            uploaded_by TEXT DEFAULT 'ADMIN',
+            uploaded_at TEXT DEFAULT (datetime('now')),
+            UNIQUE(courier, country, type, effective_from, effective_to)
+          )
+        `);
+        await db.execAsync(`
+          INSERT INTO international_zones (courier, country, country_code, zone, type, effective_from, effective_to, uploaded_by, uploaded_at)
+          SELECT 
+            courier, 
+            country, 
+            COALESCE((SELECT code FROM countries WHERE UPPER(name) = UPPER(old_z.country) LIMIT 1), 'XX'), 
+            zone, 
+            type, 
+            '2000-01-01', 
+            '9999-12-31', 
+            'ADMIN', 
+            datetime('now')
+          FROM international_zones_old old_z
+        `);
+        await db.execAsync("DROP TABLE international_zones_old");
+        console.log("Migration of international_zones completed successfully.");
+      }
+    } catch (migErr) {
+      console.error("Error migrating international_zones table:", migErr);
+    }
+
     // 2. Migrations for existing database
     await ensureColumnsExist('customers', {
       password: "TEXT",

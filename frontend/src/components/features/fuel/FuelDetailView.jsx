@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Plus, ArrowLeft, Loader2 } from "lucide-react";
 import { formatDate, getStatus } from './FuelConstants';
+import { Footer } from "@/components/shared/Footer";
 
 function FuelDetailView({ selectedGroup, groupEntries, loadingGroupEntries, onBack, onAddFuel, onEditFuel, deletingEntryId, setDeletingEntryId, onDeleteEntry }) {
   return (
@@ -105,12 +106,7 @@ function FuelDetailView({ selectedGroup, groupEntries, loadingGroupEntries, onBa
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="mt-auto pt-8 pb-4 text-center border-t border-slate-100 opacity-80">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">
-          COPYRIGHT © 2026 LOGISTICS SOFTWARE SVP INFOTECH. ALL RIGHTS RESERVED. FOR SUPPORT CALL <span className="text-red-500">+91-9022062666</span>
-        </p>
-      </div>
+      <Footer theme="svp" />
 
       {/* Delete Entry Confirm */}
       {deletingEntryId && (

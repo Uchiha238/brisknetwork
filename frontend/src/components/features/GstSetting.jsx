@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Plus, ArrowLeft, AlertCircle } from "lucide-react";
+import { Footer } from "@/components/shared/Footer";
 
 const initialGstData = [
   { sr: 1, from: '2026-04-01', to: '2027-03-31', cgst: '9.00', sgst: '9.00' },
@@ -263,15 +264,7 @@ export function GstSetting() {
           </form>
         </div>
 
-        {/* Footer Branding */}
-        <div className="mt-8 border-t border-slate-100 py-6 text-center space-y-1 bg-white">
-          <p className="text-[10px] font-black text-slate-800 uppercase tracking-widest">
-            COPYRIGHT © 2026 BRISK NETWORK. ALL RIGHTS RESERVED.
-          </p>
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
-            PREMIUM LOGISTICS SOLUTIONS & MANAGEMENT SYSTEMS
-          </p>
-        </div>
+        <Footer theme="brisk" />
       </div>
     );
   }
@@ -348,17 +341,7 @@ export function GstSetting() {
         </div>
       </div>
 
-      {/* Corporate Footer */}
-      <div className="mt-auto border-t border-slate-100 pb-8 px-4 opacity-80">
-        <div className="max-w-7xl mx-auto text-center space-y-2 py-6">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            COPYRIGHT © 2026 BRISK NETWORK. ALL RIGHTS RESERVED.
-          </p>
-          <p className="text-[8px] text-slate-300 font-bold uppercase tracking-tight">
-            PREMIUM LOGISTICS SOLUTIONS & MANAGEMENT SYSTEMS
-          </p>
-        </div>
-      </div>
+      <Footer theme="brisk" />
     </div>
   );
 }

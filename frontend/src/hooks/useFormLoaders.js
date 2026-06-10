@@ -279,9 +279,10 @@ export function useInternationalZoneLookup({ formData, setFormData }) {
       }
       
       const mode = formData.mode || 'EXPORT';
+      const bookingDate = formData.booking_date || '';
       
       if (country && courier) {
-        fetch(`/api/international-zone?country=${encodeURIComponent(country)}&courier=${encodeURIComponent(courier)}&type=${encodeURIComponent(mode)}`)
+        fetch(`/api/international-zone?country=${encodeURIComponent(country)}&courier=${encodeURIComponent(courier)}&type=${encodeURIComponent(mode)}&booking_date=${encodeURIComponent(bookingDate)}`)
           .then(res => {
             if (!res.ok) throw new Error("Zone not found");
             return res.json();
@@ -299,7 +300,7 @@ export function useInternationalZoneLookup({ formData, setFormData }) {
           });
       }
     }
-  }, [formData.consignee_country, formData.service, formData.mode]);
+  }, [formData.consignee_country, formData.service, formData.mode, formData.booking_date]);
 }
 
 /**
@@ -373,10 +374,11 @@ export function useInternationalRateLookup({ formData, setFormData, lastFetchedR
     
     if (zone && weight > 0 && courier) {
       const product = formData.product || 'DOCUMENTS';
-      const currentKey = `${courier}-${zone}-${weight}-${mode}-${product}`;
+      const bookingDate = formData.booking_date || '';
+      const currentKey = `${courier}-${zone}-${weight}-${mode}-${product}-${bookingDate}`;
       if (currentKey === lastFetchedRateKey) return;
       
-      fetch(`/api/international-rate?courier=${encodeURIComponent(courier)}&zone=${encodeURIComponent(zone)}&weight=${encodeURIComponent(weight)}&product=${encodeURIComponent(product)}&mode=${encodeURIComponent(mode)}`)
+      fetch(`/api/international-rate?courier=${encodeURIComponent(courier)}&zone=${encodeURIComponent(zone)}&weight=${encodeURIComponent(weight)}&product=${encodeURIComponent(product)}&mode=${encodeURIComponent(mode)}&booking_date=${encodeURIComponent(bookingDate)}`)
         .then(res => {
           if (!res.ok) throw new Error("Rate not found");
           return res.json();
@@ -394,7 +396,7 @@ export function useInternationalRateLookup({ formData, setFormData, lastFetchedR
           console.error("Error auto-calculating international rate:", err);
         });
     }
-  }, [formData.consignee_zone, formData.chargeable_weight, formData.service, formData.mode, formData.product, lastFetchedRateKey]);
+  }, [formData.consignee_zone, formData.chargeable_weight, formData.service, formData.mode, formData.product, formData.booking_date, lastFetchedRateKey]);
 }
 
 /**

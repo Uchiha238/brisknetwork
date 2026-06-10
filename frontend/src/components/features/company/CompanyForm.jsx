@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ArrowLeft, Loader2, AlertCircle, Building2 } from 'lucide-react';
 import { RichEditor, Field, TInput, emptyCompanyForm } from './CompanyPrimitives';
+import { Footer } from "@/components/shared/Footer";
 
 const API = 'http://localhost:5000/api/company';
 
@@ -142,11 +143,7 @@ export function CompanyForm({ editData, onBack, onSave }) {
           </div>
         </div>
       </form>
-      <div className="pb-4 text-center border-t border-slate-100 pt-4">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">
-          COPYRIGHT © 2026 LOGISTICS SOFTWARE SVP INFOTECH. ALL RIGHTS RESERVED.
-        </p>
-      </div>
+      <Footer theme="svp" />
     </div>
   );
 }

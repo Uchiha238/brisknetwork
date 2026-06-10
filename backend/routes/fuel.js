@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const asyncHandler = require('../utils/asyncHandler');
+const validate = require('../utils/validate');
 
 // GET all fuel entries, with optional group filtering
 router.get('/', asyncHandler(async (req, res) => {
@@ -61,6 +62,18 @@ router.get('/lookup', asyncHandler(async (req, res) => {
 
 // POST new fuel entry
 router.post('/', asyncHandler(async (req, res) => {
+  const reqErr = validate.required(req.body, ['fuel_price_pct']);
+  if (reqErr) return res.status(400).json({ success: false, error: reqErr });
+
+  const numErr = validate.number(req.body.fuel_price_pct, 'fuel_price_pct');
+  if (numErr) return res.status(400).json({ success: false, error: numErr });
+
+  const numFields = ['docket_charge', 'fov_min', 'fov_above', 'fov_below', 'fov_base', 'appointment_min', 'appointment_per_kg', 'cft', 'air_cft', 'cod_fixed', 'topay_fixed', 'fuel_group_id'];
+  for (const field of numFields) {
+    const err = validate.number(req.body[field], field);
+    if (err) return res.status(400).json({ success: false, error: err });
+  }
+
   const {
     fuel_courier, fuel_price_pct, company_type, docket_charge, customer,
     fov_min, fov_above, fov_below, fov_base, appointment_min, appointment_per_kg,
@@ -87,6 +100,18 @@ router.post('/', asyncHandler(async (req, res) => {
 
 // PUT update fuel entry
 router.put('/:id', asyncHandler(async (req, res) => {
+  const reqErr = validate.required(req.body, ['fuel_price_pct']);
+  if (reqErr) return res.status(400).json({ success: false, error: reqErr });
+
+  const numErr = validate.number(req.body.fuel_price_pct, 'fuel_price_pct');
+  if (numErr) return res.status(400).json({ success: false, error: numErr });
+
+  const numFields = ['docket_charge', 'fov_min', 'fov_above', 'fov_below', 'fov_base', 'appointment_min', 'appointment_per_kg', 'cft', 'air_cft', 'cod_fixed', 'topay_fixed', 'fuel_group_id'];
+  for (const field of numFields) {
+    const err = validate.number(req.body[field], field);
+    if (err) return res.status(400).json({ success: false, error: err });
+  }
+
   const {
     fuel_courier, fuel_price_pct, company_type, docket_charge, customer,
     fov_min, fov_above, fov_below, fov_base, appointment_min, appointment_per_kg,

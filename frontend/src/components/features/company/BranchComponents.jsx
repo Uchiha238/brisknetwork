@@ -3,6 +3,7 @@ import { useAsync } from '@/hooks/useAsync';
 import { useConfirmDelete, ConfirmDeleteModal } from '@/hooks/useConfirmDelete';
 import { ArrowLeft, Loader2, AlertCircle, Building2, GitBranch, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Footer } from "@/components/shared/Footer";
 
 const BAPI = 'http://localhost:5000/api/branches';
 
@@ -227,11 +228,7 @@ export function BranchList({ company, onBack, onAddBranch, onEditBranch }) {
         </div>
       </div>
 
-      <div className="mt-auto pt-6 pb-4 text-center border-t border-slate-100 opacity-80">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">
-          COPYRIGHT © 2026 LOGISTICS SOFTWARE SVP INFOTECH. ALL RIGHTS RESERVED.
-        </p>
-      </div>
+      <Footer theme="svp" />
 
       {deletingId && (
         <ConfirmDeleteModal onConfirm={confirmDelete} onCancel={cancelDelete} />

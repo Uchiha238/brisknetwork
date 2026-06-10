@@ -260,9 +260,14 @@ const schemaSql = `
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     courier TEXT,
     country TEXT,
+    country_code TEXT,
     zone TEXT,
     type TEXT,
-    UNIQUE(courier, country, type)
+    effective_from TEXT DEFAULT '2000-01-01',
+    effective_to TEXT DEFAULT '9999-12-31',
+    uploaded_by TEXT DEFAULT 'ADMIN',
+    uploaded_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(courier, country, type, effective_from, effective_to)
   );
 
   CREATE TABLE IF NOT EXISTS international_rates (
@@ -276,7 +281,9 @@ const schemaSql = `
     zone TEXT,
     rate REAL,
     fixed_perkg INTEGER,
-    UNIQUE(courier, export_import, doc_type, to_weight, zone)
+    effective_from TEXT DEFAULT '2000-01-01',
+    effective_to TEXT DEFAULT '9999-12-31',
+    UNIQUE(courier, export_import, doc_type, to_weight, zone, effective_from, effective_to)
   );
 
   CREATE TABLE IF NOT EXISTS invoices (
@@ -294,6 +301,14 @@ const schemaSql = `
     grand_total REAL,
     created_at TEXT DEFAULT (datetime('now')),
     FOREIGN KEY (customer_id) REFERENCES customers(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS security_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_type TEXT,
+    message TEXT,
+    ip_address TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
   );
 `;
 

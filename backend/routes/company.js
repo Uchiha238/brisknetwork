@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const asyncHandler = require('../utils/asyncHandler');
+const validate = require('../utils/validate');
 
 router.get('/', asyncHandler(async (req, res) => {
   const rows = await db.allAsync('SELECT * FROM company_settings ORDER BY id ASC');
@@ -9,11 +10,20 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 router.post('/', asyncHandler(async (req, res) => {
+  const reqErr = validate.required(req.body, ['company_name']);
+  if (reqErr) return res.status(400).json({ success: false, error: reqErr });
+
   const { company_name, logo, gst_no, email, address, pan,
     export_invoice_series, import_invoice_series, domestic_invoice_series,
     contact_no, website, branch_wise_invoice, invoice_terms,
     account_name, account_number, ifsc, branch_name, bank_name, bank_terms } = req.body;
-  if (!company_name) return res.status(400).json({ success: false, error: 'Company name required' });
+
+  const emailErr = validate.email(email);
+  if (emailErr) return res.status(400).json({ success: false, error: emailErr });
+
+  const phoneErr = validate.phone(contact_no);
+  if (phoneErr) return res.status(400).json({ success: false, error: phoneErr });
+
   const result = await db.runAsync(
     `INSERT INTO company_settings
       (company_name, logo, gst_no, email, address, pan,
@@ -34,6 +44,16 @@ router.put('/:id', asyncHandler(async (req, res) => {
     export_invoice_series, import_invoice_series, domestic_invoice_series,
     contact_no, website, branch_wise_invoice, invoice_terms,
     account_name, account_number, ifsc, branch_name, bank_name, bank_terms } = req.body;
+
+  const reqErr = validate.required(req.body, ['company_name']);
+  if (reqErr) return res.status(400).json({ success: false, error: reqErr });
+
+  const emailErr = validate.email(email);
+  if (emailErr) return res.status(400).json({ success: false, error: emailErr });
+
+  const phoneErr = validate.phone(contact_no);
+  if (phoneErr) return res.status(400).json({ success: false, error: phoneErr });
+
   await db.runAsync(
     `UPDATE company_settings SET
       company_name=?, logo=?, gst_no=?, email=?, address=?, pan=?,

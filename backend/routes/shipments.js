@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const asyncHandler = require('../utils/asyncHandler');
+const validate = require('../utils/validate');
 
 router.get('/', asyncHandler(async (req, res) => {
   const shipments = await db.allAsync(`
@@ -13,6 +14,36 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 router.post('/', asyncHandler(async (req, res) => {
+  const reqErr = validate.required(req.body, ['customer_id', 'airway_no']);
+  if (reqErr) return res.status(400).json({ success: false, error: reqErr });
+
+  const numErr = validate.number(req.body.customer_id, 'customer_id');
+  if (numErr) return res.status(400).json({ success: false, error: numErr });
+
+  const pcsErr = validate.number(req.body.pcs, 'pcs');
+  if (pcsErr) return res.status(400).json({ success: false, error: pcsErr });
+
+  const actWtErr = validate.number(req.body.actual_weight, 'actual_weight');
+  if (actWtErr) return res.status(400).json({ success: false, error: actWtErr });
+
+  const volWtErr = validate.number(req.body.volumetric_weight, 'volumetric_weight');
+  if (volWtErr) return res.status(400).json({ success: false, error: volWtErr });
+
+  const chgWtErr = validate.number(req.body.chargeable_weight, 'chargeable_weight');
+  if (chgWtErr) return res.status(400).json({ success: false, error: chgWtErr });
+
+  const emailErr1 = validate.email(req.body.shipper_email);
+  if (emailErr1) return res.status(400).json({ success: false, error: 'Shipper Email: ' + emailErr1 });
+
+  const emailErr2 = validate.email(req.body.consignee_email);
+  if (emailErr2) return res.status(400).json({ success: false, error: 'Consignee Email: ' + emailErr2 });
+
+  const phoneErr1 = validate.phone(req.body.shipper_phone);
+  if (phoneErr1) return res.status(400).json({ success: false, error: 'Shipper Phone: ' + phoneErr1 });
+
+  const phoneErr2 = validate.phone(req.body.consignee_phone);
+  if (phoneErr2) return res.status(400).json({ success: false, error: 'Consignee Phone: ' + phoneErr2 });
+
   const { 
     customer_id, user_id, airway_no, type,
     booking_date, booking_time, product, origin_hub, origin_zone,
@@ -166,6 +197,36 @@ router.delete('/:id', asyncHandler(async (req, res) => {
 
 // Update an existing shipment
 router.put('/:id', asyncHandler(async (req, res) => {
+  const reqErr = validate.required(req.body, ['customer_id', 'airway_no']);
+  if (reqErr) return res.status(400).json({ success: false, error: reqErr });
+
+  const numErr = validate.number(req.body.customer_id, 'customer_id');
+  if (numErr) return res.status(400).json({ success: false, error: numErr });
+
+  const pcsErr = validate.number(req.body.pcs, 'pcs');
+  if (pcsErr) return res.status(400).json({ success: false, error: pcsErr });
+
+  const actWtErr = validate.number(req.body.actual_weight, 'actual_weight');
+  if (actWtErr) return res.status(400).json({ success: false, error: actWtErr });
+
+  const volWtErr = validate.number(req.body.volumetric_weight, 'volumetric_weight');
+  if (volWtErr) return res.status(400).json({ success: false, error: volWtErr });
+
+  const chgWtErr = validate.number(req.body.chargeable_weight, 'chargeable_weight');
+  if (chgWtErr) return res.status(400).json({ success: false, error: chgWtErr });
+
+  const emailErr1 = validate.email(req.body.shipper_email);
+  if (emailErr1) return res.status(400).json({ success: false, error: 'Shipper Email: ' + emailErr1 });
+
+  const emailErr2 = validate.email(req.body.consignee_email);
+  if (emailErr2) return res.status(400).json({ success: false, error: 'Consignee Email: ' + emailErr2 });
+
+  const phoneErr1 = validate.phone(req.body.shipper_phone);
+  if (phoneErr1) return res.status(400).json({ success: false, error: 'Shipper Phone: ' + phoneErr1 });
+
+  const phoneErr2 = validate.phone(req.body.consignee_phone);
+  if (phoneErr2) return res.status(400).json({ success: false, error: 'Consignee Phone: ' + phoneErr2 });
+
   const { 
     customer_id, user_id, airway_no, type,
     booking_date, booking_time, product, origin_hub, origin_zone,

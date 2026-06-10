@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { COURIERS } from './FuelConstants';
+import { Footer } from "@/components/shared/Footer";
 
 function FuelEntryForm({ form, setForm, fuelGroups, selectedGroup, editingEntry, formError, saving, onSubmit, onCancel, handlePriceChange }) {
   const f = (key) => e => setForm(prev => ({ ...prev, [key]: e.target.value }));
@@ -130,13 +131,7 @@ function FuelEntryForm({ form, setForm, fuelGroups, selectedGroup, editingEntry,
         </div>
       </form>
 
-      {/* Footer */}
-      <div className="mt-auto pb-4 text-center border-t border-slate-100">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em] pt-4">
-          COPYRIGHT © 2026 LOGISTICS SOFTWARE SVP INFOTECH. ALL RIGHTS RESERVED. FOR SUPPORT CALL{' '}
-          <span className="text-red-500">+91-9022062666</span>
-        </p>
-      </div>
+      <Footer theme="svp" />
     </div>
   );
 }

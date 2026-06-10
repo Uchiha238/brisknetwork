@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, AlertCircle, Mail, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { Footer } from "@/components/shared/Footer";
 
 const API = 'http://localhost:5000/api/mail-config';
 
@@ -136,16 +137,7 @@ export function MailConfig() {
         )}
       </div>
 
-      {/* Footer */}
-      <div className="mt-auto pt-8 pb-4 text-center border-t border-slate-100 opacity-80">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">
-          COPYRIGHT © 2026 LOGISTICS SOFTWARE SVP INFOTECH. ALL RIGHTS RESERVED. FOR SUPPORT CALL{' '}
-          <span className="text-red-500">+91-9022062666</span>
-        </p>
-        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-tight mt-1">
-          FOR LOGISTICS SOFTWARE, MOBILE APPS, WEBSITE DESIGNING, CUSTOM SOFTWARE, ECOMMERCE WEBSITE, MLM SOFTWARE, COLLEGE ADMISSION SOFTWARE CALL 9022062666
-        </p>
-      </div>
+      <Footer theme="svp" />
     </div>
   );
 }

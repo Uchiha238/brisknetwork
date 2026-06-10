@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Search, Trash2, ChevronDown, Plus, Minus, Calendar } from "lucide-react";
+import { Footer } from "@/components/shared/Footer";
 
 const domesticRates = [
   { sr: 1, group: 'Domestic 1', courier: 'BLUEDART', date: '01-07-2025' },
@@ -207,15 +208,7 @@ export function DomesticRate() {
         </div>
       </div>
 
-      {/* Corporate Footer */}
-      <div className="mt-auto pt-8 pb-4 text-center border-t border-slate-100 opacity-80">
-        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">
-          COPYRIGHT © 2026 LOGISTICS SOFTWARE SVP INFOTECH. ALL RIGHTS RESERVED. FOR SUPPORT CALL <span className="text-red-500">+91-9022062666</span>
-        </p>
-        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-tight mt-1">
-          FOR LOGISTICS SOFTWARE, MOBILE APPS, WEBSITE DESIGNING, CUSTOM SOFTWARE, ECOMMERCE WEBSITE, MLM SOFTWARE, COLLEGE ADMISSION SOFTWARE CALL 9022062666 EMAIL: INFO@SVPINFOTECH.COM , SVPINFOTECH@GMAIL.COM
-        </p>
-      </div>
+      <Footer theme="svp" />
 
     </div>
   );
