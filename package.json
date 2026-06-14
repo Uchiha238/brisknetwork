@@ -7,6 +7,7 @@
     "start": "concurrently \"npm run backend\" \"npm run frontend\"",
     "backend": "cd backend && node server.js",
     "frontend": "cd frontend && npm run dev",
+    "build": "cd frontend && npm install && npm run build && cd .. && node -e \"const fs=require('fs'); if(fs.existsSync('dist')){fs.rmSync('dist',{recursive:true})}; fs.renameSync('frontend/dist', 'dist')\"",
     "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install"
   },
   "dependencies": {
