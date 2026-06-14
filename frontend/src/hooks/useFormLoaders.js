@@ -232,8 +232,7 @@ export function useEditShipmentLoader({ editingShipmentId, customers, setShipmen
                 }))
               : [{ box_no: '1', sr_no: 1, description: '', hs_code: '', unit_type: 'PCS', quantity: 1, unit_weight: 0, unit_rate: 0, amount: 0 }],
             
-            branch: s.branch || '',
-            eway_bill_no: s.eway_bill_no || ''
+            branch: s.branch || ''
           };
         });
       }
