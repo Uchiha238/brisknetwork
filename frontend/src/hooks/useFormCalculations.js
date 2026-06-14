@@ -33,7 +33,7 @@ const getActiveGstRates = (bookingDate) => {
   if (saved) {
     try {
       records = JSON.parse(saved);
-    } catch (e) {
+    } catch {
       records = defaultMock;
     }
   }
