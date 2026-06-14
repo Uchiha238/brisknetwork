@@ -141,7 +141,7 @@ router.post('/modes', asyncHandler(async (req, res) => {
   if (reqErr) return res.status(400).json({ success: false, error: reqErr });
 
   const { name, type } = req.body;
-  const result = await db.runAsync('INSERT INTO modes (name, type) VALUES (?, ?)', [name.toUpperCase(), type || 'Domestic']);
+  const result = await db.runAsync('INSERT INTO modes (name, type) VALUES (?, ?)', [name.trim().toUpperCase(), type || 'Domestic']);
   res.json({ success: true, id: result.lastID });
 }));
 

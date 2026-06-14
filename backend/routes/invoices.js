@@ -35,9 +35,9 @@ router.get('/unbilled-shipments', asyncHandler(async (req, res) => {
   const params = [customer_id, from_date, to_date];
 
   if (invoice_type === 'Export') {
-    sql += " AND UPPER(s.type) = 'INTERNATIONAL' AND (s.mode = 'EXPORT' OR s.mode IS NULL OR s.mode = '')";
+    sql += " AND UPPER(s.type) = 'INTERNATIONAL' AND (s.mode IS NULL OR TRIM(s.mode) = '' OR TRIM(UPPER(s.mode)) != 'IMPORT')";
   } else if (invoice_type === 'Import') {
-    sql += " AND UPPER(s.type) = 'INTERNATIONAL' AND s.mode = 'IMPORT'";
+    sql += " AND UPPER(s.type) = 'INTERNATIONAL' AND TRIM(UPPER(s.mode)) = 'IMPORT'";
   } else {
     // Domestic
     sql += " AND UPPER(s.type) = 'DOMESTIC'";
@@ -81,9 +81,9 @@ router.post('/', asyncHandler(async (req, res) => {
   const params = [customer_id, from_date, to_date];
 
   if (invoice_type === 'Export') {
-    sql += " AND UPPER(s.type) = 'INTERNATIONAL' AND (s.mode = 'EXPORT' OR s.mode IS NULL OR s.mode = '')";
+    sql += " AND UPPER(s.type) = 'INTERNATIONAL' AND (s.mode IS NULL OR TRIM(s.mode) = '' OR TRIM(UPPER(s.mode)) != 'IMPORT')";
   } else if (invoice_type === 'Import') {
-    sql += " AND UPPER(s.type) = 'INTERNATIONAL' AND s.mode = 'IMPORT'";
+    sql += " AND UPPER(s.type) = 'INTERNATIONAL' AND TRIM(UPPER(s.mode)) = 'IMPORT'";
   } else {
     sql += " AND UPPER(s.type) = 'DOMESTIC'";
   }

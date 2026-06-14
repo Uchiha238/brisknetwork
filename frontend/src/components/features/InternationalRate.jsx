@@ -10,14 +10,13 @@ export function InternationalRate() {
   const [notification, setNotification] = useState(null);
 
   // Form States
-  const [courier, setCourier] = useState('DHL');
-  const [customCourier, setCustomCourier] = useState('');
+  const [courier, setCourier] = useState('');
   const [exportImport, setExportImport] = useState('EXPORT');
   const [effectiveFrom, setEffectiveFrom] = useState(new Date().toISOString().split('T')[0]);
   const [effectiveTo, setEffectiveTo] = useState('9999-12-31');
   const [selectedFile, setSelectedFile] = useState(null);
 
-  const couriers = ['DHL', 'ARAMEX', 'FEDEX', 'UPS', 'TNT', 'CO COURIER 1', 'OTHER'];
+  const [couriersList, setCouriersList] = useState([]);
 
   const fetchRateSheets = async () => {
     setIsLoading(true);
@@ -38,6 +37,28 @@ export function InternationalRate() {
 
   useEffect(() => {
     fetchRateSheets();
+    const saved = localStorage.getItem('om-courier-couriers');
+    let list = [];
+    if (saved) {
+      try {
+        list = JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    const internationalCouriers = list
+      .filter(c => c.type === 'International' || c.type === 'Both' || !c.type)
+      .map(c => c.name.toUpperCase());
+    
+    // Fallback if empty
+    if (internationalCouriers.length === 0) {
+      const fallbacks = ['DHL', 'ARAMEX', 'FEDEX', 'UPS', 'TNT', 'CO COURIER 1'].map(c => c.toUpperCase());
+      setCouriersList(fallbacks);
+      setCourier('DHL');
+    } else {
+      setCouriersList(internationalCouriers);
+      setCourier(internationalCouriers[0]);
+    }
   }, []);
 
   const showNotification = (type, message) => {
@@ -80,9 +101,15 @@ export function InternationalRate() {
       return;
     }
 
-    const finalCourier = courier === 'OTHER' ? customCourier.trim().toUpperCase() : courier.toUpperCase();
+    const finalCourier = courier.toUpperCase();
     if (!finalCourier) {
-      showNotification('error', 'Please enter a valid courier name');
+      showNotification('error', 'Please select a courier');
+      return;
+    }
+
+    const exists = couriersList.includes(finalCourier);
+    if (!exists) {
+      showNotification('error', `Courier "${finalCourier}" is not made in the Courier Master. User won't be able to upload its rate.`);
       return;
     }
 
@@ -107,7 +134,6 @@ export function InternationalRate() {
         if (data.success) {
           showNotification('success', `Successfully imported ${data.count} rates for ${finalCourier}!`);
           setSelectedFile(null);
-          setCustomCourier('');
           const fileInput = document.getElementById('rate-file-input');
           if (fileInput) fileInput.value = '';
           fetchRateSheets();
@@ -247,28 +273,13 @@ export function InternationalRate() {
                     onChange={(e) => setCourier(e.target.value)}
                     className={selectClass}
                   >
-                    {couriers.map(c => <option key={c} value={c}>{c}</option>)}
+                    {couriersList.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                     <ChevronDown className="h-4 w-4" />
                   </div>
                 </div>
               </div>
-
-              {/* Custom Courier input (if "OTHER" selected) */}
-              {courier === 'OTHER' && (
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Enter Courier Name</label>
-                  <input 
-                    type="text"
-                    value={customCourier}
-                    onChange={(e) => setCustomCourier(e.target.value)}
-                    placeholder="E.G. ARAMEX, FEDEX"
-                    className={inputClass}
-                    required
-                  />
-                </div>
-              )}
 
               {/* Export/Import Type */}
               <div className="space-y-1">

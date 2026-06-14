@@ -109,12 +109,12 @@ export function AwbInfoSection({
         <FormField onChange={handleChange} label="FWD NO" name="forward_no" labelWidth="85px" value={formData.forward_no} />
 
         {shipmentType === 'domestic' ? (
-          <div className="grid grid-cols-[1fr_95px_70px] gap-1">
-            <FormField onChange={handleChange} label="Destination" name="consignee_city" isRed labelWidth="85px">
+          <div className="grid grid-cols-[150px_1fr_70px] gap-1">
+            <FormField onChange={handleChange} label="PIN" name="consignee_zip" isRed labelWidth="85px" value={formData.consignee_zip} />
+            <FormField onChange={handleChange} label="Destination" name="consignee_city" isRed labelWidth="65px">
               <input name="consignee_city" value={formData.consignee_city || ''} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none" />
             </FormField>
-            <FormField onChange={handleChange} label="PIN" name="consignee_zip" isRed labelWidth="25px" value={formData.consignee_zip} />
-            <FormField onChange={handleChange} label="Zone" name="consignee_zone" labelWidth="35px" value={formData.consignee_zone} />
+            <FormField onChange={handleChange} label="Zone" name="consignee_zone" labelWidth="30px" value={formData.consignee_zone} />
           </div>
         ) : (
           <FormField onChange={handleChange} label="Destination" name="consignee_country" isRed labelWidth="85px">
@@ -125,13 +125,95 @@ export function AwbInfoSection({
         <FormField onChange={handleChange} label="Service" name="service" isRed labelWidth="85px">
           <select name="service" value={formData.service} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold outline-none">
             <option value="">SELECT...</option>
-            <option value="DOMESTIC EXPRESS">DOMESTIC EXPRESS - DOMESTIC EXPRESS</option>
-            <option value="DOMESTIC ECONOMY">DOMESTIC ECONOMY - DOMESTIC ECONOMY</option>
-            <option value="DHL EXP">DHL EXP - DHL EXP</option>
-            <option value="FEDEX IP">FEDEX IP - FEDEX IP</option>
-            <option value="UPS EXP SAVER">UPS EXP SAVER - UPS EXP SAVER</option>
-            <option value="BOMBINO SELF PREMIUM">BOMBINO SELF - BOMBINO SELF PREMIUM</option>
-            <option value="BOMBINO SELF SERVICE">BOMBINO SELF SERVICE - BOMBINO SELF SERVICE</option>
+            {(() => {
+              const saved = localStorage.getItem('om-courier-couriers');
+              let activeCouriers = [];
+              if (saved) {
+                try {
+                  activeCouriers = JSON.parse(saved);
+                } catch (e) {
+                  // Fallback
+                }
+              }
+              if (activeCouriers.length === 0) {
+                activeCouriers = [
+                  { name: 'Aramex', type: 'International' },
+                  { name: 'DHL', type: 'International' },
+                  { name: 'Fedex', type: 'International' },
+                  { name: 'TNT', type: 'International' },
+                  { name: 'TRACKON', type: 'Domestic' },
+                  { name: 'SHREE ANJANI', type: 'Domestic' },
+                  { name: 'Delhivery', type: 'Domestic' },
+                  { name: 'UPS', type: 'International' },
+                  { name: 'OM COURIER', type: 'International' },
+                  { name: 'BLUEDART', type: 'Domestic' },
+                  { name: 'SHREE MARUTI', type: 'Domestic' },
+                  { name: 'TIRUPATI', type: 'Domestic' },
+                  { name: 'DTDC', type: 'Domestic' },
+                  { name: 'AIRWING', type: 'International' },
+                  { name: 'OM COURIER', type: 'Domestic' },
+                  { name: 'E COM', type: 'International' },
+                  { name: 'SELF', type: 'International' },
+                  { name: 'XPRESS BEES', type: 'Domestic' },
+                  { name: 'BLUE DART SFC', type: 'Domestic' },
+                  { name: 'BLUE DART APEX', type: 'Domestic' },
+                  { name: 'REG EXPRESS', type: 'International' },
+                  { name: 'SHYPMAX', type: 'International' },
+                  { name: 'ECOM', type: 'Domestic' },
+                  { name: 'PACE EXPRESS', type: 'International' },
+                  { name: 'i way', type: 'Domestic' },
+                  { name: 'BOMBINO', type: 'International' },
+                  { name: 'ATLANTIC', type: 'International' }
+                ];
+              }
+
+              // Filter couriers based on current shipmentType (domestic or international)
+              const filteredCouriers = activeCouriers.filter(c => {
+                const cType = c.type?.toLowerCase();
+                const sType = shipmentType?.toLowerCase();
+                return !cType || cType === 'both' || cType === sType;
+              });
+
+              // Special mapped services
+              const specialServices = [
+                { value: 'DOMESTIC EXPRESS', label: 'DOMESTIC EXPRESS - DOMESTIC EXPRESS', courier: 'OM COURIER' },
+                { value: 'DOMESTIC ECONOMY', label: 'DOMESTIC ECONOMY - DOMESTIC ECONOMY', courier: 'OM COURIER' },
+                { value: 'DHL EXP', label: 'DHL EXP - DHL EXP', courier: 'DHL' },
+                { value: 'FEDEX IP', label: 'FEDEX IP - FEDEX IP', courier: 'FEDEX' },
+                { value: 'UPS EXP SAVER', label: 'UPS EXP SAVER - UPS EXP SAVER', courier: 'UPS' },
+                { value: 'BOMBINO SELF PREMIUM', label: 'BOMBINO SELF - BOMBINO SELF PREMIUM', courier: 'BOMBINO' },
+                { value: 'BOMBINO SELF SERVICE', label: 'BOMBINO SELF SERVICE - BOMBINO SELF SERVICE', courier: 'BOMBINO' }
+              ];
+
+              const finalOptions = [];
+              const processedCouriers = new Set();
+
+              // Add special services if the courier exists in filtered list
+              specialServices.forEach(srv => {
+                const isCourierActive = filteredCouriers.some(c => c.name.toUpperCase() === srv.courier.toUpperCase());
+                if (isCourierActive) {
+                  finalOptions.push(srv);
+                  processedCouriers.add(srv.courier.toUpperCase());
+                }
+              });
+
+              // For any other filtered couriers, add a generic service name
+              filteredCouriers.forEach(c => {
+                const nameUpper = c.name.toUpperCase();
+                if (!processedCouriers.has(nameUpper)) {
+                  finalOptions.push({
+                    value: nameUpper,
+                    label: `${nameUpper} - ${nameUpper}`,
+                    courier: nameUpper
+                  });
+                  processedCouriers.add(nameUpper);
+                }
+              });
+
+              return finalOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ));
+            })()}
           </select>
         </FormField>
 
@@ -147,24 +229,28 @@ export function AwbInfoSection({
 
         <FormField onChange={handleChange} label="REF NO" name="ref_no" labelWidth="85px" value={formData.ref_no} />
 
-        <div className="grid grid-cols-2 gap-1">
-          <FormField onChange={handleChange} label="VALUE" name="shipment_value" labelWidth="85px" value={formData.shipment_value} />
-          <FormField onChange={handleChange} label="Currency" name="currency" labelWidth="45px">
-            <select name="currency" value={formData.currency} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold">
-              <option>SELECT..</option>
-              <option>INR</option>
-              <option>USD</option>
-            </select>
-          </FormField>
-        </div>
+        {formData.product?.toUpperCase() !== 'DOCUMENTS' && (
+          <>
+            <div className="grid grid-cols-2 gap-1">
+              <FormField onChange={handleChange} label="VALUE" name="shipment_value" labelWidth="85px" value={formData.shipment_value} />
+              <FormField onChange={handleChange} label="Currency" name="currency" labelWidth="45px">
+                <select name="currency" value={formData.currency} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold">
+                  <option>SELECT..</option>
+                  <option>INR</option>
+                  <option>USD</option>
+                </select>
+              </FormField>
+            </div>
 
-        <div className="grid grid-cols-2 gap-1">
-          <FormField onChange={handleChange} label="INV DATE" name="invoice_date" isRed labelWidth="85px" type="date" value={formData.invoice_date} tabIndex={-1} />
-          <FormField onChange={handleChange} label="INV NO" name="invoice_no" labelWidth="85px" value={formData.invoice_no} />
-        </div>
+            <div className="grid grid-cols-2 gap-1">
+              <FormField onChange={handleChange} label="INV DATE" name="invoice_date" isRed labelWidth="85px" type="date" value={formData.invoice_date} tabIndex={-1} />
+              <FormField onChange={handleChange} label="INV NO" name="invoice_no" labelWidth="85px" value={formData.invoice_no} />
+            </div>
 
-        <FormField onChange={handleChange} label="EWB NO" name="eway_bill_no" labelWidth="85px" value={formData.eway_bill_no} />
-        <FormField onChange={handleChange} label="Content" name="content" labelWidth="85px" value={formData.content} />
+            <FormField onChange={handleChange} label="EWB NO" name="eway_bill_no" labelWidth="85px" value={formData.eway_bill_no} />
+            <FormField onChange={handleChange} label="Content" name="content" labelWidth="85px" value={formData.content} />
+          </>
+        )}
       </div>
     </div>
   );

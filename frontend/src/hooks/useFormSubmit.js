@@ -7,7 +7,7 @@
  * Also: handleSelectShipper, handleSelectConsignee, and customer filtering.
  */
 import { api } from '../services/api';
-import { isDomesticCountry } from '../utils/weight';
+import { isDomesticCountry, calcVolumetricWt, calcChargeableWt } from '../utils/weight';
 
 // ── Customer code generation ──
 
@@ -322,23 +322,41 @@ export function createShipperConsigneeHandlers({
       setSelectedCustomerId(customer.id);
       setShipperSearch(customer.name || customer.parent_company || '');
       const custPayMode = (customer.payment_type || 'Credit').toUpperCase();
-      setFormData(prev => ({
-          ...prev,
-          payment_mode: custPayMode,
-          bill_type: custPayMode,
-          contact_no: customer.phone || prev.contact_no || '',
-          account_code: customer.code || prev.account_code || '',
-          shipper_code: customer.code || '',
-          shipper_company: customer.parent_company || customer.name || '',
-          shipper_name: customer.name || '',
-          shipper_address1: customer.address || '',
-          shipper_city: customer.city || '',
-          shipper_state: customer.state || '',
-          shipper_zip: customer.pincode || '',
-          shipper_email: customer.email || '',
-          shipper_phone: customer.phone || '+91',
-          shipper_kyc_no: customer.gst_no || ''
-      }));
+      const customerCft = customer.cft || '10';
+      
+      setFormData(prev => {
+          const updatedPackages = prev.packages.map(pkg => {
+              const l = parseFloat(pkg.length) || 0;
+              const b = parseFloat(pkg.breadth) || 0;
+              const h = parseFloat(pkg.height) || 0;
+              const act = parseFloat(pkg.actual_wt) || 0;
+              const volWt = calcVolumetricWt(l, b, h, prev.mode, customerCft);
+              return {
+                  ...pkg,
+                  vol_wt: volWt,
+                  chargeable_wt: calcChargeableWt(act, volWt)
+              };
+          });
+          return {
+              ...prev,
+              payment_mode: custPayMode,
+              bill_type: custPayMode,
+              contact_no: customer.phone || prev.contact_no || '',
+              account_code: customer.code || prev.account_code || '',
+              shipper_code: customer.code || '',
+              shipper_company: customer.parent_company || customer.name || '',
+              shipper_name: customer.name || '',
+              shipper_address1: customer.address || '',
+              shipper_city: customer.city || '',
+              shipper_state: customer.state || '',
+              shipper_zip: customer.pincode || '',
+              shipper_email: customer.email || '',
+              shipper_phone: customer.phone || '+91',
+              shipper_kyc_no: customer.gst_no || '',
+              cft: customerCft,
+              packages: updatedPackages
+          };
+      });
   };
 
   const handleSelectConsignee = (customer) => {

@@ -8,7 +8,7 @@
  */
 import { useEffect } from 'react';
 import { api, getCompanies, getStates, getCountries, getModes, getBranches } from '../services/api';
-import { isDomesticCountry } from '../utils/weight';
+import { isDomesticCountry, calcVolumetricWt, calcChargeableWt } from '../utils/weight';
 import { getCountryCallingCode } from '../components/shared/FormField';
 
 /**
@@ -82,9 +82,10 @@ export function useEditShipmentLoader({ editingShipmentId, customers, setShipmen
           
           setShipmentType(s.type || 'domestic');
           
+          let cust = null;
           if (s.customer_id) {
             setSelectedCustomerId(s.customer_id.toString());
-            const cust = customers.find(c => c.id.toString() === s.customer_id.toString());
+            cust = customers.find(c => c.id.toString() === s.customer_id.toString());
             if (cust) {
               setShipperSearch(cust.name || cust.parent_company || '');
             } else {
@@ -94,82 +95,94 @@ export function useEditShipmentLoader({ editingShipmentId, customers, setShipmen
           
           setConsigneeSearch(s.consignee_name || '');
           
-          setFormData(prev => ({
-            ...prev,
-            booking_company: s.booking_company || prev.booking_company,
-            airway_no: s.airway_no || '',
-            email: s.shipper_email || s.email || prev.email,
-            payment_mode: (s.bill_type || 'CASH').toUpperCase(),
-            contact_no: s.shipper_phone || s.contact_no || prev.contact_no,
-            account_code: s.account_code || '',
-            origin_hub: s.origin_hub || 'MUMBAI',
-            origin_zone: s.origin_zone || '',
-            destination: s.destination || (s.type === 'domestic' ? s.consignee_city : s.consignee_country) || '',
-            dest_zone: s.dest_zone || '',
-            product: s.product || '',
-            booking_date: s.booking_date || '',
-            booking_time: s.booking_time || '',
-            usps_number: s.usps_number || '',
-            forward_no: s.forward_no || '',
-            eway_bill_no: s.eway_bill_no || '',
-            service: s.service || '',
-            mode: s.mode || '',
-            duty: s.duty || '',
-            ref_no: s.ref_no || '',
-            shipment_value: s.shipment_value ?? '',
-            currency: s.currency || 'INR',
-            invoice_date: s.invoice_date || '',
-            invoice_no: s.invoice_no || '',
-            content: s.description || s.content || '',
-            
-            // Shipper Info
-            shipper_code: s.shipper_code || '',
-            shipper_company: s.shipper_company || '',
-            shipper_name: s.shipper_name || '',
-            shipper_address1: s.shipper_address1 || '',
-            shipper_address2: s.shipper_address2 || '',
-            shipper_address3: s.shipper_address3 || '',
-            shipper_zip: s.shipper_zip || '',
-            shipper_city: s.shipper_city || '',
-            shipper_state: s.shipper_state || '',
-            shipper_zone: s.shipper_zone || '',
-            shipper_country: s.shipper_country || 'INDIA',
-            shipper_phone: s.shipper_phone || '',
-            shipper_email: s.shipper_email || '',
-            shipper_kyc_type: s.shipper_kyc_type || 'PAN CARD',
-            shipper_kyc_no: s.shipper_kyc_no || '',
-            
-            // Consignee Info
-            consignee_code: s.consignee_code || '',
-            consignee_company: s.consignee_company || '',
-            consignee_name: s.consignee_name || '',
-            consignee_address1: s.consignee_address1 || '',
-            consignee_address2: s.consignee_address2 || '',
-            consignee_address3: s.consignee_address3 || '',
-            consignee_zip: s.consignee_zip || '',
-            consignee_city: s.consignee_city || '',
-            consignee_state: s.consignee_state || '',
-            consignee_zone: s.consignee_zone || '',
-            consignee_country: s.consignee_country || 'INDIA',
-            consignee_phone: s.consignee_phone || '',
-            consignee_email: s.consignee_email || '',
-            
-            // Weights
-            pcs: s.pcs || 1,
-            actual_weight: s.actual_weight || 0,
-            volumetric_weight: s.volumetric_weight || 0,
-            chargeable_weight: s.chargeable_weight || 0,
-            packages: s.packages && s.packages.length > 0 
-              ? s.packages.map(p => ({
-                  box_no: p.box_no || '1',
-                  actual_wt: p.actual_wt || 0,
-                  length: p.length || 0,
-                  breadth: p.breadth || 0,
-                  height: p.height || 0,
-                  vol_wt: p.vol_wt || 0,
-                  chargeable_wt: p.chargeable_wt || 0
-                }))
-              : [{ box_no: '1', actual_wt: 0, length: 0, breadth: 0, height: 0, vol_wt: 0, chargeable_wt: 0 }],
+          setFormData(prev => {
+            const customerCft = cust ? (cust.cft || '10') : '10';
+            const updatedPackages = s.packages && s.packages.length > 0 
+              ? s.packages.map(p => {
+                  const l = p.length || 0;
+                  const b = p.breadth || 0;
+                  const h = p.height || 0;
+                  const act = p.actual_wt || 0;
+                  const volWt = calcVolumetricWt(l, b, h, s.mode || '', customerCft);
+                  return {
+                    box_no: p.box_no || '1',
+                    actual_wt: act,
+                    length: l,
+                    breadth: b,
+                    height: h,
+                    vol_wt: volWt,
+                    chargeable_wt: calcChargeableWt(act, volWt)
+                  };
+                })
+              : [{ box_no: '1', actual_wt: 0, length: 0, breadth: 0, height: 0, vol_wt: 0, chargeable_wt: 0 }];
+
+            return {
+              ...prev,
+              booking_company: s.booking_company || prev.booking_company,
+              airway_no: s.airway_no || '',
+              email: s.shipper_email || s.email || prev.email,
+              payment_mode: (s.bill_type || 'CASH').toUpperCase(),
+              contact_no: s.shipper_phone || s.contact_no || prev.contact_no,
+              account_code: s.account_code || '',
+              origin_hub: s.origin_hub || 'MUMBAI',
+              origin_zone: s.origin_zone || '',
+              destination: s.destination || (s.type === 'domestic' ? s.consignee_city : s.consignee_country) || '',
+              dest_zone: s.dest_zone || '',
+              product: s.product || '',
+              booking_date: s.booking_date || '',
+              booking_time: s.booking_time || '',
+              usps_number: s.usps_number || '',
+              forward_no: s.forward_no || '',
+              eway_bill_no: s.eway_bill_no || '',
+              service: s.service || '',
+              mode: s.mode || '',
+              duty: s.duty || '',
+              ref_no: s.ref_no || '',
+              shipment_value: s.shipment_value ?? '',
+              currency: s.currency || 'INR',
+              invoice_date: s.invoice_date || '',
+              invoice_no: s.invoice_no || '',
+              content: s.description || s.content || '',
+              
+              // Shipper Info
+              shipper_code: s.shipper_code || '',
+              shipper_company: s.shipper_company || '',
+              shipper_name: s.shipper_name || '',
+              shipper_address1: s.shipper_address1 || '',
+              shipper_address2: s.shipper_address2 || '',
+              shipper_address3: s.shipper_address3 || '',
+              shipper_zip: s.shipper_zip || '',
+              shipper_city: s.shipper_city || '',
+              shipper_state: s.shipper_state || '',
+              shipper_zone: s.shipper_zone || '',
+              shipper_country: s.shipper_country || 'INDIA',
+              shipper_phone: s.shipper_phone || '',
+              shipper_email: s.shipper_email || '',
+              shipper_kyc_type: s.shipper_kyc_type || 'PAN CARD',
+              shipper_kyc_no: s.shipper_kyc_no || '',
+              
+              // Consignee Info
+              consignee_code: s.consignee_code || '',
+              consignee_company: s.consignee_company || '',
+              consignee_name: s.consignee_name || '',
+              consignee_address1: s.consignee_address1 || '',
+              consignee_address2: s.consignee_address2 || '',
+              consignee_address3: s.consignee_address3 || '',
+              consignee_zip: s.consignee_zip || '',
+              consignee_city: s.consignee_city || '',
+              consignee_state: s.consignee_state || '',
+              consignee_zone: s.consignee_zone || '',
+              consignee_country: s.consignee_country || 'INDIA',
+              consignee_phone: s.consignee_phone || '',
+              consignee_email: s.consignee_email || '',
+              
+              // Weights
+              pcs: s.pcs || 1,
+              actual_weight: s.actual_weight || 0,
+              volumetric_weight: s.volumetric_weight || 0,
+              chargeable_weight: s.chargeable_weight || 0,
+              cft: customerCft,
+              packages: updatedPackages,
               
             // Billing
             freight_ch: s.freight_charges || 0,
@@ -221,8 +234,9 @@ export function useEditShipmentLoader({ editingShipmentId, customers, setShipmen
             
             branch: s.branch || '',
             eway_bill_no: s.eway_bill_no || ''
-          }));
-        }
+          };
+        });
+      }
       })
       .catch(err => console.error("Error loading shipment details:", err));
   }, [editingShipmentId, customers]);

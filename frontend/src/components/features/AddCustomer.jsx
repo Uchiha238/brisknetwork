@@ -60,6 +60,7 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
         mis_emails: '',
         mis_format: '',
         payment_type: 'Credit',
+        cft: '',
         password: 'admin@brisk2026', // Hidden from specification but necessary for login
     });
 
@@ -132,6 +133,7 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
                 ...editingCustomer,
                 gst_charges: editingCustomer.gst_charges ? 'Yes' : 'No',
                 payment_type: editingCustomer.payment_type || 'Credit',
+                cft: editingCustomer.cft || '',
             });
             // Fetch cities for the customer's state so the dropdown is correctly populated!
             if (editingCustomer.state) {
@@ -172,6 +174,7 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
                 mis_emails: '',
                 mis_format: '',
                 payment_type: 'Credit',
+                cft: '',
                 password: 'admin@brisk2026'
             });
         }
@@ -262,6 +265,7 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
             mis_emails: 'reports@brisknetwork.com; billing@brisknetwork.com',
             mis_format: 'SR.No Date Consigner Consignee Destination Pincode Invoice',
             payment_type: 'Credit',
+            cft: '10',
             password: 'admin@brisk2026'
         });
     };
@@ -302,6 +306,7 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
                     mis_emails: '',
                     mis_format: '',
                     payment_type: 'Credit',
+                    cft: '',
                     password: 'admin@brisk2026'
                 });
             }
@@ -336,9 +341,6 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
                     <h1 className="text-sm font-bold text-[#1a2f4c] uppercase">{isEditing ? 'Edit customer' : 'Add customer'}</h1>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button onClick={fillMockData} className="bg-amber-500 hover:bg-amber-600 text-white font-bold uppercase text-[9px] h-7 px-3 tracking-wider">
-                        FILL MOCK DATA
-                    </Button>
                     <Button onClick={handleSubmit} className="bg-[#1a2f4c] hover:bg-[#2c4a7c] text-white font-bold uppercase text-[9px] h-7 px-4 tracking-widest">
                         SUBMIT
                     </Button>
@@ -403,19 +405,22 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
                         </div>
                     </div>
 
-                    {/* Row 6: All Rate Groups in a single line (14, 15, 16, 17) */}
-                    <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-4 p-2 bg-blue-50/30 border border-blue-100 rounded-sm">
-                        <InputGroup label="14. Domestic Rate Group" name="domestic_rate_group" type="select" value={formData.domestic_rate_group} options={masters.domesticRateGroups.map(g => g.name)} onChange={handleChange} />
-                        <InputGroup label="15. Domestic Fuel Group" name="domestic_fuel_group" type="select" value={formData.domestic_fuel_group} options={masters.domesticFuelGroups.map(g => g.name)} onChange={handleChange} />
-                        <InputGroup label="16. International Rate" name="international_rate_group" type="select" value={formData.international_rate_group} options={masters.internationalRateGroups.map(g => g.name)} onChange={handleChange} />
-                        <InputGroup label="17. International Fuel" name="international_fuel_group" type="select" value={formData.international_fuel_group} options={masters.internationalFuelGroups.map(g => g.name)} onChange={handleChange} />
+                    {/* Row 5.5: 15-CFT */}
+                    <InputGroup label="15. CFT" name="cft" value={formData.cft || ''} placeholder="ENTER CFT" onChange={handleChange} />
+
+                    {/* Row 6: All Rate Groups in a single line (16, 17, 18, 19) */}
+                    <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-4 p-2 bg-blue-50/30 border border-blue-100 rounded-sm mt-1">
+                        <InputGroup label="16. Domestic Rate Group" name="domestic_rate_group" type="select" value={formData.domestic_rate_group} options={masters.domesticRateGroups.map(g => g.name)} onChange={handleChange} />
+                        <InputGroup label="17. Domestic Fuel Group" name="domestic_fuel_group" type="select" value={formData.domestic_fuel_group} options={masters.domesticFuelGroups.map(g => g.name)} onChange={handleChange} />
+                        <InputGroup label="18. International Rate" name="international_rate_group" type="select" value={formData.international_rate_group} options={masters.internationalRateGroups.map(g => g.name)} onChange={handleChange} />
+                        <InputGroup label="19. International Fuel" name="international_fuel_group" type="select" value={formData.international_fuel_group} options={masters.internationalFuelGroups.map(g => g.name)} onChange={handleChange} />
                     </div>
 
-                    {/* Row 7: 18-MIS Email ID (Span 2), 19-MIS Format */}
-                    <InputGroup label="18. MIS Email ID" name="mis_emails" value={formData.mis_emails} placeholder="REPORTS@MAIL.COM; ACCOUNTS@MAIL.COM" className="md:col-span-2" onChange={handleChange} />
+                    {/* Row 7: 20-MIS Email ID (Span 2), 21-MIS Format */}
+                    <InputGroup label="20. MIS Email ID" name="mis_emails" value={formData.mis_emails} placeholder="REPORTS@MAIL.COM; ACCOUNTS@MAIL.COM" className="md:col-span-2" onChange={handleChange} />
                     
                     <div className="flex flex-col gap-0.5">
-                        <label className="text-[10px] font-black text-slate-700 uppercase leading-none">19. MIS Format Selection</label>
+                        <label className="text-[10px] font-black text-slate-700 uppercase leading-none">21. MIS Format Selection</label>
                         <select 
                             name="mis_format" 
                             value={formData.mis_format} 

@@ -214,6 +214,32 @@ export function createFieldHandlers({ setFormData, setSelectedCustomerId, setShi
             };
         }
 
+        if (name === 'product' && value.toUpperCase() === 'DOCUMENTS') {
+            newData.shipment_value = '';
+            newData.invoice_date = '';
+            newData.invoice_no = '';
+            newData.eway_bill_no = '';
+            newData.content = '';
+        }
+
+        if (name === 'mode' || name === 'cft') {
+            const currentMode = name === 'mode' ? value : prev.mode;
+            const currentCft = name === 'cft' ? value : prev.cft;
+            
+            newData.packages = prev.packages.map(pkg => {
+                const l = parseFloat(pkg.length) || 0;
+                const b = parseFloat(pkg.breadth) || 0;
+                const h = parseFloat(pkg.height) || 0;
+                const act = parseFloat(pkg.actual_wt) || 0;
+                const volWt = calcVolumetricWt(l, b, h, currentMode, currentCft);
+                return {
+                    ...pkg,
+                    vol_wt: volWt,
+                    chargeable_wt: calcChargeableWt(act, volWt)
+                };
+            });
+        }
+
         if ((name === 'shipper_zip' || name === 'consignee_zip') && /^\d{6}$/.test(value)) {
             fetch(`http://localhost:5000/api/pincode/${value}`)
                 .then(res => res.json())
@@ -321,7 +347,7 @@ export function createFieldHandlers({ setFormData, setSelectedCustomerId, setShi
                 const b = parseFloat(newArray[index].breadth) || 0;
                 const h = parseFloat(newArray[index].height) || 0;
                 
-                newArray[index].vol_wt = calcVolumetricWt(l, b, h);
+                newArray[index].vol_wt = calcVolumetricWt(l, b, h, prev.mode, prev.cft);
                 newArray[index].chargeable_wt = calcChargeableWt(newArray[index].actual_wt, newArray[index].vol_wt);
             }
             if (field === 'actual_wt') {
