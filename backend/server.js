@@ -1,12 +1,15 @@
 const express = require('express');
+require('dotenv').config();
 require('./db'); // ensure DB initialization runs
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
+// ALLOWED_ORIGIN can be a comma-separated list of origins (set in production env)
 const allowedOrigins = [
   'http://localhost:3100',
-  'http://127.0.0.1:3100'
+  'http://127.0.0.1:3100',
+  ...(process.env.ALLOWED_ORIGIN ? process.env.ALLOWED_ORIGIN.split(',').map(o => o.trim()) : [])
 ];
 
 app.use((req, res, next) => {
@@ -209,6 +212,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: err.message || 'Something went wrong' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Backend server running on port ${PORT}`);
 });

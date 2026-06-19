@@ -19,6 +19,14 @@ dist-ssr
 .DS_Store
 *.sw?
 .vite
+
+# Environment secrets — never commit
 .env
+backend/.env
+*.env.local
+
+# DB backups
 courier_plain_backup.db
+
+# Scratch / temp
 scratch/
