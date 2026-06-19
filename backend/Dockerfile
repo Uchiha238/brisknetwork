@@ -16,7 +16,7 @@ WORKDIR /app
 COPY backend/package*.json ./
 
 # Install deps and rebuild native modules for Linux
-RUN npm install && npm rebuild @journeyapps/sqlcipher --build-from-source
+RUN npm install
 
 # Copy the backend source files into /app
 COPY backend/ ./
