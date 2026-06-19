@@ -241,7 +241,7 @@ export function createFieldHandlers({ setFormData, setSelectedCustomerId, setShi
         }
 
         if ((name === 'shipper_zip' || name === 'consignee_zip') && /^\d{6}$/.test(value)) {
-            fetch(`http://localhost:5000/api/pincode/${value}`)
+            fetch(`/api/pincode/${value}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.success) {

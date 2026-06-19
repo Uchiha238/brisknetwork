@@ -30,8 +30,8 @@ export const emptyForm = {
 
 export const emptyGroup = { name: '', type: 'Domestic' };
 
-export const FUEL_API = 'http://localhost:5000/api/fuel-entries';
-export const GROUP_API = 'http://localhost:5000/api/masters/fuel-groups';
+export const FUEL_API = '/api/fuel-entries';
+export const GROUP_API = '/api/masters/fuel-groups';
 
 // ─────────────────── helpers ───────────────────
 export function FieldInput({ label, id, value, onChange, placeholder, type = 'text', className = '' }) {

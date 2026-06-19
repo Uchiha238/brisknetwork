@@ -461,7 +461,7 @@ export function useFuelPriceLookup({ selectedCustomerId, formData, shipmentType,
     const currentKey = `${fuelGroupName}-${shipmentType}-${courier}-${formData.booking_date}`;
     if (currentKey === lastFetchedFuelKey) return;
 
-    const url = `http://localhost:5000/api/fuel-entries/lookup?fuel_group_name=${encodeURIComponent(fuelGroupName)}&company_type=${encodeURIComponent(shipmentType)}&courier=${encodeURIComponent(courier)}&booking_date=${encodeURIComponent(formData.booking_date)}`;
+    const url = `/api/fuel-entries/lookup?fuel_group_name=${encodeURIComponent(fuelGroupName)}&company_type=${encodeURIComponent(shipmentType)}&courier=${encodeURIComponent(courier)}&booking_date=${encodeURIComponent(formData.booking_date)}`;
     
     fetch(url)
       .then(res => res.json())

@@ -3,7 +3,7 @@ import { ArrowLeft, Loader2, AlertCircle, Building2 } from 'lucide-react';
 import { RichEditor, Field, TInput, emptyCompanyForm } from './CompanyPrimitives';
 import { Footer } from "@/components/shared/Footer";
 
-const API = 'http://localhost:5000/api/company';
+const API = '/api/company';
 
 export function CompanyForm({ editData, onBack, onSave }) {
   const [form, setForm] = useState(editData ? {

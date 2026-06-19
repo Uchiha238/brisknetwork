@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Loader2, AlertCircle, Mail, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { Footer } from "@/components/shared/Footer";
 
-const API = 'http://localhost:5000/api/mail-config';
+const API = '/api/mail-config';
 
 export function MailConfig() {
   const [form, setForm]       = useState({ port_no: '', host: '', username: '', password: '' });

@@ -5,7 +5,7 @@ import { ArrowLeft, Loader2, AlertCircle, Building2, GitBranch, Plus, Pencil, Tr
 import { Button } from '@/components/ui/button';
 import { Footer } from "@/components/shared/Footer";
 
-const BAPI = 'http://localhost:5000/api/branches';
+const BAPI = '/api/branches';
 
 export const emptyBranchForm = {
   branch_name: '', branch_code: '', email: '', contact_no: '',
