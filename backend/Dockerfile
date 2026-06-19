@@ -11,14 +11,15 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy package files first for layer caching
-COPY package*.json ./
+# Copy backend package files first for layer caching
+# (build context is repo root, so we reference backend/ explicitly)
+COPY backend/package*.json ./
 
 # Install deps and rebuild native modules for Linux
 RUN npm install && npm rebuild @journeyapps/sqlcipher --build-from-source
 
-# Copy the rest of the backend source
-COPY . .
+# Copy the backend source files into /app
+COPY backend/ ./
 
 EXPOSE 5000
 
