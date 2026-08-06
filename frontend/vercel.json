@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://brisknetwork-production.up.railway.app/api/:path*"
+      "destination": "https://brisknetwork-backend.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",
