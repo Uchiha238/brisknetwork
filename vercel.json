@@ -5,8 +5,8 @@
   "installCommand": "npm install",
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "https://brisknetwork-backend.onrender.com/api/$1"
+      "source": "/api/:path*",
+      "destination": "https://brisknetwork-backend.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",
