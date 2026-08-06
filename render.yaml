@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: brisknetwork-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: DB_ENCRYPTION_KEY
+        sync: false       # ← You'll set this manually in Render dashboard (secret)
+      - key: ALLOWED_ORIGIN
+        sync: false       # ← You'll set this to your Vercel URL in Render dashboard
