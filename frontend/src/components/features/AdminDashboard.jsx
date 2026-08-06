@@ -46,21 +46,44 @@ export function AdminDashboard() {
     totalShipments: 0,
     statusDistribution: []
   });
+  const [backendError, setBackendError] = useState(false);
 
   useEffect(() => {
     api.getDashboardStats()
-      .then(data => setStats(data))
-      .catch(err => console.error('Dashboard fetch error:', err));
+      .then(data => {
+        // Guard against non-object or error responses from the backend
+        if (data && typeof data === 'object' && !data.error) {
+          setStats({
+            totalCustomers: data.totalCustomers ?? 0,
+            totalShipments: data.totalShipments ?? 0,
+            statusDistribution: Array.isArray(data.statusDistribution) ? data.statusDistribution : []
+          });
+        } else {
+          setBackendError(true);
+        }
+      })
+      .catch(err => {
+        console.error('Dashboard fetch error:', err);
+        setBackendError(true);
+      });
   }, []);
 
-  const pieData = stats.statusDistribution.length > 0 
-    ? stats.statusDistribution.map(s => ({ name: s.status.charAt(0).toUpperCase() + s.status.slice(1).replace('_', ' '), value: s.count }))
+  const pieData = (stats.statusDistribution && stats.statusDistribution.length > 0)
+    ? stats.statusDistribution.map(s => ({ name: s.status ? s.status.charAt(0).toUpperCase() + s.status.slice(1).replace('_', ' ') : 'Unknown', value: s.count ?? 0 }))
     : pieDataDefault;
 
-  const totalStatusCount = pieData.reduce((acc, curr) => acc + curr.value, 0);
+  const totalStatusCount = pieData.reduce((acc, curr) => acc + (curr.value || 0), 0);
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-8 bg-[#f8fafc] min-h-full">
+      {backendError && (
+        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '1rem' }}>⚠️</span>
+          <span style={{ color: '#b91c1c', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Cannot connect to backend server. Stats may be unavailable.
+          </span>
+        </div>
+      )}
       
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 py-3 border-b border-slate-100 mb-2">

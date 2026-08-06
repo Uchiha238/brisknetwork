@@ -6,7 +6,22 @@ async function apiFetch(endpoint, options = {}) {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   });
-  return res.json();
+
+  // Guard: if the server returns non-JSON (e.g. HTML error page when backend is down),
+  // parse safely and throw a meaningful error instead of crashing with SyntaxError
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new Error(`Backend unreachable (HTTP ${res.status}). Is the server running?`);
+  }
+
+  const data = await res.json();
+
+  // Surface HTTP error codes as thrown errors so callers can catch them
+  if (!res.ok) {
+    throw new Error(data?.error || data?.message || `Request failed with status ${res.status}`);
+  }
+
+  return data;
 }
 
 function jsonBody(method, data) {
