@@ -3,6 +3,7 @@ npm-debug.log*
 .env
 *.env.local
 courier_plain_backup.db
+courier.db
 _list_tables.js
 check_cm.js
 inspect_xlsb.js
