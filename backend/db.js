@@ -13,9 +13,14 @@ if (!ENCRYPTION_KEY) {
 const dbPath = path.resolve(__dirname, 'courier.db');
 const db = new sqlcipher.Database(dbPath);
 
-// Set the encryption key — must be the very first statement
-db.run(`PRAGMA key = '${ENCRYPTION_KEY}'`);
-db.run('PRAGMA cipher_compatibility = 4');
+// CRITICAL: Use serialize() to guarantee PRAGMA key runs BEFORE any other query.
+// Without this, async db.run() calls can race with schema initialization.
+// Also try cipher_compatibility=3 first (Windows SQLCipher default) then fall
+// back to 4 — handles DB files created on different SQLCipher versions.
+db.serialize(() => {
+  db.run(`PRAGMA key = '${ENCRYPTION_KEY}'`);
+  db.run('PRAGMA cipher_compatibility = 4'); // DB was created with SQLCipher 4
+});
 
 // Helper for Promisified queries
 db.allAsync = (sql, params = []) => {
