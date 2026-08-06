@@ -1,56 +1,46 @@
-const Database = require('better-sqlite3');
+const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 // ── Open / create the database ───────────────────────────────────────
-// No encryption — the DB is created fresh on every deploy and
-// lives in the container filesystem. All schema + seed data is
-// re-created by init() below.
+// Uses plain sqlite3 (no encryption). The DB is created fresh on every
+// deploy from the schema + seed data in init() below.
 const dbPath = path.resolve(__dirname, 'courier.db');
-const db = new Database(dbPath);
-
-// Enable WAL mode for better concurrency
-db.pragma('journal_mode = WAL');
-
-// ── Async-compatible wrappers (same API as before) ───────────────────
-// better-sqlite3 is synchronous; we wrap in Promise.resolve() so all
-// existing route code (which uses await db.allAsync / db.runAsync etc.)
-// continues to work without any changes.
-
-db.allAsync = (sql, params = []) => {
-  try {
-    const rows = db.prepare(sql).all(params);
-    return Promise.resolve(rows);
-  } catch (err) {
-    return Promise.reject(err);
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('FATAL: Could not open database:', err.message);
+    process.exit(1);
   }
-};
+  console.log('Connected to SQLite database at', dbPath);
+});
 
-db.getAsync = (sql, params = []) => {
-  try {
-    const row = db.prepare(sql).get(params);
-    return Promise.resolve(row);
-  } catch (err) {
-    return Promise.reject(err);
-  }
-};
+// Enable WAL mode for better concurrent read performance
+db.run('PRAGMA journal_mode = WAL');
 
-db.runAsync = (sql, params = []) => {
-  try {
-    const result = db.prepare(sql).run(params);
-    return Promise.resolve({ lastID: result.lastInsertRowid, changes: result.changes });
-  } catch (err) {
-    return Promise.reject(err);
-  }
-};
+// ── Async-compatible wrappers ─────────────────────────────────────────
+// These maintain the exact same interface as before so no route files change.
 
-db.execAsync = (sql) => {
-  try {
-    db.exec(sql);
-    return Promise.resolve();
-  } catch (err) {
-    return Promise.reject(err);
-  }
-};
+db.allAsync = (sql, params = []) =>
+  new Promise((resolve, reject) =>
+    db.all(sql, params, (err, rows) => (err ? reject(err) : resolve(rows)))
+  );
+
+db.getAsync = (sql, params = []) =>
+  new Promise((resolve, reject) =>
+    db.get(sql, params, (err, row) => (err ? reject(err) : resolve(row)))
+  );
+
+db.runAsync = (sql, params = []) =>
+  new Promise((resolve, reject) =>
+    db.run(sql, params, function (err) {
+      if (err) reject(err);
+      else resolve({ lastID: this.lastID, changes: this.changes });
+    })
+  );
+
+db.execAsync = (sql) =>
+  new Promise((resolve, reject) =>
+    db.exec(sql, (err) => (err ? reject(err) : resolve()))
+  );
 
 // ── Column migration helper ───────────────────────────────────────────
 const ensureColumnsExist = async (tableName, colDefinitions) => {
@@ -68,7 +58,7 @@ const ensureColumnsExist = async (tableName, colDefinitions) => {
   }
 };
 
-// ── Initialize tables ────────────────────────────────────────────────
+// ── Initialize tables + seed data ────────────────────────────────────
 const schemaSql = require('./dbSchema');
 const init = async () => {
   try {
@@ -331,10 +321,7 @@ const init = async () => {
       }
     }
 
-    // Migrate modes and company_settings tables using ensureColumnsExist
-    await ensureColumnsExist('modes', {
-      type: "TEXT DEFAULT 'Domestic'"
-    });
+    await ensureColumnsExist('modes', { type: "TEXT DEFAULT 'Domestic'" });
 
     await ensureColumnsExist('company_settings', {
       gst_no: "TEXT",
@@ -353,7 +340,6 @@ const init = async () => {
       bank_terms: "TEXT"
     });
 
-    // Seed default companies (idempotent — uses name check)
     const seedCompany = async (name, gst_no, email, address, pan, contact_no, website, domestic_invoice_series) => {
       const exists = await db.getAsync('SELECT id FROM company_settings WHERE company_name = ?', [name]);
       if (!exists) {
@@ -365,36 +351,11 @@ const init = async () => {
       }
     };
 
-    await seedCompany(
-      'OM COURIER SERVICES',
-      '27AADCO1234A1Z5', 'csdomcourier@gmail.com',
-      'SHOP NO 1, OM DEEP SAI POOJA CHS, NEAR ALMEIDA SIGNAL, CHARAI NAKA, THANE(W)-400601',
-      'AADCO1234A', '9324120237', 'www.omcourier.net', 'OM/DOM/'
-    );
-    await seedCompany(
-      'OM COURIER CHARAI BRANCH',
-      '27AADCO1234A1Z5', 'charai@omcourier.net',
-      'SHOP NO 2, CHARAI NAKA, THANE(W)-400601',
-      'AADCO1234A', '9324120238', 'www.omcourier.net', 'OM/CHR/'
-    );
-    await seedCompany(
-      'OM COURIER WAGLE',
-      '27AADCO1234A1Z6', 'wagle@omcourier.net',
-      'WAGLE INDUSTRIAL ESTATE, THANE(W)-400604',
-      'AADCO1234B', '9324120239', 'www.omcourier.net', 'OM/WAG/'
-    );
-    await seedCompany(
-      'SUPERJET LOGISTICS',
-      '27ASJL5678B1Z3', 'info@superjetlogistics.com',
-      'OFFICE 301, EXCEL PLAZA, THANE(W)-400601',
-      'ASJL5678B', '9022062666', 'www.superjetlogistics.com', 'SJ/DOM/'
-    );
-    await seedCompany(
-      'BRISK NETWORK',
-      '27ABNW9012C1Z4', 'info@brisknetwork.com',
-      'BRISK HOUSE, MULUND WEST, MUMBAI-400080',
-      'ABNW9012C', '9022062667', 'www.brisknetwork.com', 'BN/DOM/'
-    );
+    await seedCompany('OM COURIER SERVICES', '27AADCO1234A1Z5', 'csdomcourier@gmail.com', 'SHOP NO 1, OM DEEP SAI POOJA CHS, NEAR ALMEIDA SIGNAL, CHARAI NAKA, THANE(W)-400601', 'AADCO1234A', '9324120237', 'www.omcourier.net', 'OM/DOM/');
+    await seedCompany('OM COURIER CHARAI BRANCH', '27AADCO1234A1Z5', 'charai@omcourier.net', 'SHOP NO 2, CHARAI NAKA, THANE(W)-400601', 'AADCO1234A', '9324120238', 'www.omcourier.net', 'OM/CHR/');
+    await seedCompany('OM COURIER WAGLE', '27AADCO1234A1Z6', 'wagle@omcourier.net', 'WAGLE INDUSTRIAL ESTATE, THANE(W)-400604', 'AADCO1234B', '9324120239', 'www.omcourier.net', 'OM/WAG/');
+    await seedCompany('SUPERJET LOGISTICS', '27ASJL5678B1Z3', 'info@superjetlogistics.com', 'OFFICE 301, EXCEL PLAZA, THANE(W)-400601', 'ASJL5678B', '9022062666', 'www.superjetlogistics.com', 'SJ/DOM/');
+    await seedCompany('BRISK NETWORK', '27ABNW9012C1Z4', 'info@brisknetwork.com', 'BRISK HOUSE, MULUND WEST, MUMBAI-400080', 'ABNW9012C', '9022062667', 'www.brisknetwork.com', 'BN/DOM/');
 
     const custCount = (await db.getAsync('SELECT count(*) as count FROM customers')).count;
     if (custCount === 0) {
@@ -402,7 +363,6 @@ const init = async () => {
       await db.runAsync('INSERT INTO customers (code, name, phone, email, city, state, gst_no, address, pincode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', ['CUST002', 'Modern Logistics', '9123456789', 'contact@modern.com', 'DELHI', 'DELHI', '07BBBBB5678B1Z2', '45 North Ave', '110001']);
     }
 
-    // Migration for existing empty records
     await db.runAsync(`UPDATE customers SET address = 'DEFAULT ADDRESS, OFFICE NO 101' WHERE address IS NULL OR address = ''`);
     await db.runAsync(`UPDATE customers SET pincode = '400001' WHERE pincode IS NULL OR pincode = ''`);
     await db.runAsync(`UPDATE customers SET state = 'MAHARASHTRA' WHERE state IS NULL OR state = ''`);
