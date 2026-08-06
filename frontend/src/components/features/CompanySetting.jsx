@@ -7,7 +7,9 @@ import { CompanyForm } from './company/CompanyForm';
 import { BranchForm, BranchList } from './company/BranchComponents';
 import { Footer } from "@/components/shared/Footer";
 
-const API = '/api/company';
+import { API_BASE_URL } from '@/services/api';
+
+const API = `${API_BASE_URL}/company`;
 
 export function CompanySetting() {
   const [view,         setView]        = useState('list');

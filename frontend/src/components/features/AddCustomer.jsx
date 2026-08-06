@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Save, User, MapPin, ShieldCheck, Mail, Phone, Lock, FileText, Settings, Pencil, Trash2, Search, Download } from "lucide-react"
-import { api, getStates, getRateGroups, getFuelGroups } from '../../services/api';
+import { api, getStates, getRateGroups, getFuelGroups, API_BASE_URL } from '../../services/api';
 import { useSearch } from '../../hooks/useSearch';
 
 const InputGroup = ({ label, name, type = "text", value, placeholder, options, onChange, className = "", widthClass = "w-full" }) => (
@@ -139,7 +139,7 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
             if (editingCustomer.state) {
                 const stateObj = masters.states.find(s => s.name === editingCustomer.state || `${s.name} (${s.id || '27'})` === editingCustomer.state);
                 if (stateObj) {
-                    fetch(`/api/masters/cities?state_id=${stateObj.id}`)
+                    fetch(`${API_BASE_URL}/masters/cities?state_id=${stateObj.id}`)
                         .then(res => res.json())
                         .then(cities => {
                             // Ensure the customer's city is in the dropdown
@@ -184,7 +184,7 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
         if (formData.state) {
             const stateObj = masters.states.find(s => s.name === formData.state || `${s.name} (${s.id || '27'})` === formData.state);
             if (stateObj) {
-                fetch(`/api/masters/cities?state_id=${stateObj.id}`)
+                fetch(`${API_BASE_URL}/masters/cities?state_id=${stateObj.id}`)
                     .then(res => res.json())
                     .then(cities => setMasters(prev => ({ ...prev, cities })))
                     .catch(err => console.error('Error fetching cities:', err));
@@ -197,7 +197,7 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
         setFormData(prev => ({ ...prev, [name]: value }));
 
         if (name === 'pincode' && /^\d{6}$/.test(value)) {
-            fetch(`/api/pincode/${value}`)
+            fetch(`${API_BASE_URL}/pincode/${value}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.success) {
@@ -220,7 +220,7 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
                             const formattedStateName = `${stateObj.name} (${stateObj.id || '27'})`;
                             
                             // Fetch cities for this state immediately
-                            fetch(`/api/masters/cities?state_id=${stateObj.id}`)
+                            fetch(`${API_BASE_URL}/masters/cities?state_id=${stateObj.id}`)
                                 .then(res => res.json())
                                 .then(cities => {
                                     const hasCity = cities.some(c => c.name.toUpperCase() === pincodeCity.toUpperCase());
@@ -274,7 +274,7 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
         e.preventDefault();
         try {
             const method = isEditing ? 'PUT' : 'POST';
-            const url = isEditing ? `/api/customers/${formData.id}` : '/api/customers';
+            const url = isEditing ? `${API_BASE_URL}/customers/${formData.id}` : `${API_BASE_URL}/customers`;
             
             const response = await fetch(url, {
                 method: method,

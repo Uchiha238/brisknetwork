@@ -44,6 +44,8 @@ function formatDateShort(dateStr) {
   return dateStr;
 }
 
+import { API_BASE_URL } from "@/services/api";
+
 export function PrintInvoice({ invoiceId }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,7 @@ export function PrintInvoice({ invoiceId }) {
   useEffect(() => {
     if (!invoiceId) return;
     setLoading(true);
-    fetch(`/api/invoices/${invoiceId}`)
+    fetch(`${API_BASE_URL}/invoices/${invoiceId}`)
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch invoice details');
         return res.json();

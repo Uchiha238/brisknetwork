@@ -1,8 +1,12 @@
-const BASE_URL = '/api';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || (
+  typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? '/api'
+    : 'https://brisknetwork-backend.onrender.com/api'
+);
 
 // ─── Core fetch wrapper ──────────────────────────────────────────────────────
 async function apiFetch(endpoint, options = {}) {
-  const res = await fetch(`${BASE_URL}${endpoint}`, {
+  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   });

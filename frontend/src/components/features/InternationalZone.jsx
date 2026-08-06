@@ -6,6 +6,7 @@ import {
   MapPin, XCircle
 } from "lucide-react";
 import { Footer } from "@/components/shared/Footer";
+import { API_BASE_URL } from "@/services/api";
 
 export function InternationalZone() {
   const [zoneSheets, setZoneSheets] = useState([]);
@@ -37,7 +38,7 @@ export function InternationalZone() {
   const fetchZoneSheets = async () => {
     setIsLoadingSheets(true);
     try {
-      const res = await fetch('/api/international-zones/groups');
+      const res = await fetch(`${API_BASE_URL}/international-zones/groups`);
       const data = await res.json();
       if (data.success) {
         setZoneSheets(data.data);
@@ -54,7 +55,7 @@ export function InternationalZone() {
   const fetchMappings = async (sheet, searchQuery = '') => {
     setIsLoadingMappings(true);
     try {
-      const url = `/api/international-zones/mappings?courier=${encodeURIComponent(sheet.courier)}&type=${encodeURIComponent(sheet.type)}&effective_from=${encodeURIComponent(sheet.effective_from)}&effective_to=${encodeURIComponent(sheet.effective_to)}&search=${encodeURIComponent(searchQuery)}`;
+      const url = `${API_BASE_URL}/international-zones/mappings?courier=${encodeURIComponent(sheet.courier)}&type=${encodeURIComponent(sheet.type)}&effective_from=${encodeURIComponent(sheet.effective_from)}&effective_to=${encodeURIComponent(sheet.effective_to)}&search=${encodeURIComponent(searchQuery)}`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.success) {
@@ -103,7 +104,7 @@ export function InternationalZone() {
     }
 
     try {
-      const url = `/api/international-zones/groups?courier=${encodeURIComponent(sheet.courier)}&type=${encodeURIComponent(sheet.type)}&effective_from=${encodeURIComponent(sheet.effective_from)}&effective_to=${encodeURIComponent(sheet.effective_to)}`;
+      const url = `${API_BASE_URL}/international-zones/groups?courier=${encodeURIComponent(sheet.courier)}&type=${encodeURIComponent(sheet.type)}&effective_from=${encodeURIComponent(sheet.effective_from)}&effective_to=${encodeURIComponent(sheet.effective_to)}`;
       const res = await fetch(url, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
@@ -145,7 +146,7 @@ export function InternationalZone() {
     reader.onload = async (event) => {
       const fileData = event.target.result.split(',')[1];
       try {
-        const response = await fetch('/api/international-zones/upload', {
+        const response = await fetch(`${API_BASE_URL}/international-zones/upload`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -188,7 +189,7 @@ export function InternationalZone() {
   };
 
   const handleDownloadSample = () => {
-    window.open('/api/international-zones/sample', '_blank');
+    window.open(`${API_BASE_URL}/international-zones/sample`, '_blank');
   };
 
   const filteredSheets = zoneSheets.filter(sheet => {

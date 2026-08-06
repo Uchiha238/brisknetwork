@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Plane, Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
 import { Footer } from "@/components/shared/Footer";
 
+import { API_BASE_URL } from "@/services/api";
+
 export function ModeMaster() {
   const [isAdding, setIsAdding] = useState(false);
   const [modes, setModes] = useState([]);
@@ -12,7 +14,7 @@ export function ModeMaster() {
   });
 
   const fetchModes = () => {
-    fetch('/api/modes')
+    fetch(`${API_BASE_URL}/modes`)
       .then(res => res.json())
       .then(data => setModes(data))
       .catch(err => console.error('Fetch modes error:', err));
@@ -25,7 +27,7 @@ export function ModeMaster() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('/api/modes', {
+      const res = await fetch(`${API_BASE_URL}/modes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: formData.name, type: formData.type })
@@ -44,7 +46,7 @@ export function ModeMaster() {
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this mode?')) return;
     try {
-      await fetch(`/api/modes/${id}`, { method: 'DELETE' });
+      await fetch(`${API_BASE_URL}/modes/${id}`, { method: 'DELETE' });
       fetchModes();
     } catch (err) {
       console.error('Delete mode error:', err);

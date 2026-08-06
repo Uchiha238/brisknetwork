@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../services/api';
+import { api, API_BASE_URL } from '../../services/api';
 import { Button } from "@/components/ui/button";
 import { 
   Plus, Search, Printer, Eye, Trash2, Download, 
@@ -32,7 +32,7 @@ export function InvoiceManager({ mode: initialMode, type, setCurrentPage }) {
   // Fetch list of invoices
   const fetchInvoices = async () => {
     try {
-      const res = await fetch('/api/invoices');
+      const res = await fetch(`${API_BASE_URL}/invoices`);
       const data = await res.json();
       // Filter invoices by type (Export, Import, Domestic)
       const filtered = data.filter(inv => {
@@ -85,7 +85,7 @@ export function InvoiceManager({ mode: initialMode, type, setCurrentPage }) {
       return;
     }
     try {
-      const res = await fetch(`/api/invoices/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE_URL}/invoices/${id}`, { method: 'DELETE' });
       const result = await res.json();
       if (result.success) {
         showNotification('success', `Invoice ${invNumber} deleted successfully.`);
@@ -110,7 +110,7 @@ export function InvoiceManager({ mode: initialMode, type, setCurrentPage }) {
     setUnbilledShipments([]);
     try {
       const res = await fetch(
-        `/api/invoices/unbilled-shipments?customer_id=${selectedCustomerId}&from_date=${fromDate}&to_date=${toDate}&invoice_type=${type}`
+        `${API_BASE_URL}/invoices/unbilled-shipments?customer_id=${selectedCustomerId}&from_date=${fromDate}&to_date=${toDate}&invoice_type=${type}`
       );
       if (!res.ok) throw new Error('Failed to fetch unbilled shipments');
       const data = await res.json();
@@ -143,7 +143,7 @@ export function InvoiceManager({ mode: initialMode, type, setCurrentPage }) {
     }
     setGeneratingInvoice(true);
     try {
-      const res = await fetch('/api/invoices', {
+      const res = await fetch(`${API_BASE_URL}/invoices`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

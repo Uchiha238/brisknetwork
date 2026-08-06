@@ -5,7 +5,9 @@ import { ArrowLeft, Loader2, AlertCircle, Building2, GitBranch, Plus, Pencil, Tr
 import { Button } from '@/components/ui/button';
 import { Footer } from "@/components/shared/Footer";
 
-const BAPI = '/api/branches';
+import { API_BASE_URL } from '@/services/api';
+
+const BAPI = `${API_BASE_URL}/branches`;
 
 export const emptyBranchForm = {
   branch_name: '', branch_code: '', email: '', contact_no: '',

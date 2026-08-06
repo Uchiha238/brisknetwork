@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Trash2, Upload, Calendar, AlertCircle, CheckCircle2, Loader2, Info } from "lucide-react";
 import { Footer } from "@/components/shared/Footer";
+import { API_BASE_URL } from "@/services/api";
 
 export function InternationalRate() {
   const [rateSheets, setRateSheets] = useState([]);
@@ -21,7 +22,7 @@ export function InternationalRate() {
   const fetchRateSheets = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/international-rates/groups');
+      const res = await fetch(`${API_BASE_URL}/international-rates/groups`);
       const data = await res.json();
       if (data.success) {
         setRateSheets(data.data);
@@ -80,7 +81,7 @@ export function InternationalRate() {
     }
 
     try {
-      const url = `/api/international-rates/groups?courier=${encodeURIComponent(sheet.courier)}&export_import=${encodeURIComponent(sheet.export_import)}&effective_from=${encodeURIComponent(sheet.effective_from)}&effective_to=${encodeURIComponent(sheet.effective_to)}`;
+      const url = `${API_BASE_URL}/international-rates/groups?courier=${encodeURIComponent(sheet.courier)}&export_import=${encodeURIComponent(sheet.export_import)}&effective_from=${encodeURIComponent(sheet.effective_from)}&effective_to=${encodeURIComponent(sheet.effective_to)}`;
       const res = await fetch(url, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
@@ -119,7 +120,7 @@ export function InternationalRate() {
     reader.onload = async (event) => {
       const fileData = event.target.result.split(',')[1];
       try {
-        const response = await fetch('/api/international-rates/upload', {
+        const response = await fetch(`${API_BASE_URL}/international-rates/upload`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

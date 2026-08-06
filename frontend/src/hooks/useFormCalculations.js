@@ -8,6 +8,7 @@
  */
 import { useEffect } from 'react';
 import { calcVolumetricWt, calcChargeableWt, roundToHalfKg, isDomesticCountry } from '../utils/weight';
+import { API_BASE_URL } from '../services/api';
 
 // ── GST helpers (module-private) ──
 
@@ -241,7 +242,7 @@ export function createFieldHandlers({ setFormData, setSelectedCustomerId, setShi
         }
 
         if ((name === 'shipper_zip' || name === 'consignee_zip') && /^\d{6}$/.test(value)) {
-            fetch(`/api/pincode/${value}`)
+            fetch(`${API_BASE_URL}/pincode/${value}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.success) {
