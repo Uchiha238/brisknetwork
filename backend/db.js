@@ -1,65 +1,58 @@
-require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
-const sqlcipher = require('@journeyapps/sqlcipher').verbose();
+const Database = require('better-sqlite3');
 const path = require('path');
 
-// ── Encryption key from environment ──────────────────────────────────
-const ENCRYPTION_KEY = process.env.DB_ENCRYPTION_KEY;
-if (!ENCRYPTION_KEY) {
-  console.error('FATAL: DB_ENCRYPTION_KEY is not set. Create a backend/.env file with this variable.');
-  process.exit(1);
-}
-
-// ── Open the encrypted database ──────────────────────────────────────
+// ── Open / create the database ───────────────────────────────────────
+// No encryption — the DB is created fresh on every deploy and
+// lives in the container filesystem. All schema + seed data is
+// re-created by init() below.
 const dbPath = path.resolve(__dirname, 'courier.db');
-const db = new sqlcipher.Database(dbPath);
+const db = new Database(dbPath);
 
-// CRITICAL: Use serialize() to guarantee PRAGMA key runs BEFORE any other query.
-// Without this, async db.run() calls can race with schema initialization.
-// Also try cipher_compatibility=3 first (Windows SQLCipher default) then fall
-// back to 4 — handles DB files created on different SQLCipher versions.
-db.serialize(() => {
-  // Set the encryption key — must be the very first statement before any query
-  db.run(`PRAGMA key = '${ENCRYPTION_KEY}'`);
-});
+// Enable WAL mode for better concurrency
+db.pragma('journal_mode = WAL');
 
-// Helper for Promisified queries
+// ── Async-compatible wrappers (same API as before) ───────────────────
+// better-sqlite3 is synchronous; we wrap in Promise.resolve() so all
+// existing route code (which uses await db.allAsync / db.runAsync etc.)
+// continues to work without any changes.
+
 db.allAsync = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
+  try {
+    const rows = db.prepare(sql).all(params);
+    return Promise.resolve(rows);
+  } catch (err) {
+    return Promise.reject(err);
+  }
 };
 
 db.getAsync = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
+  try {
+    const row = db.prepare(sql).get(params);
+    return Promise.resolve(row);
+  } catch (err) {
+    return Promise.reject(err);
+  }
 };
 
 db.runAsync = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function(err) {
-      if (err) reject(err);
-      else resolve({ lastID: this.lastID, changes: this.changes });
-    });
-  });
+  try {
+    const result = db.prepare(sql).run(params);
+    return Promise.resolve({ lastID: result.lastInsertRowid, changes: result.changes });
+  } catch (err) {
+    return Promise.reject(err);
+  }
 };
 
 db.execAsync = (sql) => {
-  return new Promise((resolve, reject) => {
-    db.exec(sql, (err) => {
-      if (err) reject(err);
-      else resolve();
-    });
-  });
+  try {
+    db.exec(sql);
+    return Promise.resolve();
+  } catch (err) {
+    return Promise.reject(err);
+  }
 };
 
-// Helper to dynamically add missing columns to a table
+// ── Column migration helper ───────────────────────────────────────────
 const ensureColumnsExist = async (tableName, colDefinitions) => {
   try {
     const tableInfo = await db.allAsync(`PRAGMA table_info(${tableName})`);
@@ -75,7 +68,7 @@ const ensureColumnsExist = async (tableName, colDefinitions) => {
   }
 };
 
-// Initialize tables
+// ── Initialize tables ────────────────────────────────────────────────
 const schemaSql = require('./dbSchema');
 const init = async () => {
   try {
@@ -142,15 +135,15 @@ const init = async () => {
         `);
         await db.execAsync(`
           INSERT INTO international_zones (courier, country, country_code, zone, type, effective_from, effective_to, uploaded_by, uploaded_at)
-          SELECT 
-            courier, 
-            country, 
-            COALESCE((SELECT code FROM countries WHERE UPPER(name) = UPPER(old_z.country) LIMIT 1), 'XX'), 
-            zone, 
-            type, 
-            '2000-01-01', 
-            '9999-12-31', 
-            'ADMIN', 
+          SELECT
+            courier,
+            country,
+            COALESCE((SELECT code FROM countries WHERE UPPER(name) = UPPER(old_z.country) LIMIT 1), 'XX'),
+            zone,
+            type,
+            '2000-01-01',
+            '9999-12-31',
+            'ADMIN',
             datetime('now')
           FROM international_zones_old old_z
         `);
@@ -403,47 +396,23 @@ const init = async () => {
       'ABNW9012C', '9022062667', 'www.brisknetwork.com', 'BN/DOM/'
     );
 
-
     const custCount = (await db.getAsync('SELECT count(*) as count FROM customers')).count;
     if (custCount === 0) {
       await db.runAsync('INSERT INTO customers (code, name, phone, email, city, state, gst_no, address, pincode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', ['CUST001', 'Global Traders', '9876543210', 'info@global.com', 'MUMBAI', 'MAHARASHTRA', '27AAAAA1234A1Z1', '123 Market St', '400001']);
       await db.runAsync('INSERT INTO customers (code, name, phone, email, city, state, gst_no, address, pincode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', ['CUST002', 'Modern Logistics', '9123456789', 'contact@modern.com', 'DELHI', 'DELHI', '07BBBBB5678B1Z2', '45 North Ave', '110001']);
     }
 
-    // Migration for existing empty records (like TST001)
-    await db.runAsync(`
-      UPDATE customers 
-      SET address = 'DEFAULT ADDRESS, OFFICE NO 101' WHERE address IS NULL OR address = '';
-    `);
-    await db.runAsync(`
-      UPDATE customers 
-      SET pincode = '400001' WHERE pincode IS NULL OR pincode = '';
-    `);
-    await db.runAsync(`
-      UPDATE customers 
-      SET state = 'MAHARASHTRA' WHERE state IS NULL OR state = '';
-    `);
-    await db.runAsync(`
-      UPDATE customers 
-      SET city = 'MUMBAI' WHERE city IS NULL OR city = '';
-    `);
-    await db.runAsync(`
-      UPDATE customers 
-      SET domestic_rate_group = 'Domestic 1' WHERE domestic_rate_group IS NULL OR domestic_rate_group = '';
-    `);
-    await db.runAsync(`
-      UPDATE customers 
-      SET international_rate_group = 'CO COURIER 1' WHERE international_rate_group IS NULL OR international_rate_group = '';
-    `);
-    await db.runAsync(`
-      UPDATE customers 
-      SET domestic_fuel_group = 'Group A' WHERE domestic_fuel_group IS NULL OR domestic_fuel_group = '';
-    `);
-    await db.runAsync(`
-      UPDATE customers 
-      SET international_fuel_group = 'Group A' WHERE international_fuel_group IS NULL OR international_fuel_group = '';
-    `);
+    // Migration for existing empty records
+    await db.runAsync(`UPDATE customers SET address = 'DEFAULT ADDRESS, OFFICE NO 101' WHERE address IS NULL OR address = ''`);
+    await db.runAsync(`UPDATE customers SET pincode = '400001' WHERE pincode IS NULL OR pincode = ''`);
+    await db.runAsync(`UPDATE customers SET state = 'MAHARASHTRA' WHERE state IS NULL OR state = ''`);
+    await db.runAsync(`UPDATE customers SET city = 'MUMBAI' WHERE city IS NULL OR city = ''`);
+    await db.runAsync(`UPDATE customers SET domestic_rate_group = 'Domestic 1' WHERE domestic_rate_group IS NULL OR domestic_rate_group = ''`);
+    await db.runAsync(`UPDATE customers SET international_rate_group = 'CO COURIER 1' WHERE international_rate_group IS NULL OR international_rate_group = ''`);
+    await db.runAsync(`UPDATE customers SET domestic_fuel_group = 'Group A' WHERE domestic_fuel_group IS NULL OR domestic_fuel_group = ''`);
+    await db.runAsync(`UPDATE customers SET international_fuel_group = 'Group A' WHERE international_fuel_group IS NULL OR international_fuel_group = ''`);
 
+    console.log('Database initialized successfully.');
   } catch (err) {
     console.error('Database initialization error:', err);
   }
