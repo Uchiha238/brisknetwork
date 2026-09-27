@@ -30,7 +30,11 @@ const schemaSql = `
     international_fuel_group TEXT,
     mis_emails TEXT,
     mis_format TEXT,
-    payment_type TEXT DEFAULT 'Credit'
+    parent_company TEXT,
+    customer_type TEXT DEFAULT 'Domestic',
+    payment_type TEXT DEFAULT 'Credit',
+    is_consignee INTEGER DEFAULT 0,
+    shipper_id INTEGER
   );
 
   CREATE TABLE IF NOT EXISTS rate_groups (

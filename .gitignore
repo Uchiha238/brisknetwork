@@ -25,7 +25,11 @@ dist-ssr
 backend/.env
 *.env.local
 
-# DB backups
+# DB files & backups
+*.db
+*.db-shm
+*.db-wal
+courier.db
 courier_plain_backup.db
 
 # Scratch / temp

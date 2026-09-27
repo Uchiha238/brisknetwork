@@ -164,7 +164,9 @@ const init = async () => {
       mis_format: "TEXT",
       customer_type: "TEXT DEFAULT 'Domestic'",
       parent_company: "TEXT",
-      payment_type: "TEXT DEFAULT 'Credit'"
+      payment_type: "TEXT DEFAULT 'Credit'",
+      is_consignee: "INTEGER DEFAULT 0",
+      shipper_id: "INTEGER"
     });
 
     await ensureColumnsExist('shipments', {

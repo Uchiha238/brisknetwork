@@ -96,10 +96,10 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
             const data = await api.getCustomers();
             setCustomers(data);
             
-            // Generate and pre-populate code if not editing an existing customer
-            if (!isEditing) {
+            // Generate and pre-populate code if creating new customer
+            if (!editingCustomer) {
                 const nextCode = generateCustomerCode(data);
-                setFormData(prev => ({ ...prev, code: nextCode }));
+                setFormData(prev => ({ ...prev, code: prev.code || nextCode }));
             }
         } catch (err) {
             console.error('Fetch customers error:', err);
@@ -135,14 +135,12 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
                 payment_type: editingCustomer.payment_type || 'Credit',
                 cft: editingCustomer.cft || '',
             });
-            // Fetch cities for the customer's state so the dropdown is correctly populated!
             if (editingCustomer.state) {
                 const stateObj = masters.states.find(s => s.name === editingCustomer.state || `${s.name} (${s.id || '27'})` === editingCustomer.state);
                 if (stateObj) {
                     fetch(`${API_BASE_URL}/masters/cities?state_id=${stateObj.id}`)
                         .then(res => res.json())
                         .then(cities => {
-                            // Ensure the customer's city is in the dropdown
                             if (editingCustomer.city && !cities.some(c => c.name.toUpperCase() === editingCustomer.city.toUpperCase())) {
                                 cities.push({ id: 9999, name: editingCustomer.city.toUpperCase(), state_id: stateObj.id });
                             }
@@ -151,34 +149,8 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
                         .catch(err => console.error('Error fetching cities on edit init:', err));
                 }
             }
-        } else {
-            setIsEditing(false);
-            setFormData({
-                parent_company: '',
-                code: '',
-                name: '',
-                address: '',
-                city: '',
-                pincode: '',
-                state: '',
-                gst_no: '',
-                phone: '',
-                email: '',
-                sac_code: '',
-                gst_charges: '',
-                customer_type: '',
-                domestic_rate_group: '',
-                domestic_fuel_group: '',
-                international_rate_group: '',
-                international_fuel_group: '',
-                mis_emails: '',
-                mis_format: '',
-                payment_type: 'Credit',
-                cft: '',
-                password: 'admin@brisk2026'
-            });
         }
-    }, [editingCustomer, masters.states]);
+    }, [editingCustomer]);
 
     useEffect(() => {
         if (formData.state) {
@@ -271,7 +243,16 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        if (e && e.preventDefault) e.preventDefault();
+        
+        if (!formData.name || !formData.name.trim()) {
+            alert('Please enter Customer Name.');
+            return;
+        }
+
+        const submitCode = formData.code || generateCustomerCode(customers);
+        const payload = { ...formData, code: submitCode };
+
         try {
             const method = isEditing ? 'PUT' : 'POST';
             const url = isEditing ? `${API_BASE_URL}/customers/${formData.id}` : `${API_BASE_URL}/customers`;
@@ -279,10 +260,12 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
             const response = await fetch(url, {
                 method: method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
-            if (response.ok) {
-                alert(isEditing ? 'Customer Updated!' : 'Customer Added!');
+            const data = await response.json();
+            
+            if (response.ok && data.success !== false) {
+                alert(isEditing ? 'Customer Updated Successfully!' : 'Customer Added Successfully!');
                 fetchCustomers();
                 setIsEditing(false);
                 setFormData({
@@ -309,9 +292,14 @@ export function AddCustomer({ onBack, onSuccess, editingCustomer }) {
                     cft: '',
                     password: 'admin@brisk2026'
                 });
+                if (onSuccess) onSuccess();
+                if (onBack) onBack();
+            } else {
+                alert(`Error saving customer: ${data.error || 'Server rejected the request.'}`);
             }
         } catch (error) {
             console.error('Error saving customer:', error);
+            alert(`Network error: ${error.message}`);
         }
     };
 

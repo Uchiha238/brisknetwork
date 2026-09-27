@@ -14,22 +14,22 @@ const validate = {
   },
   
   email(val) {
-    if (!val) return null;
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) ? null : 'Invalid email address format';
+    if (!val || typeof val !== 'string' || val.trim() === '') return null;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim()) ? null : 'Invalid email address format';
   },
   
   phone(val) {
-    if (!val) return null;
-    return /^\+?\d[\d -]{6,15}$/.test(val) ? null : 'Invalid phone number format';
+    if (!val || typeof val !== 'string' || val.trim() === '') return null;
+    return /^\+?[\d\s-]{7,20}$/.test(val.trim()) ? null : 'Invalid phone number format';
   },
   
   pincode(val) {
-    if (!val) return null;
-    return /^\d{5,10}$/.test(val) ? null : 'Invalid pincode format';
+    if (!val || typeof val !== 'string' || val.trim() === '') return null;
+    return /^\d{5,10}$/.test(val.trim()) ? null : 'Invalid pincode format';
   },
   
   number(val, name) {
-    if (val === undefined || val === null) return null;
+    if (val === undefined || val === null || val === '' || (typeof val === 'string' && val.trim() === '')) return null;
     return isNaN(Number(val)) ? `${name} must be a valid number` : null;
   }
 };
