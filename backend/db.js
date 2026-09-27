@@ -275,11 +275,17 @@ const init = async () => {
       fuel_group_id: "INTEGER"
     });
 
-    // 3. Seeding
-    const userCount = (await db.getAsync('SELECT count(*) as count FROM users')).count;
-    if (userCount === 0) {
-      await db.runAsync('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', ['admin', 'admin123', 'admin']);
-    }
+    // 3. Seeding Default Admin Users
+    const seedUser = async (uname, pass, role) => {
+      const existing = await db.getAsync('SELECT id FROM users WHERE LOWER(TRIM(username)) = LOWER(TRIM(?))', [uname]);
+      if (!existing) {
+        await db.runAsync('INSERT INTO users (username, password, role) VALUES (?, ?, ?)', [uname, pass, role]);
+      } else {
+        await db.runAsync('UPDATE users SET password = ?, role = ? WHERE id = ?', [pass, role, existing.id]);
+      }
+    };
+    await seedUser('ratnakar nayak', 'ratnakar@123', 'admin');
+    await seedUser('admin', 'ratnakar@123', 'admin');
 
     const stateCount = (await db.getAsync('SELECT count(*) as count FROM states')).count;
     if (stateCount === 0) {

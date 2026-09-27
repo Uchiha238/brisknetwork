@@ -9,12 +9,12 @@ router.post('/login', asyncHandler(async (req, res) => {
   if (reqErr) return res.status(400).json({ success: false, error: reqErr });
 
   const { username, password } = req.body;
-  const user = await db.getAsync('SELECT * FROM users WHERE username = ? AND password = ?', [username, password]);
+  const user = await db.getAsync('SELECT * FROM users WHERE LOWER(TRIM(username)) = LOWER(TRIM(?)) AND password = ?', [username, password]);
   
   if (user) {
     res.json({ success: true, user: { id: user.id, username: user.username, role: user.role } });
   } else {
-    res.status(401).json({ success: false, message: 'Invalid credentials' });
+    res.status(401).json({ success: false, message: 'Invalid username or password' });
   }
 }));
 

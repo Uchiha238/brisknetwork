@@ -30,12 +30,19 @@ function checkIsAdminPath() {
   if (typeof window === 'undefined') return false;
   const path = window.location.pathname.toLowerCase();
   const search = window.location.search.toLowerCase();
-  return path.startsWith('/admin') || path.startsWith('/app') || path.startsWith('/dashboard') || search.includes('admin') || search.includes('print-invoice');
+  return path.startsWith('/admin') || path.startsWith('/login') || path.startsWith('/app') || path.startsWith('/dashboard') || search.includes('admin') || search.includes('print-invoice');
 }
 
 function App() {
   const [isAdminRoute, setIsAdminRoute] = useState(checkIsAdminPath)
-  const [user, setUser] = useState({ name: 'Admin', role: 'admin' })
+  const [user, setUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('om-courier-user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (e) {
+      return null;
+    }
+  })
   const [currentPage, setCurrentPage] = useState("dashboard")
   const [editingCustomer, setEditingCustomer] = useState(null)
   const [editingShipmentId, setEditingShipmentId] = useState(null)
@@ -46,13 +53,6 @@ function App() {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
-
-  useEffect(() => {
-    const savedUser = localStorage.getItem('om-courier-user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
   }, []);
 
   const handleEnterAdmin = () => {

@@ -62,7 +62,7 @@ export function Login({ onLogin, onBack }) {
             <Input 
               value={username} 
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="admin" 
+              placeholder="Enter username" 
               className="h-11 border-2 border-slate-200 focus:border-blue-600 focus:ring-0 rounded-lg font-bold text-slate-700" 
             />
           </div>

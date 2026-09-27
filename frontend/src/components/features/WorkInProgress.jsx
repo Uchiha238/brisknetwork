@@ -30,17 +30,6 @@ export function WorkInProgress({ onEnterAdmin }) {
             </span>
           </div>
         </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onEnterAdmin}
-            className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 hover:border-blue-500/50 text-xs font-bold text-slate-300 hover:text-white transition-all shadow-sm hover:shadow-blue-500/10 active:scale-95 cursor-pointer"
-          >
-            <Lock className="w-3.5 h-3.5 text-blue-400 group-hover:text-blue-300" />
-            <span>Staff Portal</span>
-            <ArrowRight className="w-3 h-3 text-slate-500 group-hover:translate-x-0.5 transition-transform" />
-          </button>
-        </div>
       </header>
 
       {/* Main Hero Content */}
@@ -141,14 +130,7 @@ export function WorkInProgress({ onEnterAdmin }) {
       {/* Footer */}
       <footer className="relative z-10 w-full max-w-7xl mx-auto px-6 py-6 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
         <p>© {new Date().getFullYear()} OM Courier & Logistics Network. All rights reserved.</p>
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={onEnterAdmin}
-            className="hover:text-blue-400 transition-colors text-slate-400 font-medium"
-          >
-            Admin Sign In →
-          </button>
-        </div>
+        <p className="text-slate-600 font-medium">Enterprise Freight & Express Solutions</p>
       </footer>
     </div>
   );
