@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { WorkInProgress } from "./components/features/WorkInProgress"
 import { DashboardLayout } from "./components/layout/DashboardLayout"
 import { AddUnifiedShipmentForm } from "./components/features/AddUnifiedShipmentForm"
 import { AdminDashboard } from "./components/features/AdminDashboard"
@@ -25,12 +26,27 @@ import { ListShipments } from "./components/features/ListShipments"
 import { InvoiceManager } from "./components/features/InvoiceManager"
 import { PrintInvoice } from "./components/features/PrintInvoice"
 
+function checkIsAdminPath() {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname.toLowerCase();
+  const search = window.location.search.toLowerCase();
+  return path.startsWith('/admin') || path.startsWith('/app') || path.startsWith('/dashboard') || search.includes('admin') || search.includes('print-invoice');
+}
 
 function App() {
+  const [isAdminRoute, setIsAdminRoute] = useState(checkIsAdminPath)
   const [user, setUser] = useState({ name: 'Admin', role: 'admin' })
   const [currentPage, setCurrentPage] = useState("dashboard")
   const [editingCustomer, setEditingCustomer] = useState(null)
   const [editingShipmentId, setEditingShipmentId] = useState(null)
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setIsAdminRoute(checkIsAdminPath());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('om-courier-user');
@@ -38,6 +54,16 @@ function App() {
       setUser(JSON.parse(savedUser));
     }
   }, []);
+
+  const handleEnterAdmin = () => {
+    window.history.pushState({}, '', '/admin');
+    setIsAdminRoute(true);
+  };
+
+  const handleExitToLanding = () => {
+    window.history.pushState({}, '', '/');
+    setIsAdminRoute(false);
+  };
 
   const handleLogin = (userData) => {
     setUser(userData);
@@ -47,6 +73,7 @@ function App() {
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem('om-courier-user');
+    handleExitToLanding();
   };
 
   const handlePageChange = (page) => {
@@ -66,8 +93,13 @@ function App() {
     return <PrintInvoice invoiceId={printInvoiceId} />;
   }
 
+  // If visitor is on the public root domain (omcouriers.com / omcourier.com)
+  if (!isAdminRoute) {
+    return <WorkInProgress onEnterAdmin={handleEnterAdmin} />;
+  }
+
   if (!user) {
-    return <Login onLogin={handleLogin} />;
+    return <Login onLogin={handleLogin} onBack={handleExitToLanding} />;
   }
 
 

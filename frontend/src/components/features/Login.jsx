@@ -5,7 +5,7 @@ import logo from "@/assets/logo.png";
 
 import { API_BASE_URL } from "@/services/api";
 
-export function Login({ onLogin }) {
+export function Login({ onLogin, onBack }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -38,23 +38,32 @@ export function Login({ onLogin }) {
 
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-10 border border-slate-200">
-        <div className="flex justify-center mb-10">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-10 border border-slate-200 relative">
+        {onBack && (
+          <button 
+            type="button"
+            onClick={onBack}
+            className="absolute top-6 left-6 text-[11px] font-bold text-slate-500 hover:text-blue-600 flex items-center gap-1 transition-colors cursor-pointer"
+          >
+            ← Public Website
+          </button>
+        )}
+        <div className="flex justify-center mb-8 mt-2">
           <img src={logo} alt="Logo" className="h-20 object-contain" />
         </div>
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none">OM COURIER SYSTEM</h2>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">Logistics Management Portal</p>
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-none">OM COURIER SYSTEM</h2>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">Staff & Admin Management Portal</p>
         </div>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-1.5">
             <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Username</label>
             <Input 
               value={username} 
               onChange={(e) => setUsername(e.target.value)}
               placeholder="admin" 
-              className="h-12 border-2 border-slate-200 focus:border-blue-600 focus:ring-0 rounded-lg font-bold text-slate-700" 
+              className="h-11 border-2 border-slate-200 focus:border-blue-600 focus:ring-0 rounded-lg font-bold text-slate-700" 
             />
           </div>
           <div className="space-y-1.5">
@@ -64,7 +73,7 @@ export function Login({ onLogin }) {
               value={password} 
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••" 
-              className="h-12 border-2 border-slate-200 focus:border-blue-600 focus:ring-0 rounded-lg font-bold text-slate-700" 
+              className="h-11 border-2 border-slate-200 focus:border-blue-600 focus:ring-0 rounded-lg font-bold text-slate-700" 
             />
           </div>
           
@@ -74,18 +83,18 @@ export function Login({ onLogin }) {
             </div>
           )}
           
-          <Button type="submit" className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-[0.1em] text-sm shadow-lg shadow-blue-200 transition-all active:scale-95 rounded-xl">
+          <Button type="submit" className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-[0.1em] text-xs shadow-lg shadow-blue-200 transition-all active:scale-95 rounded-xl">
             Sign In to Dashboard
           </Button>
         </form>
         
-        <div className="mt-12 text-center">
-          <div className="h-px bg-slate-100 w-full mb-6"></div>
+        <div className="mt-8 text-center">
+          <div className="h-px bg-slate-100 w-full mb-4"></div>
           <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
             Developed by SVP INFOTECH © 2026
           </p>
           <p className="text-[8px] text-slate-300 font-medium uppercase tracking-tighter mt-1">
-            Build v2.4.922 - Local Environment
+            Build v2.4.922 - Production Ready
           </p>
         </div>
       </div>
