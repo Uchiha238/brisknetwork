@@ -189,18 +189,20 @@ app.use((req, res, next) => {
   next();
 });
 
+const { requireAuth } = require('./utils/auth');
+
 // --- Register Modular Routers ---
 app.use('/api', require('./routes/auth'));
-app.use('/api/customers', require('./routes/customers'));
-app.use('/api/shipments', require('./routes/shipments'));
-app.use('/api/reports', require('./routes/reports'));
-app.use('/api/masters', require('./routes/masters'));
-app.use('/api/company', require('./routes/company'));
-app.use('/api/branches', require('./routes/branches'));
-app.use('/api/fuel-entries', require('./routes/fuel'));
-app.use('/api/invoices', require('./routes/invoices'));
-app.use('/api', require('./routes/shipping'));
-app.use('/api', require('./routes/misc'));
+app.use('/api/customers', requireAuth, require('./routes/customers'));
+app.use('/api/shipments', requireAuth, require('./routes/shipments'));
+app.use('/api/reports', requireAuth, require('./routes/reports'));
+app.use('/api/masters', requireAuth, require('./routes/masters'));
+app.use('/api/company', requireAuth, require('./routes/company'));
+app.use('/api/branches', requireAuth, require('./routes/branches'));
+app.use('/api/fuel-entries', requireAuth, require('./routes/fuel'));
+app.use('/api/invoices', requireAuth, require('./routes/invoices'));
+app.use('/api', requireAuth, require('./routes/shipping'));
+app.use('/api', requireAuth, require('./routes/misc'));
 
 // --- Error Handler Middleware ---
 app.use((err, req, res, next) => {

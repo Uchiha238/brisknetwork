@@ -26,10 +26,10 @@ export function Login({ onLogin, onBack }) {
         body: JSON.stringify({ username, password }),
       });
       const data = await response.json();
-      if (data.success) {
-        onLogin(data.user);
+      if (data.success && data.token) {
+        onLogin(data.user, data.token);
       } else {
-        setError(data.message || 'Invalid credentials');
+        setError(data.message || data.error || 'Invalid credentials');
       }
     } catch (err) {
       setError('Connection refused. Is the server running?');
