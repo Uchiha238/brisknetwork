@@ -11,6 +11,27 @@ function base64UrlDecode(str) {
 }
 
 /**
+ * Parses cookies from raw Cookie header
+ */
+function parseCookies(req) {
+  const list = {};
+  const cookieHeader = req.headers && req.headers.cookie;
+  if (!cookieHeader) return list;
+  cookieHeader.split(';').forEach(cookie => {
+    let [name, ...rest] = cookie.split('=');
+    name = name?.trim();
+    if (!name) return;
+    const value = rest.join('=').trim();
+    try {
+      list[name] = decodeURIComponent(value);
+    } catch (e) {
+      list[name] = value;
+    }
+  });
+  return list;
+}
+
+/**
  * Generate a cryptographically signed HMAC-SHA256 JWT
  * @param {object} payload - user data to encode
  * @param {number} expiresInSeconds - validity duration (default: 7 days)
@@ -67,18 +88,23 @@ function verifyToken(token) {
 }
 
 /**
- * Express middleware to guard protected routes
+ * Express middleware to guard protected routes via HttpOnly cookie or Bearer token
  */
 function requireAuth(req, res, next) {
-  const authHeader = req.headers['authorization'] || req.headers['Authorization'];
-  let token = null;
+  // 1. Try HttpOnly cookie first
+  const cookies = req.cookies || parseCookies(req);
+  let token = cookies.token || cookies['om-token'] || null;
 
-  if (authHeader && typeof authHeader === 'string' && authHeader.toLowerCase().startsWith('bearer ')) {
-    token = authHeader.slice(7).trim();
-  } else if (req.headers['x-auth-token']) {
-    token = req.headers['x-auth-token'];
-  } else if (req.query && req.query.token) {
-    token = req.query.token;
+  // 2. Fall back to Authorization Bearer header (for API clients, curl, testing)
+  if (!token) {
+    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+    if (authHeader && typeof authHeader === 'string' && authHeader.toLowerCase().startsWith('bearer ')) {
+      token = authHeader.slice(7).trim();
+    } else if (req.headers['x-auth-token']) {
+      token = req.headers['x-auth-token'];
+    } else if (req.query && req.query.token) {
+      token = req.query.token;
+    }
   }
 
   if (!token) {
@@ -105,5 +131,6 @@ function requireAuth(req, res, next) {
 module.exports = {
   generateToken,
   verifyToken,
-  requireAuth
+  requireAuth,
+  parseCookies
 };

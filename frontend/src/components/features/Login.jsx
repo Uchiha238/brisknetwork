@@ -23,11 +23,12 @@ export function Login({ onLogin, onBack }) {
       const response = await fetch(`${API_BASE_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ username, password }),
       });
       const data = await response.json();
-      if (data.success && data.token) {
-        onLogin(data.user, data.token);
+      if (data.success) {
+        onLogin(data.user);
       } else {
         setError(data.message || data.error || 'Invalid credentials');
       }

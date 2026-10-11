@@ -31,8 +31,7 @@ export function clearAuthSession() {
 }
 
 // ─── Transparent Global Fetch Interceptor ────────────────────────────────────
-// Attaches Authorization: Bearer <token> to all /api calls across the frontend
-// and catches 401 Unauthorized to trigger session expiration
+// Attaches credentials: 'include' for HttpOnly cookies and catches 401 Unauthorized
 if (typeof window !== 'undefined' && !window.__om_fetch_interceptor_registered__) {
   window.__om_fetch_interceptor_registered__ = true;
   const originalFetch = window.fetch.bind(window);
@@ -59,11 +58,13 @@ if (typeof window !== 'undefined' && !window.__om_fetch_interceptor_registered__
         headersObj = { ...init.headers };
       }
 
+      // If a Bearer token exists (fallback), send it too
       if (token && !headersObj['Authorization'] && !headersObj['authorization']) {
         headersObj['Authorization'] = `Bearer ${token}`;
       }
 
-      init = { ...init, headers: headersObj };
+      // Always include cookies for API calls
+      init = { ...init, headers: headersObj, credentials: 'include' };
     }
 
     const response = await originalFetch(input, init);
@@ -92,6 +93,7 @@ async function apiFetch(endpoint, options = {}) {
   const res = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
+    credentials: 'include',
   });
 
   // Guard: if the server returns non-JSON (e.g. HTML error page when backend is down),
@@ -129,6 +131,8 @@ export const api = {
   // Auth
   login: (credentials) =>
     apiFetch('/login', jsonBody('POST', credentials)),
+  logout: () =>
+    apiFetch('/logout', { method: 'POST' }),
 
   // Dashboard
   getDashboardStats: () => apiFetch('/dashboard'),

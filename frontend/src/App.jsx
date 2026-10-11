@@ -34,22 +34,12 @@ function checkIsAdminPath() {
 }
 
 function App() {
-  const [isAdminRoute, setIsAdminRoute] = useState(checkIsAdminPath)
-  const [user, setUser] = useState(() => {
-    try {
-      const savedUser = localStorage.getItem('om-courier-user');
-      const savedToken = localStorage.getItem('om-courier-token');
-      return savedUser && savedToken ? JSON.parse(savedUser) : null;
-    } catch (e) {
-      return null;
-    }
-  })
-  const [isValidatingAuth, setIsValidatingAuth] = useState(() => {
-    return Boolean(localStorage.getItem('om-courier-token') && localStorage.getItem('om-courier-user'));
-  });
-  const [currentPage, setCurrentPage] = useState("dashboard")
-  const [editingCustomer, setEditingCustomer] = useState(null)
-  const [editingShipmentId, setEditingShipmentId] = useState(null)
+  const [isAdminRoute, setIsAdminRoute] = useState(checkIsAdminPath);
+  const [user, setUser] = useState(null);
+  const [isValidatingAuth, setIsValidatingAuth] = useState(checkIsAdminPath);
+  const [currentPage, setCurrentPage] = useState("dashboard");
+  const [editingCustomer, setEditingCustomer] = useState(null);
+  const [editingShipmentId, setEditingShipmentId] = useState(null);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -69,33 +59,31 @@ function App() {
     setIsAdminRoute(false);
   };
 
-  const handleLogin = (userData, tokenData) => {
+  const handleLogin = (userData) => {
     setUser(userData);
-    localStorage.setItem('om-courier-user', JSON.stringify(userData));
-    if (tokenData) {
-      localStorage.setItem('om-courier-token', tokenData);
-    }
+    setIsValidatingAuth(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+    } catch (e) {
+      // ignore
+    }
     setUser(null);
-    localStorage.removeItem('om-courier-user');
-    localStorage.removeItem('om-courier-token');
     handleExitToLanding();
   };
 
-  // Verify stored token with backend on startup
+  // Verify server-side HttpOnly cookie session on mount/route change
   useEffect(() => {
-    const token = localStorage.getItem('om-courier-token');
-    if (!token) {
-      setUser(null);
-      localStorage.removeItem('om-courier-user');
+    if (!isAdminRoute) {
       setIsValidatingAuth(false);
       return;
     }
 
+    setIsValidatingAuth(true);
     fetch('/api/auth/me', {
-      headers: { 'Authorization': `Bearer ${token}` }
+      credentials: 'include'
     })
       .then(res => {
         if (!res.ok) throw new Error('Session invalid');
@@ -104,27 +92,22 @@ function App() {
       .then(data => {
         if (data.success && data.user) {
           setUser(data.user);
-          localStorage.setItem('om-courier-user', JSON.stringify(data.user));
         } else {
-          handleLogout();
+          setUser(null);
         }
       })
-      .catch((err) => {
-        if (err.message === 'Session invalid') {
-          handleLogout();
-        }
+      .catch(() => {
+        setUser(null);
       })
       .finally(() => {
         setIsValidatingAuth(false);
       });
-  }, []);
+  }, [isAdminRoute]);
 
   // Listen for global auth expired events triggered by 401 API responses
   useEffect(() => {
     const handleAuthExpired = () => {
       setUser(null);
-      localStorage.removeItem('om-courier-user');
-      localStorage.removeItem('om-courier-token');
     };
     window.addEventListener('auth:expired', handleAuthExpired);
     return () => window.removeEventListener('auth:expired', handleAuthExpired);
