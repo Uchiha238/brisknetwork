@@ -172,7 +172,7 @@ export function useEditShipmentLoader({ editingShipmentId, customers, setShipmen
               consignee_city: s.consignee_city || '',
               consignee_state: s.consignee_state || '',
               consignee_zone: s.consignee_zone || '',
-              consignee_country: s.consignee_country || 'INDIA',
+              consignee_country: s.consignee_country || (s.type === 'domestic' ? 'INDIA' : ''),
               consignee_phone: s.consignee_phone || '',
               consignee_email: s.consignee_email || '',
               

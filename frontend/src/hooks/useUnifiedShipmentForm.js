@@ -65,7 +65,7 @@ export function useUnifiedShipmentForm(initialType = 'domestic', editingShipment
 
   // ── Field handlers ──
   const { handleChange, handleArrayChange, addArrayItem, removeArrayItem } =
-    createFieldHandlers({ setFormData, setSelectedCustomerId, setShipperSearch, setShipmentType });
+    createFieldHandlers({ setFormData, setSelectedCustomerId, setShipperSearch, setShipmentType, shipmentType });
 
   // ── Submit ──
   const handleSubmit = createSubmitHandler({

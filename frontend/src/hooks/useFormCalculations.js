@@ -178,7 +178,7 @@ export function useGstCalc({ formData, selectedCustomerId, customers, setFormDat
  * Returns the core field-change handlers: handleChange, handleArrayChange,
  * addArrayItem, removeArrayItem.
  */
-export function createFieldHandlers({ setFormData, setSelectedCustomerId, setShipperSearch, setShipmentType }) {
+export function createFieldHandlers({ setFormData, setSelectedCustomerId, setShipperSearch, setShipmentType, shipmentType }) {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -189,6 +189,18 @@ export function createFieldHandlers({ setFormData, setSelectedCustomerId, setShi
             ...prev,
             [name]: type === 'checkbox' ? checked : (type === 'number' || isSelect ? value : value.toUpperCase())
         };
+
+        if (name === 'shipment_type_field') {
+            const newType = (value || '').toLowerCase();
+            setShipmentType(newType);
+            if (newType === 'domestic') {
+                newData.consignee_country = 'INDIA';
+                newData.destination = prev.consignee_city || 'INDIA';
+            } else if (newType === 'international') {
+                newData.consignee_country = prev.consignee_country === 'INDIA' ? '' : (prev.consignee_country || '');
+                newData.destination = prev.consignee_country === 'INDIA' ? '' : (prev.destination || '');
+            }
+        }
 
         if (name === 'payment_mode') {
             const newPayMode = value.toUpperCase();
@@ -302,14 +314,17 @@ export function createFieldHandlers({ setFormData, setSelectedCustomerId, setShi
 
         if (name === 'consignee_country') {
             const isDomestic = isDomesticCountry(value);
-            setShipmentType(isDomestic ? 'domestic' : 'international');
-            newData.destination = (isDomestic ? prev.consignee_city : value.toUpperCase());
+            if (value && value.trim() && !isDomestic && shipmentType === 'domestic') {
+                setShipmentType('international');
+            }
+            const currentType = (value && value.trim() && !isDomestic) ? 'international' : shipmentType;
+            newData.destination = (currentType === 'domestic' ? (prev.consignee_city || 'INDIA') : (value ? value.toUpperCase() : ''));
         }
 
         if (name === 'consignee_city') {
-            const isDomestic = isDomesticCountry(prev.consignee_country);
+            const isDomestic = shipmentType ? shipmentType === 'domestic' : isDomesticCountry(prev.consignee_country);
             if (isDomestic) {
-                newData.destination = value.toUpperCase();
+                newData.destination = value ? value.toUpperCase() : '';
             }
         }
 

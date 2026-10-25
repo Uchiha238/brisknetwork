@@ -10,6 +10,8 @@ import { FinalChargeSection } from './awb/FinalChargeSection';
 import { InvoiceItemsTable } from './awb/InvoiceItemsTable';
 import { useUnifiedShipmentForm } from '../../hooks/useUnifiedShipmentForm';
 
+import { WORLD_COUNTRIES } from '../../utils/countryAutocomplete';
+
 export function AddUnifiedShipmentForm({ initialType = 'domestic', editingShipmentId = null }) {
   const {
     shipmentType, setShipmentType,
@@ -51,10 +53,30 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic', editingShipme
     };
   }, []);
 
+  const datalistCountries = React.useMemo(() => {
+    const names = new Set();
+    const list = [];
+    (masters.countries || []).forEach(c => {
+      const name = typeof c === 'string' ? c : c?.name;
+      if (name && !names.has(name.toUpperCase())) {
+        names.add(name.toUpperCase());
+        list.push(name.toUpperCase());
+      }
+    });
+    WORLD_COUNTRIES.forEach(c => {
+      if (!names.has(c.toUpperCase())) {
+        names.add(c.toUpperCase());
+        list.push(c.toUpperCase());
+      }
+    });
+    list.sort();
+    return list;
+  }, [masters.countries]);
+
   return (
     <div className="bg-white min-h-full p-1 font-sans selection:bg-blue-100">
       <datalist id="countries-list">
-        {masters.countries.map(c => <option key={c.id} value={c.name} />)}
+        {datalistCountries.map(name => <option key={name} value={name} />)}
       </datalist>
 
       {/* Top Action Bar */}
@@ -100,6 +122,7 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic', editingShipme
           setShowShipperSuggestions={setShowShipperSuggestions}
           filteredShipperCustomers={filteredShipperCustomers}
           handleSelectShipper={handleSelectShipper}
+          masters={masters}
         />
         <ConsigneeInfoSection
           formData={formData}
@@ -110,6 +133,8 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic', editingShipme
           setShowConsigneeSuggestions={setShowConsigneeSuggestions}
           filteredConsigneeCustomers={filteredConsigneeCustomers}
           handleSelectConsignee={handleSelectConsignee}
+          shipmentType={shipmentType}
+          masters={masters}
         />
       </div>
 

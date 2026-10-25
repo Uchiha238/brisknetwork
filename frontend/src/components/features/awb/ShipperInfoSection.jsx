@@ -1,6 +1,7 @@
 import React from 'react';
 import { RotateCcw } from 'lucide-react';
 import { FormField, getCountryCallingCode } from '../../shared/FormField';
+import { handleCountryKeyDown, handleCountryBlur } from '../../../utils/countryAutocomplete';
 
 export function ShipperInfoSection({
   formData,
@@ -10,7 +11,8 @@ export function ShipperInfoSection({
   showShipperSuggestions,
   setShowShipperSuggestions,
   filteredShipperCustomers,
-  handleSelectShipper
+  handleSelectShipper,
+  masters
 }) {
   const [highlightedIndex, setHighlightedIndex] = React.useState(-1);
   const listRef = React.useRef(null);
@@ -141,7 +143,15 @@ export function ShipperInfoSection({
         </div>
 
         <FormField onChange={handleChange} label="Country" name="shipper_country" isRed labelWidth="95px">
-          <input list="countries-list" name="shipper_country" value={formData.shipper_country} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none" />
+          <input
+            list="countries-list"
+            name="shipper_country"
+            value={formData.shipper_country || ''}
+            onChange={handleChange}
+            onKeyDown={(e) => handleCountryKeyDown(e, masters?.countries, handleChange)}
+            onBlur={(e) => handleCountryBlur(e, masters?.countries, handleChange)}
+            className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none"
+          />
         </FormField>
 
         {/* Cleaned up Phone Number Input with Static Prefix */}

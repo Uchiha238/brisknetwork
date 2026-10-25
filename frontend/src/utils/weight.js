@@ -22,6 +22,6 @@ export const roundToHalfKg = (wt) => {
 };
 
 export const isDomesticCountry = (country) => {
-  if (!country) return true;
+  if (!country || typeof country !== 'string') return false;
   return country.trim().toUpperCase() === 'INDIA';
 };

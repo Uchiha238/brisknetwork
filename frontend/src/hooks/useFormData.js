@@ -63,7 +63,7 @@ export const createDefaultFormData = (initialType = 'domestic') => ({
   consignee_city: '',
   consignee_state: '',
   consignee_zone: '',
-  consignee_country: 'INDIA',
+  consignee_country: initialType === 'domestic' ? 'INDIA' : '',
   consignee_phone: '',
   consignee_email: '',
   consignee_save: false,

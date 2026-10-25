@@ -2,6 +2,7 @@ import React from 'react';
 import { RotateCcw } from 'lucide-react';
 import { FormField, getCountryCallingCode } from '../../shared/FormField';
 import { isDomesticCountry } from '../../../utils/weight';
+import { handleCountryKeyDown, handleCountryBlur } from '../../../utils/countryAutocomplete';
 
 export function ConsigneeInfoSection({
   formData,
@@ -11,7 +12,9 @@ export function ConsigneeInfoSection({
   showConsigneeSuggestions,
   setShowConsigneeSuggestions,
   filteredConsigneeCustomers,
-  handleSelectConsignee
+  handleSelectConsignee,
+  shipmentType,
+  masters
 }) {
   const [highlightedIndex, setHighlightedIndex] = React.useState(-1);
   const listRef = React.useRef(null);
@@ -29,7 +32,7 @@ export function ConsigneeInfoSection({
     }
   }, [highlightedIndex]);
 
-  const isDomestic = isDomesticCountry(formData.consignee_country);
+  const isDomestic = shipmentType ? shipmentType === 'domestic' : isDomesticCountry(formData.consignee_country);
 
   const callingCode = getCountryCallingCode(formData.consignee_country) || '+91';
   const fullPhone = formData.consignee_phone || '';
@@ -146,7 +149,16 @@ export function ConsigneeInfoSection({
         </div>
 
         <FormField onChange={handleChange} label="Country" name="consignee_country" isRed labelWidth="105px" inputMaxWidth="320px">
-          <input list="countries-list" name="consignee_country" value={formData.consignee_country} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none" />
+          <input
+            list="countries-list"
+            name="consignee_country"
+            value={formData.consignee_country || ''}
+            onChange={handleChange}
+            onKeyDown={(e) => handleCountryKeyDown(e, masters?.countries, handleChange)}
+            onBlur={(e) => handleCountryBlur(e, masters?.countries, handleChange)}
+            placeholder={isDomestic ? 'INDIA' : 'SELECT...'}
+            className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none"
+          />
         </FormField>
 
         {/* Bound Phone Number Input with Static Prefix */}

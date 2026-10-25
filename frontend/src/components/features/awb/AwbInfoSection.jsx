@@ -1,5 +1,6 @@
 import React from 'react';
 import { FormField } from '../../shared/FormField';
+import { handleCountryKeyDown, handleCountryBlur } from '../../../utils/countryAutocomplete';
 
 
 export function AwbInfoSection({
@@ -57,14 +58,29 @@ export function AwbInfoSection({
 
         <div className="grid grid-cols-2 gap-1">
           <FormField onChange={handleChange} label="Type" name="shipment_type_field" isRed labelWidth="85px">
-            <select name="shipment_type_field" value={shipmentType} onChange={(e) => {
-              const type = e.target.value;
-              setShipmentType(type);
-              handleChange(e);
-              if (type === 'domestic') {
-                setFormData(prev => ({ ...prev, consignee_country: 'INDIA' }));
-              }
-            }} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold outline-none">
+            <select
+              name="shipment_type_field"
+              value={shipmentType}
+              onChange={(e) => {
+                const type = e.target.value;
+                setShipmentType(type);
+                handleChange(e);
+                if (type === 'domestic') {
+                  setFormData(prev => ({
+                    ...prev,
+                    consignee_country: 'INDIA',
+                    destination: prev.consignee_city || 'INDIA'
+                  }));
+                } else if (type === 'international') {
+                  setFormData(prev => ({
+                    ...prev,
+                    consignee_country: prev.consignee_country === 'INDIA' ? '' : (prev.consignee_country || ''),
+                    destination: prev.consignee_country === 'INDIA' ? '' : (prev.destination || '')
+                  }));
+                }
+              }}
+              className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold outline-none"
+            >
               <option value="domestic">DOMESTIC</option>
               <option value="international">INTERNATIONAL</option>
             </select>
@@ -118,7 +134,16 @@ export function AwbInfoSection({
           </div>
         ) : (
           <FormField onChange={handleChange} label="Destination" name="consignee_country" isRed labelWidth="85px">
-            <input list="countries-list" name="consignee_country" value={formData.consignee_country} onChange={handleChange} placeholder="SELECT..." className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none" />
+            <input
+              list="countries-list"
+              name="consignee_country"
+              value={formData.consignee_country || ''}
+              onChange={handleChange}
+              onKeyDown={(e) => handleCountryKeyDown(e, masters?.countries, handleChange)}
+              onBlur={(e) => handleCountryBlur(e, masters?.countries, handleChange)}
+              placeholder="SELECT..."
+              className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none"
+            />
           </FormField>
         )}
 
@@ -176,20 +201,23 @@ export function AwbInfoSection({
 
               // Special mapped services
               const specialServices = [
-                { value: 'DOMESTIC EXPRESS', label: 'DOMESTIC EXPRESS - DOMESTIC EXPRESS', courier: 'OM COURIER' },
-                { value: 'DOMESTIC ECONOMY', label: 'DOMESTIC ECONOMY - DOMESTIC ECONOMY', courier: 'OM COURIER' },
-                { value: 'DHL EXP', label: 'DHL EXP - DHL EXP', courier: 'DHL' },
-                { value: 'FEDEX IP', label: 'FEDEX IP - FEDEX IP', courier: 'FEDEX' },
-                { value: 'UPS EXP SAVER', label: 'UPS EXP SAVER - UPS EXP SAVER', courier: 'UPS' },
-                { value: 'BOMBINO SELF PREMIUM', label: 'BOMBINO SELF - BOMBINO SELF PREMIUM', courier: 'BOMBINO' },
-                { value: 'BOMBINO SELF SERVICE', label: 'BOMBINO SELF SERVICE - BOMBINO SELF SERVICE', courier: 'BOMBINO' }
+                { value: 'DOMESTIC EXPRESS', label: 'DOMESTIC EXPRESS - DOMESTIC EXPRESS', courier: 'OM COURIER', type: 'domestic' },
+                { value: 'DOMESTIC ECONOMY', label: 'DOMESTIC ECONOMY - DOMESTIC ECONOMY', courier: 'OM COURIER', type: 'domestic' },
+                { value: 'DHL EXP', label: 'DHL EXP - DHL EXP', courier: 'DHL', type: 'international' },
+                { value: 'FEDEX IP', label: 'FEDEX IP - FEDEX IP', courier: 'FEDEX', type: 'international' },
+                { value: 'UPS EXP SAVER', label: 'UPS EXP SAVER - UPS EXP SAVER', courier: 'UPS', type: 'international' },
+                { value: 'BOMBINO SELF PREMIUM', label: 'BOMBINO SELF - BOMBINO SELF PREMIUM', courier: 'BOMBINO', type: 'international' },
+                { value: 'BOMBINO SELF SERVICE', label: 'BOMBINO SELF SERVICE - BOMBINO SELF SERVICE', courier: 'BOMBINO', type: 'international' }
               ];
 
               const finalOptions = [];
               const processedCouriers = new Set();
 
-              // Add special services if the courier exists in filtered list
+              // Add special services if the courier exists in filtered list and matches current shipmentType
               specialServices.forEach(srv => {
+                if (srv.type && srv.type.toLowerCase() !== shipmentType?.toLowerCase()) {
+                  return;
+                }
                 const isCourierActive = filteredCouriers.some(c => c.name.toUpperCase() === srv.courier.toUpperCase());
                 if (isCourierActive) {
                   finalOptions.push(srv);
