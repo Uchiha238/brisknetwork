@@ -86,6 +86,14 @@ export function ShipperInfoSection({
                     handleSelectShipper(filteredShipperCustomers[highlightedIndex]);
                     setShowShipperSuggestions(false);
                   }
+                } else if (e.key === 'Tab') {
+                  const targetCust = highlightedIndex >= 0 
+                    ? filteredShipperCustomers[highlightedIndex] 
+                    : (filteredShipperCustomers.length > 0 ? filteredShipperCustomers[0] : null);
+                  if (targetCust) {
+                    handleSelectShipper(targetCust);
+                    setShowShipperSuggestions(false);
+                  }
                 } else if (e.key === 'Escape') {
                   setShowShipperSuggestions(false);
                 }

@@ -1,5 +1,6 @@
 import React from 'react';
 import { FormField } from '../../shared/FormField';
+import { handleCurrencyKeyDown, handleCurrencyBlur } from '../../../utils/countryAutocomplete';
 
 export function InvoiceSection({
   formData,
@@ -34,6 +35,8 @@ export function InvoiceSection({
                 name="currency"
                 value={formData.currency || ''}
                 onChange={handleChange}
+                onKeyDown={(e) => handleCurrencyKeyDown(e, handleChange)}
+                onBlur={(e) => handleCurrencyBlur(e, handleChange)}
                 placeholder="INR"
                 className="w-full h-full px-2 border border-slate-300 text-[11px] font-bold uppercase outline-none"
               />

@@ -1,6 +1,6 @@
 import React from 'react';
 import { FormField } from '../../shared/FormField';
-import { handleCountryKeyDown, handleCountryBlur } from '../../../utils/countryAutocomplete';
+import { handleCountryKeyDown, handleCountryBlur, handleCurrencyKeyDown, handleCurrencyBlur } from '../../../utils/countryAutocomplete';
 
 
 export function AwbInfoSection({
@@ -267,6 +267,8 @@ export function AwbInfoSection({
                   name="currency"
                   value={formData.currency || ''}
                   onChange={handleChange}
+                  onKeyDown={(e) => handleCurrencyKeyDown(e, handleChange)}
+                  onBlur={(e) => handleCurrencyBlur(e, handleChange)}
                   placeholder="INR"
                   className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none"
                 />

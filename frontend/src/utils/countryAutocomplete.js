@@ -1,6 +1,37 @@
 /**
- * countryAutocomplete.js — Utility for smart country matching and tab-completion.
+ * countryAutocomplete.js — Utility for smart country and currency matching and tab-completion.
  */
+
+export const POPULAR_COUNTRIES = [
+  "UNITED STATES",
+  "UNITED KINGDOM",
+  "UNITED ARAB EMIRATES",
+  "CANADA",
+  "AUSTRALIA",
+  "GERMANY",
+  "FRANCE",
+  "SPAIN",
+  "ITALY",
+  "NETHERLANDS",
+  "SINGAPORE",
+  "SAUDI ARABIA",
+  "CHINA",
+  "JAPAN",
+  "MALAYSIA",
+  "NEW ZEALAND",
+  "SOUTH AFRICA",
+  "SWITZERLAND",
+  "SWEDEN",
+  "THAILAND",
+  "VIETNAM",
+  "TURKEY",
+  "POLAND",
+  "IRELAND",
+  "BELGIUM",
+  "BRAZIL",
+  "RUSSIA",
+  "INDIA"
+];
 
 export const COUNTRY_ALIASES = {
   'USA': 'UNITED STATES',
@@ -14,6 +45,53 @@ export const COUNTRY_ALIASES = {
   'DUBAI': 'UNITED ARAB EMIRATES',
   'NZ': 'NEW ZEALAND',
   'KSA': 'SAUDI ARABIA',
+  'SPA': 'SPAIN',
+  'ES': 'SPAIN',
+  'GER': 'GERMANY',
+  'DE': 'GERMANY',
+  'FR': 'FRANCE',
+  'FRA': 'FRANCE',
+  'CAN': 'CANADA',
+  'CA': 'CANADA',
+  'IT': 'ITALY',
+  'ITA': 'ITALY',
+  'AUS': 'AUSTRALIA',
+  'AU': 'AUSTRALIA',
+  'IND': 'INDIA',
+  'IN': 'INDIA',
+  'CHI': 'CHINA',
+  'CN': 'CHINA',
+  'JAP': 'JAPAN',
+  'JP': 'JAPAN',
+  'SIN': 'SINGAPORE',
+  'SG': 'SINGAPORE',
+  'MAL': 'MALAYSIA',
+  'MY': 'MALAYSIA',
+  'NET': 'NETHERLANDS',
+  'HOLLAND': 'NETHERLANDS',
+  'NL': 'NETHERLANDS',
+  'SWI': 'SWITZERLAND',
+  'CH': 'SWITZERLAND',
+  'SWE': 'SWEDEN',
+  'SE': 'SWEDEN',
+  'THAI': 'THAILAND',
+  'TH': 'THAILAND',
+  'VIET': 'VIETNAM',
+  'VN': 'VIETNAM',
+  'TUR': 'TURKEY',
+  'TR': 'TURKEY',
+  'RUS': 'RUSSIA',
+  'RU': 'RUSSIA',
+  'BRA': 'BRAZIL',
+  'BR': 'BRAZIL',
+  'IRE': 'IRELAND',
+  'IE': 'IRELAND',
+  'BEL': 'BELGIUM',
+  'BE': 'BELGIUM',
+  'POL': 'POLAND',
+  'PL': 'POLAND',
+  'KOR': 'SOUTH KOREA',
+  'KR': 'SOUTH KOREA'
 };
 
 export const WORLD_COUNTRIES = [
@@ -54,28 +132,28 @@ export const WORLD_COUNTRIES = [
 
 /**
  * Finds the best matching country name given user input.
- * Priority: Exact match -> Alias match -> Prefix startsWith -> Substring includes.
+ * Priority: Alias match -> Exact match -> Priority country prefix -> Master/World list prefix -> Word start -> Substring.
  */
 export const getBestCountryMatch = (query, countryList = []) => {
   if (!query || typeof query !== 'string') return null;
   const q = query.trim().toUpperCase();
   if (!q) return null;
 
-  // 1. Alias match (e.g. USA -> UNITED STATES, UK -> UNITED KINGDOM)
+  // 1. Alias match (e.g. USA -> UNITED STATES, UK -> UNITED KINGDOM, ES -> SPAIN)
   if (COUNTRY_ALIASES[q]) {
     return COUNTRY_ALIASES[q];
   }
 
-  // Combine passed master list and standard world list while preserving order
+  // Combine lists with uniqueness
   const namesSet = new Set();
-  const list = [];
+  const fullList = [];
   
   const add = (name) => {
     if (!name || typeof name !== 'string') return;
     const clean = name.trim().toUpperCase();
     if (clean && !namesSet.has(clean)) {
       namesSet.add(clean);
-      list.push(clean);
+      fullList.push(clean);
     }
   };
 
@@ -83,28 +161,39 @@ export const getBestCountryMatch = (query, countryList = []) => {
   WORLD_COUNTRIES.forEach(add);
 
   // 2. Exact match
-  const exact = list.find(c => c === q);
+  const exact = fullList.find(c => c === q);
   if (exact) return exact;
 
-  // 3. Prefix match (e.g. "AUS" -> "AUSTRALIA")
-  const startsWith = list.find(c => c.startsWith(q));
+  // 3. Prefix match in POPULAR_COUNTRIES first (e.g. "SP" -> "SPAIN", "U" -> "UNITED STATES")
+  const popPrefix = POPULAR_COUNTRIES.find(c => c.startsWith(q));
+  if (popPrefix) return popPrefix;
+
+  // 4. Prefix match in full list (e.g. "AF" -> "AFGHANISTAN", "NOR" -> "NORWAY")
+  const startsWith = fullList.find(c => c.startsWith(q));
   if (startsWith) return startsWith;
 
-  // 4. Substring match
-  const contains = list.find(c => c.includes(q));
+  // 5. Word start match (e.g. "ZEALAND" -> "NEW ZEALAND", "KOREA" -> "SOUTH KOREA")
+  const wordStart = fullList.find(c => c.split(/[\s-]+/).some(w => w.startsWith(q)));
+  if (wordStart) return wordStart;
+
+  // 6. Substring match
+  const contains = fullList.find(c => c.includes(q));
   if (contains) return contains;
 
   return null;
 };
 
 /**
- * Handles Enter or Tab key on country inputs to resolve known aliases (e.g. USA -> UNITED STATES).
+ * Handles Tab and Enter key on country inputs to autoselect the matching option.
  */
 export const handleCountryKeyDown = (e, countries = [], handleChange) => {
   if (e.key === 'Tab' || e.key === 'Enter') {
-    const query = (e.target.value || '').trim().toUpperCase();
-    if (query && COUNTRY_ALIASES[query]) {
-      const match = COUNTRY_ALIASES[query];
+    const rawVal = e.target.value || '';
+    const query = rawVal.trim().toUpperCase();
+    if (!query) return;
+
+    const match = getBestCountryMatch(query, countries);
+    if (match) {
       e.target.value = match;
       if (handleChange) {
         handleChange({
@@ -122,21 +211,105 @@ export const handleCountryKeyDown = (e, countries = [], handleChange) => {
 };
 
 /**
- * Handles blur on country inputs to resolve known aliases (e.g. USA -> UNITED STATES).
- * Leaves partial queries intact so suggestions can be freely browsed and selected.
+ * Handles blur on country inputs to resolve partial queries to the best match.
+ * Uses a small timeout so direct mouse clicks on datalist suggestions are honored first.
  */
 export const handleCountryBlur = (e, countries = [], handleChange) => {
-  const query = (e.target.value || '').trim().toUpperCase();
-  if (query && COUNTRY_ALIASES[query]) {
-    const match = COUNTRY_ALIASES[query];
-    e.target.value = match;
-    if (handleChange) {
-      handleChange({
-        target: {
-          name: e.target.name,
-          value: match
-        }
-      });
+  const input = e.target;
+  const name = input?.name;
+  setTimeout(() => {
+    const currentVal = (input?.value || '').trim().toUpperCase();
+    if (!currentVal) return;
+    const match = getBestCountryMatch(currentVal, countries);
+    if (match && match !== currentVal) {
+      input.value = match;
+      if (handleChange) {
+        handleChange({
+          target: {
+            name: name,
+            value: match
+          }
+        });
+      }
+    }
+  }, 150);
+};
+
+// ── Currency autocompletion ──
+
+export const CURRENCY_ALIASES = {
+  'EU': 'EUR',
+  'EURO': 'EUR',
+  'DOL': 'USD',
+  'DOLLAR': 'USD',
+  'US': 'USD',
+  'POUND': 'GBP',
+  'RUPEE': 'INR',
+  'RS': 'INR',
+  'DIRHAM': 'AED',
+  'DH': 'AED',
+  'YEN': 'JPY',
+  'YUAN': 'CNY',
+  'RIYAL': 'SAR'
+};
+
+const POPULAR_CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'CAD', 'AUD', 'SGD', 'JPY', 'CNY', 'SAR'];
+
+export const getBestCurrencyMatch = (query) => {
+  if (!query || typeof query !== 'string') return null;
+  const q = query.trim().toUpperCase();
+  if (!q) return null;
+
+  if (CURRENCY_ALIASES[q]) return CURRENCY_ALIASES[q];
+  if (POPULAR_CURRENCIES.includes(q)) return q;
+
+  const popPrefix = POPULAR_CURRENCIES.find(c => c.startsWith(q));
+  if (popPrefix) return popPrefix;
+
+  return null;
+};
+
+export const handleCurrencyKeyDown = (e, handleChange) => {
+  if (e.key === 'Tab' || e.key === 'Enter') {
+    const rawVal = e.target.value || '';
+    const query = rawVal.trim().toUpperCase();
+    if (!query) return;
+
+    const match = getBestCurrencyMatch(query);
+    if (match) {
+      e.target.value = match;
+      if (handleChange) {
+        handleChange({
+          target: {
+            name: e.target.name,
+            value: match
+          }
+        });
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+      }
     }
   }
+};
+
+export const handleCurrencyBlur = (e, handleChange) => {
+  const input = e.target;
+  const name = input?.name;
+  setTimeout(() => {
+    const currentVal = (input?.value || '').trim().toUpperCase();
+    if (!currentVal) return;
+    const match = getBestCurrencyMatch(currentVal);
+    if (match && match !== currentVal) {
+      input.value = match;
+      if (handleChange) {
+        handleChange({
+          target: {
+            name: name,
+            value: match
+          }
+        });
+      }
+    }
+  }, 150);
 };

@@ -145,6 +145,14 @@ export function ConsigneeInfoSection({
                     handleSelectConsignee(filteredConsigneeCustomers[highlightedIndex]);
                     setShowConsigneeSuggestions(false);
                   }
+                } else if (e.key === 'Tab') {
+                  const targetCust = highlightedIndex >= 0 
+                    ? filteredConsigneeCustomers[highlightedIndex] 
+                    : (filteredConsigneeCustomers.length > 0 ? filteredConsigneeCustomers[0] : null);
+                  if (targetCust) {
+                    handleSelectConsignee(targetCust);
+                    setShowConsigneeSuggestions(false);
+                  }
                 } else if (e.key === 'Escape') {
                   setShowConsigneeSuggestions(false);
                 }
