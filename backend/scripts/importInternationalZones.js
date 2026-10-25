@@ -27,7 +27,12 @@ async function importZones() {
             const code = match[2].trim().toUpperCase();
             const zone = row[c + 1];
             if (zone) {
-              rowsToInsert.push({ courier: 'DHL', country, code, zone: zone.toString().trim(), type: 'EXPORT' });
+              const zTrim = zone.toString().trim();
+              rowsToInsert.push({ courier: 'DHL', country, code, zone: zTrim, type: 'EXPORT' });
+              if (country === 'USA' || code === 'US') {
+                rowsToInsert.push({ courier: 'DHL', country: 'UNITED STATES', code: 'US', zone: zTrim, type: 'EXPORT' });
+                rowsToInsert.push({ courier: 'DHL', country: 'UNITED STATES OF AMERICA', code: 'US', zone: zTrim, type: 'EXPORT' });
+              }
             }
           }
         }
@@ -60,7 +65,14 @@ async function importZones() {
         const country = row[c];
         const ipZone = row[c + 3] || row[c + 4];
         if (country && ipZone && country.toString().trim() && ipZone.toString().trim()) {
-          rowsToInsert.push({ courier: 'FEDEX', country: country.toString().trim().toUpperCase(), code: '', zone: ipZone.toString().trim(), type: 'EXPORT' });
+          const cUpper = country.toString().trim().toUpperCase();
+          const zTrim = ipZone.toString().trim();
+          rowsToInsert.push({ courier: 'FEDEX', country: cUpper, code: '', zone: zTrim, type: 'EXPORT' });
+          if (cUpper.includes('U.S.A.') || cUpper.includes('REST OF COUNTRY')) {
+            rowsToInsert.push({ courier: 'FEDEX', country: 'UNITED STATES', code: 'US', zone: zTrim, type: 'EXPORT' });
+            rowsToInsert.push({ courier: 'FEDEX', country: 'USA', code: 'US', zone: zTrim, type: 'EXPORT' });
+            rowsToInsert.push({ courier: 'FEDEX', country: 'UNITED STATES OF AMERICA', code: 'US', zone: zTrim, type: 'EXPORT' });
+          }
         }
       }
     }
@@ -78,7 +90,13 @@ async function importZones() {
         if (country && country.toString().trim()) {
           const zone = headers[c] ? headers[c].toString().replace(/^ZONE\s*/i, '').trim() : '';
           if (zone) {
-            rowsToInsert.push({ courier: 'UPS', country: country.toString().trim().toUpperCase(), code: '', zone, type: 'EXPORT' });
+            const cUpper = country.toString().trim().toUpperCase();
+            const zTrim = zone.toString().trim();
+            rowsToInsert.push({ courier: 'UPS', country: cUpper, code: '', zone: zTrim, type: 'EXPORT' });
+            if (cUpper === 'USA') {
+              rowsToInsert.push({ courier: 'UPS', country: 'UNITED STATES', code: 'US', zone: zTrim, type: 'EXPORT' });
+              rowsToInsert.push({ courier: 'UPS', country: 'UNITED STATES OF AMERICA', code: 'US', zone: zTrim, type: 'EXPORT' });
+            }
           }
         }
       }
@@ -93,6 +111,15 @@ async function importZones() {
     stmt.run(item.courier, item.country, item.code, item.zone, item.type, '2000-01-01', '9999-12-31');
   }
   stmt.finalize();
+
+  // Ensure USA exists in countries master table
+  try {
+    await db.runAsync("INSERT OR IGNORE INTO countries (name, code) VALUES ('USA', 'US')");
+    await db.runAsync("INSERT OR IGNORE INTO countries (name, code) VALUES ('UNITED STATES OF AMERICA', 'US')");
+  } catch (cErr) {
+    console.warn('Error inserting country aliases:', cErr);
+  }
+
   await db.execAsync('COMMIT');
 
   const count = await db.getAsync('SELECT count(*) as c FROM international_zones');

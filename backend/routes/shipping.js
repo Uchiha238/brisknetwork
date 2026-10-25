@@ -188,9 +188,12 @@ const INTERNATIONAL_CITY_COUNTRY = {
 };
 
 const COUNTRY_ALIASES = {
-  'USA': 'UNITED STATES OF AMERICA',
-  'UNITED STATES': 'UNITED STATES OF AMERICA',
-  'US': 'UNITED STATES OF AMERICA',
+  'USA': 'UNITED STATES',
+  'UNITED STATES': 'UNITED STATES',
+  'UNITED STATES OF AMERICA': 'UNITED STATES',
+  'US': 'UNITED STATES',
+  'U.S.': 'UNITED STATES',
+  'U.S.A.': 'UNITED STATES',
   'UK': 'UNITED KINGDOM',
   'GREAT BRITAIN': 'UNITED KINGDOM',
   'ENGLAND': 'UNITED KINGDOM',
@@ -241,15 +244,15 @@ router.get('/international-zone', asyncHandler(async (req, res) => {
     countryCandidate = COUNTRY_ALIASES[countryCandidate];
   }
 
-  // 3. Exact match in international_zones (by country or country_code)
+  // 3. Exact match in international_zones (by country, country_code, or US cross-alias)
   let row = await db.getAsync(
     `SELECT zone, country FROM international_zones 
-     WHERE (country = ? OR country_code = ?) 
+     WHERE (country = ? OR country_code = ? OR (country = 'USA' AND ? = 'UNITED STATES') OR (country = 'UNITED STATES' AND ? = 'USA')) 
        AND courier = ? 
        AND (type = ? OR type IS NULL OR type = '') 
        AND (effective_from IS NULL OR effective_from = '' OR (effective_from <= ? AND effective_to >= ?)) 
-     ORDER BY effective_from DESC LIMIT 1`,
-    [countryCandidate, countryCandidate, courierUpper, typeUpper, bookingDateVal, bookingDateVal]
+     ORDER BY (country = ?) DESC, effective_from DESC LIMIT 1`,
+    [countryCandidate, countryCandidate, countryCandidate, countryCandidate, courierUpper, typeUpper, bookingDateVal, bookingDateVal, countryCandidate]
   );
   
   // 4. Fuzzy match if exact match not found
