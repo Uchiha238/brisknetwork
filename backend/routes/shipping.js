@@ -5,6 +5,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const xlsx = require('xlsx');
 const validate = require('../utils/validate');
 const { logSecurityEvent } = require('../utils/logger');
+const { requireAuth } = require('../utils/auth');
 
 function sanitizeSpreadsheetCell(val) {
   if (val === undefined || val === null) return val;
@@ -33,52 +34,260 @@ router.get('/pincode/:pincode', asyncHandler(async (req, res) => {
   }
 }));
 
+// --- International City & Country Resolution ---
+const INTERNATIONAL_CITY_COUNTRY = {
+  'BARCELONA': 'SPAIN',
+  'MADRID': 'SPAIN',
+  'VALENCIA': 'SPAIN',
+  'SEVILLE': 'SPAIN',
+  'BILBAO': 'SPAIN',
+  'MALAGA': 'SPAIN',
+  'PARIS': 'FRANCE',
+  'MARSEILLE': 'FRANCE',
+  'LYON': 'FRANCE',
+  'NICE': 'FRANCE',
+  'TOULOUSE': 'FRANCE',
+  'LONDON': 'UNITED KINGDOM',
+  'MANCHESTER': 'UNITED KINGDOM',
+  'BIRMINGHAM': 'UNITED KINGDOM',
+  'GLASGOW': 'UNITED KINGDOM',
+  'EDINBURGH': 'UNITED KINGDOM',
+  'LIVERPOOL': 'UNITED KINGDOM',
+  'LEEDS': 'UNITED KINGDOM',
+  'BRISTOL': 'UNITED KINGDOM',
+  'BERLIN': 'GERMANY',
+  'MUNICH': 'GERMANY',
+  'FRANKFURT': 'GERMANY',
+  'HAMBURG': 'GERMANY',
+  'COLOGNE': 'GERMANY',
+  'DUSSELDORF': 'GERMANY',
+  'STUTTGART': 'GERMANY',
+  'ROME': 'ITALY',
+  'MILAN': 'ITALY',
+  'NAPLES': 'ITALY',
+  'TURIN': 'ITALY',
+  'FLORENCE': 'ITALY',
+  'VENICE': 'ITALY',
+  'BOLOGNA': 'ITALY',
+  'NEW YORK': 'UNITED STATES OF AMERICA',
+  'LOS ANGELES': 'UNITED STATES OF AMERICA',
+  'CHICAGO': 'UNITED STATES OF AMERICA',
+  'HOUSTON': 'UNITED STATES OF AMERICA',
+  'MIAMI': 'UNITED STATES OF AMERICA',
+  'SAN FRANCISCO': 'UNITED STATES OF AMERICA',
+  'DALLAS': 'UNITED STATES OF AMERICA',
+  'WASHINGTON': 'UNITED STATES OF AMERICA',
+  'BOSTON': 'UNITED STATES OF AMERICA',
+  'SEATTLE': 'UNITED STATES OF AMERICA',
+  'ATLANTA': 'UNITED STATES OF AMERICA',
+  'TORONTO': 'CANADA',
+  'VANCOUVER': 'CANADA',
+  'MONTREAL': 'CANADA',
+  'CALGARY': 'CANADA',
+  'OTTAWA': 'CANADA',
+  'EDMONTON': 'CANADA',
+  'SYDNEY': 'AUSTRALIA',
+  'MELBOURNE': 'AUSTRALIA',
+  'BRISBANE': 'AUSTRALIA',
+  'PERTH': 'AUSTRALIA',
+  'ADELAIDE': 'AUSTRALIA',
+  'AUCKLAND': 'NEW ZEALAND',
+  'WELLINGTON': 'NEW ZEALAND',
+  'CHRISTCHURCH': 'NEW ZEALAND',
+  'DUBAI': 'UNITED ARAB EMIRATES',
+  'ABU DHABI': 'UNITED ARAB EMIRATES',
+  'SHARJAH': 'UNITED ARAB EMIRATES',
+  'DOHA': 'QATAR',
+  'RIYADH': 'SAUDI ARABIA',
+  'JEDDAH': 'SAUDI ARABIA',
+  'DAMMAM': 'SAUDI ARABIA',
+  'KUWAIT CITY': 'KUWAIT',
+  'KUWAIT': 'KUWAIT',
+  'MANAMA': 'BAHRAIN',
+  'MUSCAT': 'OMAN',
+  'SINGAPORE': 'SINGAPORE',
+  'HONG KONG': 'HONG KONG',
+  'TOKYO': 'JAPAN',
+  'OSAKA': 'JAPAN',
+  'KYOTO': 'JAPAN',
+  'YOKOHAMA': 'JAPAN',
+  'NAGOYA': 'JAPAN',
+  'SEOUL': 'SOUTH KOREA',
+  'BUSAN': 'SOUTH KOREA',
+  'BANGKOK': 'THAILAND',
+  'PHUKET': 'THAILAND',
+  'KUALA LUMPUR': 'MALAYSIA',
+  'PENANG': 'MALAYSIA',
+  'JAKARTA': 'INDONESIA',
+  'BALI': 'INDONESIA',
+  'MANILA': 'PHILIPPINES',
+  'CEBU': 'PHILIPPINES',
+  'HO CHI MINH': 'VIETNAM',
+  'HO CHI MINH CITY': 'VIETNAM',
+  'HANOI': 'VIETNAM',
+  'BEIJING': 'CHINA',
+  'SHANGHAI': 'CHINA',
+  'SHENZHEN': 'CHINA',
+  'GUANGZHOU': 'CHINA',
+  'TAIPEI': 'TAIWAN',
+  'AMSTERDAM': 'NETHERLANDS',
+  'ROTTERDAM': 'NETHERLANDS',
+  'THE HAGUE': 'NETHERLANDS',
+  'BRUSSELS': 'BELGIUM',
+  'ANTWERP': 'BELGIUM',
+  'VIENNA': 'AUSTRIA',
+  'ZURICH': 'SWITZERLAND',
+  'GENEVA': 'SWITZERLAND',
+  'BASEL': 'SWITZERLAND',
+  'STOCKHOLM': 'SWEDEN',
+  'GOTHENBURG': 'SWEDEN',
+  'OSLO': 'NORWAY',
+  'BERGEN': 'NORWAY',
+  'COPENHAGEN': 'DENMARK',
+  'HELSINKI': 'FINLAND',
+  'DUBLIN': 'IRELAND',
+  'CORK': 'IRELAND',
+  'LISBON': 'PORTUGAL',
+  'PORTO': 'PORTUGAL',
+  'WARSAW': 'POLAND',
+  'KRAKOW': 'POLAND',
+  'PRAGUE': 'CZECH REPUBLIC',
+  'BUDAPEST': 'HUNGARY',
+  'BUCHAREST': 'ROMANIA',
+  'ATHENS': 'GREECE',
+  'THESSALONIKI': 'GREECE',
+  'ISTANBUL': 'TURKEY',
+  'ANKARA': 'TURKEY',
+  'IZMIR': 'TURKEY',
+  'CAIRO': 'EGYPT',
+  'ALEXANDRIA': 'EGYPT',
+  'JOHANNESBURG': 'SOUTH AFRICA',
+  'CAPE TOWN': 'SOUTH AFRICA',
+  'DURBAN': 'SOUTH AFRICA',
+  'NAIROBI': 'KENYA',
+  'MOMBASA': 'KENYA',
+  'LAGOS': 'NIGERIA',
+  'ACCRA': 'GHANA',
+  'CASABLANCA': 'MOROCCO',
+  'MARRAKECH': 'MOROCCO',
+  'MEXICO CITY': 'MEXICO',
+  'GUADALAJARA': 'MEXICO',
+  'MONTERREY': 'MEXICO',
+  'SAO PAULO': 'BRAZIL',
+  'RIO DE JANEIRO': 'BRAZIL',
+  'BUENOS AIRES': 'ARGENTINA',
+  'SANTIAGO': 'CHILE',
+  'BOGOTA': 'COLOMBIA',
+  'LIMA': 'PERU',
+  'COLOMBO': 'SRI LANKA',
+  'DHAKA': 'BANGLADESH',
+  'KATHMANDU': 'NEPAL',
+  'ISLAMABAD': 'PAKISTAN',
+  'KARACHI': 'PAKISTAN',
+  'LAHORE': 'PAKISTAN'
+};
+
+const COUNTRY_ALIASES = {
+  'USA': 'UNITED STATES OF AMERICA',
+  'UNITED STATES': 'UNITED STATES OF AMERICA',
+  'US': 'UNITED STATES OF AMERICA',
+  'UK': 'UNITED KINGDOM',
+  'GREAT BRITAIN': 'UNITED KINGDOM',
+  'ENGLAND': 'UNITED KINGDOM',
+  'SCOTLAND': 'UNITED KINGDOM',
+  'WALES': 'UNITED KINGDOM',
+  'UAE': 'UNITED ARAB EMIRATES',
+  'EMIRATES': 'UNITED ARAB EMIRATES',
+  'ESPAÑA': 'SPAIN',
+  'ESPANA': 'SPAIN',
+  'DEUTSCHLAND': 'GERMANY',
+  'ITALIA': 'ITALY',
+  'FRANÇAISE': 'FRANCE',
+  'FRANCAISE': 'FRANCE',
+  'NEDERLAND': 'NETHERLANDS',
+  'HOLLAND': 'NETHERLANDS',
+  'RUSSIA': 'RUSSIAN FEDERATION',
+  'SOUTH KOREA': 'KOREA, REPUBLIC OF (SOUTH KOREA)',
+  'KOREA': 'KOREA, REPUBLIC OF (SOUTH KOREA)'
+};
+
 // --- International Zone Route ---
 router.get('/international-zone', asyncHandler(async (req, res) => {
-  const reqErr = validate.required(req.query, ['country', 'courier']);
-  if (reqErr) return res.status(400).json({ success: false, error: reqErr });
-
-  const { country, courier, type, booking_date } = req.query;
+  const countryParam = (req.query.country || '').toString().trim();
+  const cityParam = (req.query.city || '').toString().trim();
   
-  let countryUpper = country.toString().trim().toUpperCase();
-  if (countryUpper === 'USA' || countryUpper === 'UNITED STATES' || countryUpper === 'US') {
-    countryUpper = 'UNITED STATES OF AMERICA';
+  if (!countryParam && !cityParam) {
+    return res.status(400).json({ success: false, error: 'country or city is required' });
   }
-  const courierUpper = courier.toString().trim().toUpperCase();
-  const typeUpper = type ? type.toString().trim().toUpperCase() : 'EXPORT';
-  const bookingDateVal = (booking_date || new Date().toISOString().split('T')[0]).toString().trim();
+
+  const courierUpper = (req.query.courier || 'DHL').toString().trim().toUpperCase();
+  const typeUpper = (req.query.type || 'EXPORT').toString().trim().toUpperCase();
+  const bookingDateVal = (req.query.booking_date || new Date().toISOString().split('T')[0]).toString().trim();
   
-  // Exact match (by country name or 2-letter country_code)
+  let countryCandidate = countryParam.toUpperCase();
+  const cityCandidate = cityParam.toUpperCase();
+
+  // 1. Resolve city to country if countryCandidate is empty or happens to be a city name
+  if (!countryCandidate || INTERNATIONAL_CITY_COUNTRY[countryCandidate]) {
+    if (INTERNATIONAL_CITY_COUNTRY[countryCandidate]) {
+      countryCandidate = INTERNATIONAL_CITY_COUNTRY[countryCandidate];
+    } else if (cityCandidate && INTERNATIONAL_CITY_COUNTRY[cityCandidate]) {
+      countryCandidate = INTERNATIONAL_CITY_COUNTRY[cityCandidate];
+    }
+  }
+
+  // 2. Check country aliases
+  if (COUNTRY_ALIASES[countryCandidate]) {
+    countryCandidate = COUNTRY_ALIASES[countryCandidate];
+  }
+
+  // 3. Exact match in international_zones (by country or country_code)
   let row = await db.getAsync(
-    `SELECT zone FROM international_zones 
+    `SELECT zone, country FROM international_zones 
      WHERE (country = ? OR country_code = ?) 
        AND courier = ? 
        AND (type = ? OR type IS NULL OR type = '') 
        AND (effective_from IS NULL OR effective_from = '' OR (effective_from <= ? AND effective_to >= ?)) 
      ORDER BY effective_from DESC LIMIT 1`,
-    [countryUpper, countryUpper, courierUpper, typeUpper, bookingDateVal, bookingDateVal]
+    [countryCandidate, countryCandidate, courierUpper, typeUpper, bookingDateVal, bookingDateVal]
   );
   
-  // Fuzzy match
+  // 4. Fuzzy match if exact match not found
   if (!row) {
     row = await db.getAsync(
-      `SELECT zone FROM international_zones 
+      `SELECT zone, country FROM international_zones 
        WHERE (country LIKE ? OR ? LIKE "%" || country || "%" OR country_code = ?) 
          AND courier = ? 
          AND (type = ? OR type IS NULL OR type = '') 
          AND (effective_from IS NULL OR effective_from = '' OR (effective_from <= ? AND effective_to >= ?)) 
        ORDER BY effective_from DESC LIMIT 1`,
-      [`%${countryUpper}%`, countryUpper, countryUpper, courierUpper, typeUpper, bookingDateVal, bookingDateVal]
+      [`%${countryCandidate}%`, countryCandidate, countryCandidate, courierUpper, typeUpper, bookingDateVal, bookingDateVal]
+    );
+  }
+
+  // 5. If city is provided and country wasn't matched yet, try matching city via international city map
+  if (!row && cityCandidate && INTERNATIONAL_CITY_COUNTRY[cityCandidate]) {
+    const resolvedCountry = INTERNATIONAL_CITY_COUNTRY[cityCandidate];
+    row = await db.getAsync(
+      `SELECT zone, country FROM international_zones 
+       WHERE (country = ? OR country_code = ?) 
+         AND courier = ? 
+         AND (type = ? OR type IS NULL OR type = '') 
+         AND (effective_from IS NULL OR effective_from = '' OR (effective_from <= ? AND effective_to >= ?)) 
+       ORDER BY effective_from DESC LIMIT 1`,
+      [resolvedCountry, resolvedCountry, courierUpper, typeUpper, bookingDateVal, bookingDateVal]
     );
   }
   
   if (row) {
     res.json({
       success: true,
-      zone: row.zone
+      zone: row.zone,
+      country: row.country || countryCandidate,
+      courier: courierUpper
     });
   } else {
-    res.status(404).json({ success: false, error: 'Zone not found for the specified country and courier' });
+    res.status(404).json({ success: false, error: 'Zone not found for the specified country/city and courier' });
   }
 }));
 
@@ -146,7 +355,7 @@ router.get('/modes', asyncHandler(async (req, res) => {
   res.json(modes);
 }));
 
-router.post('/modes', asyncHandler(async (req, res) => {
+router.post('/modes', requireAuth, asyncHandler(async (req, res) => {
   const reqErr = validate.required(req.body, ['name']);
   if (reqErr) return res.status(400).json({ success: false, error: reqErr });
 
@@ -155,7 +364,7 @@ router.post('/modes', asyncHandler(async (req, res) => {
   res.json({ success: true, id: result.lastID });
 }));
 
-router.delete('/modes/:id', asyncHandler(async (req, res) => {
+router.delete('/modes/:id', requireAuth, asyncHandler(async (req, res) => {
   await db.runAsync('DELETE FROM modes WHERE id = ?', [req.params.id]);
   res.json({ success: true });
 }));
@@ -171,7 +380,7 @@ router.get('/international-rates/groups', asyncHandler(async (req, res) => {
 }));
 
 // --- Delete Rate Group ---
-router.delete('/international-rates/groups', asyncHandler(async (req, res) => {
+router.delete('/international-rates/groups', requireAuth, asyncHandler(async (req, res) => {
   const reqErr = validate.required(req.query, ['courier', 'export_import', 'effective_from', 'effective_to']);
   if (reqErr) return res.status(400).json({ success: false, error: reqErr });
 
@@ -186,7 +395,7 @@ router.delete('/international-rates/groups', asyncHandler(async (req, res) => {
 }));
 
 // --- Upload Rate Sheet ---
-router.post('/international-rates/upload', asyncHandler(async (req, res) => {
+router.post('/international-rates/upload', requireAuth, asyncHandler(async (req, res) => {
   const reqErr = validate.required(req.body, ['courier', 'export_import', 'effective_from', 'effective_to', 'fileData']);
   if (reqErr) return res.status(400).json({ success: false, error: reqErr });
 
@@ -407,7 +616,7 @@ router.get('/international-zones/mappings', asyncHandler(async (req, res) => {
 }));
 
 // --- Delete Zone Group ---
-router.delete('/international-zones/groups', asyncHandler(async (req, res) => {
+router.delete('/international-zones/groups', requireAuth, asyncHandler(async (req, res) => {
   const reqErr = validate.required(req.query, ['courier', 'type', 'effective_from', 'effective_to']);
   if (reqErr) return res.status(400).json({ success: false, error: reqErr });
 
@@ -442,7 +651,7 @@ router.get('/international-zones/sample', (req, res) => {
 });
 
 // --- Upload Zone File ---
-router.post('/international-zones/upload', asyncHandler(async (req, res) => {
+router.post('/international-zones/upload', requireAuth, asyncHandler(async (req, res) => {
   const reqErr = validate.required(req.body, ['courier', 'type', 'effective_from', 'effective_to', 'fileData']);
   if (reqErr) return res.status(400).json({ success: false, error: reqErr });
 

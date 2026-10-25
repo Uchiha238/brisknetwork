@@ -56,9 +56,9 @@ async function importZones() {
     for (let r = 1; r < data.length; r++) {
       const row = data[r];
       if (!row) continue;
-      for (let c = 0; c < row.length; c += 4) {
+      for (let c = 0; c < row.length; c += 5) {
         const country = row[c];
-        const ipZone = row[c + 3] || row[c + 2];
+        const ipZone = row[c + 3] || row[c + 4];
         if (country && ipZone && country.toString().trim() && ipZone.toString().trim()) {
           rowsToInsert.push({ courier: 'FEDEX', country: country.toString().trim().toUpperCase(), code: '', zone: ipZone.toString().trim(), type: 'EXPORT' });
         }

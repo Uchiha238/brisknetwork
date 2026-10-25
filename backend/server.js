@@ -207,7 +207,7 @@ app.use('/api/company', requireAuth, require('./routes/company'));
 app.use('/api/branches', requireAuth, require('./routes/branches'));
 app.use('/api/fuel-entries', requireAuth, require('./routes/fuel'));
 app.use('/api/invoices', requireAuth, require('./routes/invoices'));
-app.use('/api', requireAuth, require('./routes/shipping'));
+app.use('/api', require('./routes/shipping'));
 app.use('/api', requireAuth, require('./routes/misc'));
 
 // --- Error Handler Middleware ---

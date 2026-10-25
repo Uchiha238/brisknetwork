@@ -57,14 +57,42 @@ export function ConsigneeInfoSection({
     try {
       const res = await lookupPostalCode(formData.consignee_zip, formData.consignee_country);
       if (res && res.success) {
+        const countryToUse = res.country || formData.consignee_country || 'SPAIN';
+
+        // 1. Fetch international zone right away
+        let zoneVal = '';
+        try {
+          let courier = 'DHL';
+          const serviceUpper = (formData.service || '').toUpperCase();
+          if (serviceUpper.includes('FEDEX')) courier = 'FEDEX';
+          else if (serviceUpper.includes('UPS')) courier = 'UPS';
+          else if (serviceUpper.includes('ARAMEX')) courier = 'ARAMEX';
+
+          const mode = formData.mode || 'EXPORT';
+          const bookingDate = formData.booking_date || '';
+
+          const zRes = await fetch(`/api/international-zone?country=${encodeURIComponent(countryToUse)}&city=${encodeURIComponent(res.city || '')}&courier=${encodeURIComponent(courier)}&type=${encodeURIComponent(mode)}&booking_date=${encodeURIComponent(bookingDate)}`);
+          if (zRes.ok) {
+            const zData = await zRes.json();
+            if (zData && zData.success && zData.zone) {
+              zoneVal = zData.zone.toString();
+            }
+          }
+        } catch (zErr) {
+          console.warn('Zone fetch error in zip search:', zErr);
+        }
+
         if (res.city) {
           handleChange({ target: { name: 'consignee_city', value: res.city, type: 'text' } });
         }
         if (res.state) {
           handleChange({ target: { name: 'consignee_state', value: res.state, type: 'text' } });
         }
-        if (res.country && (!formData.consignee_country || formData.consignee_country === 'INDIA')) {
-          handleChange({ target: { name: 'consignee_country', value: res.country, type: 'text' } });
+        if (countryToUse && (!formData.consignee_country || formData.consignee_country === 'INDIA')) {
+          handleChange({ target: { name: 'consignee_country', value: countryToUse, type: 'text' } });
+        }
+        if (zoneVal) {
+          handleChange({ target: { name: 'consignee_zone', value: zoneVal, type: 'text' } });
         }
       }
     } catch (err) {

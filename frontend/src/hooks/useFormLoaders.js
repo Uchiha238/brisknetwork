@@ -275,15 +275,14 @@ export function useCityLoaders({ formData, masters, setMasters }) {
  */
 export function useInternationalZoneLookup({ formData, setFormData }) {
   useEffect(() => {
-    const country = formData.consignee_country;
-    const isDomestic = isDomesticCountry(country);
+    const country = (formData.consignee_country || '').trim();
+    const city = (formData.consignee_city || '').trim();
+    const isDomestic = country ? isDomesticCountry(country) : false;
     
-    if (!isDomestic) {
+    if (!isDomestic && (country || city)) {
       let courier = 'DHL';
       const serviceUpper = (formData.service || '').toUpperCase();
-      if (serviceUpper.includes('DHL')) {
-          courier = 'DHL';
-      } else if (serviceUpper.includes('FEDEX')) {
+      if (serviceUpper.includes('FEDEX')) {
           courier = 'FEDEX';
       } else if (serviceUpper.includes('UPS')) {
           courier = 'UPS';
@@ -293,28 +292,31 @@ export function useInternationalZoneLookup({ formData, setFormData }) {
       
       const mode = formData.mode || 'EXPORT';
       const bookingDate = formData.booking_date || '';
+      const queryTarget = country || city;
       
-      if (country && courier) {
-        fetch(`/api/international-zone?country=${encodeURIComponent(country)}&courier=${encodeURIComponent(courier)}&type=${encodeURIComponent(mode)}&booking_date=${encodeURIComponent(bookingDate)}`)
-          .then(res => {
-            if (!res.ok) throw new Error("Zone not found");
-            return res.json();
-          })
-          .then(data => {
-            if (data && data.success && data.zone) {
-              setFormData(prev => {
-                if (prev.consignee_zone === data.zone.toString()) return prev;
-                return {
-                  ...prev,
-                  consignee_zone: data.zone.toString()
-                };
-              });
-            }
-          })
-          .catch(err => {
-            console.error("Error fetching international zone:", err);
-          });
-      }
+      fetch(`/api/international-zone?country=${encodeURIComponent(queryTarget)}&city=${encodeURIComponent(city)}&courier=${encodeURIComponent(courier)}&type=${encodeURIComponent(mode)}&booking_date=${encodeURIComponent(bookingDate)}`)
+        .then(res => {
+          if (!res.ok) throw new Error("Zone not found");
+          return res.json();
+        })
+        .then(data => {
+          if (data && data.success && data.zone) {
+            setFormData(prev => {
+              const updates = {};
+              if (prev.consignee_zone !== data.zone.toString()) {
+                updates.consignee_zone = data.zone.toString();
+              }
+              if (!prev.consignee_country && data.country) {
+                updates.consignee_country = data.country;
+                updates.destination = data.country;
+              }
+              return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
+            });
+          }
+        })
+        .catch(err => {
+          console.error("Error fetching international zone:", err);
+        });
     }
   }, [formData.consignee_country, formData.consignee_city, formData.service, formData.mode, formData.booking_date]);
 }
