@@ -42,7 +42,8 @@ const generateCustomerCode = (customerList, isCredit = true) => {
 export function createSubmitHandler({
   formData, shipmentType, selectedCustomerId, selectedConsigneeId,
   customers, editingShipmentId,
-  setCustomers, setSelectedCustomerId
+  setCustomers, setSelectedCustomerId,
+  onSuccess
 }) {
 
   const handleSubmit = async (e) => {
@@ -229,12 +230,17 @@ export function createSubmitHandler({
         }
     }
 
+    const finalCustomerId = (customerIdToUse && !isNaN(parseInt(customerIdToUse))) ? parseInt(customerIdToUse) : null;
+    const finalPayMode = (formData.payment_mode || formData.bill_type || (finalCustomerId ? 'CREDIT' : 'CASH')).toUpperCase();
+
     const payload = { 
         ...formData, 
         destination: (shipmentType === 'domestic' ? formData.consignee_city : formData.consignee_country) || 'N/A',
-        customer_id: customerIdToUse, 
+        customer_id: finalCustomerId, 
         user_id: 1, 
-        type: shipmentType,
+        type: (shipmentType || 'domestic').toLowerCase(),
+        payment_mode: finalPayMode,
+        bill_type: finalPayMode,
         bill_amount: parseFloat(formData.freight_ch) || 0,
         fuel_amount: parseFloat(formData.fuel_surcharge) || 0,
         gst_amount: (parseFloat(formData.cgst_ch) || 0) + (parseFloat(formData.sgst_ch) || 0),
@@ -249,19 +255,24 @@ export function createSubmitHandler({
         data = await api.createShipment(payload);
       }
 
-      if (data.success) {
+      if (data && data.success) {
         if (editingShipmentId) {
           alert(`${shipmentType.toUpperCase()} AWB Updated Successfully! AWB: ${formData.airway_no}`);
         } else {
           alert(`${shipmentType.toUpperCase()} AWB Created Successfully! AWB: ${formData.airway_no}`);
         }
-        window.location.reload();
+        localStorage.setItem('om-courier-active-page', 'list-shipments');
+        if (typeof onSuccess === 'function') {
+          onSuccess();
+        } else {
+          window.location.reload();
+        }
       } else {
-        alert('Error: ' + data.error);
+        alert('Error: ' + (data?.error || data?.message || 'Failed to save shipment'));
       }
     } catch (err) {
       console.error(err);
-      alert('Failed to save shipment. Please check the backend.');
+      alert('Error saving shipment: ' + (err?.message || 'Failed to save shipment. Please check the backend.'));
     }
   };
 

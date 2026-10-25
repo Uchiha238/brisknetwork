@@ -11,6 +11,7 @@ export const createDefaultFormData = (initialType = 'domestic') => ({
   edit_awb: false,
   email: 'OPSOMCOURIER@GMAIL.COM',
   payment_mode: 'CASH',
+  bill_type: 'CASH',
   contact_no: '9029200429',
   account_code: 'WCC9723',
   origin_hub: 'MUMBAI',

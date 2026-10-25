@@ -152,6 +152,12 @@ export const api = {
   updateShipmentStatus: (id, data) => apiFetch(`/shipments/${id}/status`, jsonBody('PUT', data)),
   getShipmentTracking:  (id)       => apiFetch(`/shipments/${id}/tracking`),
 
+  // GST Masters
+  getGstSettings:    ()               => apiFetch('/masters/gst'),
+  createGstSetting:  (data)           => apiFetch('/masters/gst', jsonBody('POST', data)),
+  updateGstSetting:  (id, data)       => apiFetch(`/masters/gst/${id}`, jsonBody('PUT', data)),
+  deleteGstSetting:  (id)             => apiFetch(`/masters/gst/${id}`, { method: 'DELETE' }),
+
   // Reports
   getExportReport: () => apiFetch('/reports/export'),
 };

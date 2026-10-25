@@ -13,7 +13,7 @@ import { useUnifiedShipmentForm } from '../../hooks/useUnifiedShipmentForm';
 import { WORLD_COUNTRIES } from '../../utils/countryAutocomplete';
 import { WORLD_CURRENCIES } from '../../utils/countryData';
 
-export function AddUnifiedShipmentForm({ initialType = 'domestic', editingShipmentId = null }) {
+export function AddUnifiedShipmentForm({ initialType = 'domestic', editingShipmentId = null, onSuccess = null }) {
   const {
     shipmentType, setShipmentType,
     companies,
@@ -33,7 +33,7 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic', editingShipme
     handleSelectShipper,
     handleSelectConsignee,
     handleSubmit
-  } = useUnifiedShipmentForm(initialType, editingShipmentId);
+  } = useUnifiedShipmentForm(initialType, editingShipmentId, onSuccess);
 
   React.useEffect(() => {
     const handleFocus = (e) => {

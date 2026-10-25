@@ -178,7 +178,7 @@ app.use((req, res, next) => {
 // Middleware to force uppercase for all string inputs except specified exclusions
 app.use((req, res, next) => {
   if (req.body && typeof req.body === 'object') {
-    const exclusions = ['password', 'username', 'email', 'website', 'logo', 'fileData'];
+    const exclusions = ['password', 'username', 'email', 'website', 'logo', 'fileData', 'type'];
     const convertToCaps = (obj) => {
       for (const key in obj) {
         if (exclusions.includes(key)) continue;

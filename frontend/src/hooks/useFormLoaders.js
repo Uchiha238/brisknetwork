@@ -80,7 +80,8 @@ export function useEditShipmentLoader({ editingShipmentId, customers, setShipmen
         if (res && res.success && res.shipment) {
           const s = res.shipment;
           
-          setShipmentType(s.type || 'domestic');
+          const loadedType = (s.type || 'domestic').toLowerCase();
+          setShipmentType(loadedType);
           
           let cust = null;
           if (s.customer_id) {
@@ -91,6 +92,9 @@ export function useEditShipmentLoader({ editingShipmentId, customers, setShipmen
             } else {
               setShipperSearch(s.shipper_name || '');
             }
+          } else {
+            setSelectedCustomerId('');
+            setShipperSearch(s.shipper_name || '');
           }
           
           setConsigneeSearch(s.consignee_name || '');
@@ -121,12 +125,13 @@ export function useEditShipmentLoader({ editingShipmentId, customers, setShipmen
               booking_company: s.booking_company || prev.booking_company,
               airway_no: s.airway_no || '',
               email: s.shipper_email || s.email || prev.email,
-              payment_mode: (s.bill_type || 'CASH').toUpperCase(),
+              payment_mode: (s.bill_type || s.payment_mode || (s.customer_id ? 'CREDIT' : 'CASH')).toUpperCase(),
+              bill_type: (s.bill_type || s.payment_mode || (s.customer_id ? 'CREDIT' : 'CASH')).toUpperCase(),
               contact_no: s.shipper_phone || s.contact_no || prev.contact_no,
               account_code: s.account_code || '',
               origin_hub: s.origin_hub || 'MUMBAI',
               origin_zone: s.origin_zone || '',
-              destination: s.destination || (s.type === 'domestic' ? s.consignee_city : s.consignee_country) || '',
+              destination: s.destination || (loadedType === 'domestic' ? s.consignee_city : s.consignee_country) || '',
               dest_zone: s.dest_zone || '',
               product: s.product || '',
               booking_date: s.booking_date || '',
@@ -172,7 +177,7 @@ export function useEditShipmentLoader({ editingShipmentId, customers, setShipmen
               consignee_city: s.consignee_city || '',
               consignee_state: s.consignee_state || '',
               consignee_zone: s.consignee_zone || '',
-              consignee_country: s.consignee_country || (s.type === 'domestic' ? 'INDIA' : ''),
+              consignee_country: s.consignee_country || (loadedType === 'domestic' ? 'INDIA' : ''),
               consignee_phone: s.consignee_phone || '',
               consignee_email: s.consignee_email || '',
               

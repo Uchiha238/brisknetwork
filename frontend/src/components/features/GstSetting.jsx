@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Plus, ArrowLeft, AlertCircle } from "lucide-react";
 import { Footer } from "@/components/shared/Footer";
+import { api } from "../../services/api";
 
 const initialGstData = [
-  { sr: 1, from: '2026-04-01', to: '2027-03-31', cgst: '9.00', sgst: '9.00' },
+  { id: 1, sr: 1, from: '2020-01-01', to: '2099-12-31', from_date: '2020-01-01', to_date: '2099-12-31', cgst: '9.00', sgst: '9.00' },
 ];
 
 const LOCAL_STORAGE_KEY = 'om-courier-gst-settings';
@@ -29,37 +30,49 @@ export function GstSetting() {
   });
   const [error, setError] = useState('');
 
-  // Load records from localStorage on mount
-  useEffect(() => {
+  // Load records from backend API or localStorage fallback
+  const fetchRecords = async () => {
+    try {
+      const data = await api.getGstSettings();
+      if (Array.isArray(data) && data.length > 0) {
+        const mapped = data.map((r, idx) => ({
+          ...r,
+          sr: idx + 1,
+          from: r.from_date || r.from,
+          to: r.to_date || r.to,
+          cgst: parseFloat(r.cgst || 9.0).toFixed(2),
+          sgst: parseFloat(r.sgst || 9.0).toFixed(2)
+        }));
+        setGstRecords(mapped);
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(mapped));
+        return;
+      }
+    } catch (e) {
+      console.warn("Could not fetch GST settings from API, falling back to local storage:", e);
+    }
+
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Clean out settings older than 2026
-        const cleaned = parsed.filter(r => {
-          if (!r.from) return false;
-          const year = parseInt(r.from.split('-')[0]);
-          return year >= 2026;
-        });
-
-        if (cleaned.length > 0) {
-          const mapped = cleaned.map((r, idx) => ({ ...r, sr: idx + 1 }));
+        if (parsed.length > 0) {
+          const mapped = parsed.map((r, idx) => ({ ...r, sr: idx + 1, from: r.from || r.from_date, to: r.to || r.to_date }));
           setGstRecords(mapped);
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(mapped));
-        } else {
-          setGstRecords(initialGstData);
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(initialGstData));
+          return;
         }
       } catch (e) {
-        setGstRecords(initialGstData);
+        // ignore
       }
-    } else {
-      setGstRecords(initialGstData);
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(initialGstData));
     }
+    setGstRecords(initialGstData);
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(initialGstData));
+  };
+
+  useEffect(() => {
+    fetchRecords();
   }, []);
 
-  const saveRecords = (records) => {
+  const saveRecords = async (records) => {
     setGstRecords(records);
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(records));
   };
@@ -67,8 +80,8 @@ export function GstSetting() {
   const handleEdit = (record) => {
     setEditingRecord(record);
     setFormData({
-      from: record.from,
-      to: record.to,
+      from: record.from || record.from_date,
+      to: record.to || record.to_date,
       cgst: record.cgst,
       sgst: record.sgst
     });
@@ -76,9 +89,16 @@ export function GstSetting() {
     setError('');
   };
 
-  const handleDelete = (sr) => {
+  const handleDelete = async (record) => {
     if (window.confirm("Are you sure you want to delete this GST rate setting?")) {
-      const updated = gstRecords.filter(r => r.sr !== sr).map((r, idx) => ({
+      if (record.id) {
+        try {
+          await api.deleteGstSetting(record.id);
+        } catch (err) {
+          console.error("Delete GST setting error:", err);
+        }
+      }
+      const updated = gstRecords.filter(r => (record.id ? r.id !== record.id : r.sr !== record.sr)).map((r, idx) => ({
         ...r,
         sr: idx + 1
       }));
@@ -93,7 +113,7 @@ export function GstSetting() {
     setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.from || !formData.to || !formData.cgst || !formData.sgst) {
       setError('All fields are required.');
@@ -115,10 +135,30 @@ export function GstSetting() {
       return;
     }
 
+    const payload = {
+      from_date: formData.from,
+      to_date: formData.to,
+      cgst: parseFloat(formData.cgst).toFixed(2),
+      sgst: parseFloat(formData.sgst).toFixed(2)
+    };
+
+    try {
+      if (editingRecord && editingRecord.id) {
+        await api.updateGstSetting(editingRecord.id, payload);
+      } else {
+        const res = await api.createGstSetting(payload);
+        if (res && res.id) {
+          payload.id = res.id;
+        }
+      }
+    } catch (err) {
+      console.warn("Backend GST save error:", err);
+    }
+
     let updatedRecords;
     if (editingRecord) {
       updatedRecords = gstRecords.map(r => 
-        r.sr === editingRecord.sr 
+        (r.id && editingRecord.id ? r.id === editingRecord.id : r.sr === editingRecord.sr)
           ? {
               ...r,
               from: formData.from,
@@ -130,6 +170,7 @@ export function GstSetting() {
       );
     } else {
       const newRecord = {
+        id: payload.id || Date.now(),
         sr: gstRecords.length + 1,
         from: formData.from,
         to: formData.to,
@@ -325,7 +366,7 @@ export function GstSetting() {
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button 
-                          onClick={() => handleDelete(row.sr)} 
+                          onClick={() => handleDelete(row)} 
                           className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded shadow-sm transition-colors" 
                           title="Delete"
                         >

@@ -28,41 +28,55 @@ const parseGstDate = (dateStr) => {
 };
 
 const getActiveGstRates = (bookingDate) => {
-  const defaultMock = [
-    { sr: 1, from: '2026-04-01', to: '2027-03-31', cgst: '9.00', sgst: '9.00' },
-  ];
+  const defaultRates = { cgst: 9, sgst: 9 };
   const saved = localStorage.getItem('om-courier-gst-settings');
-  let records = defaultMock;
+  let records = [];
   if (saved) {
     try {
       records = JSON.parse(saved);
     } catch {
-      records = defaultMock;
+      records = [];
     }
   }
+
+  if (!records || records.length === 0) {
+    return defaultRates;
+  }
+
   const date = new Date(bookingDate);
-  
   if (isNaN(date.getTime())) {
-    return { cgst: 9, sgst: 9 };
+    const first = records[0];
+    return {
+      cgst: parseFloat(first.cgst) || 9,
+      sgst: parseFloat(first.sgst) || 9
+    };
   }
   
   date.setHours(0, 0, 0, 0);
   
   for (const r of records) {
-    const fromDate = parseGstDate(r.from);
-    const toDate = parseGstDate(r.to);
+    const fromStr = r.from_date || r.from;
+    const toStr = r.to_date || r.to;
+    const fromDate = parseGstDate(fromStr);
+    const toDate = parseGstDate(toStr);
     if (fromDate && toDate) {
       fromDate.setHours(0, 0, 0, 0);
       toDate.setHours(0, 0, 0, 0);
       if (date >= fromDate && date <= toDate) {
         return {
-          cgst: parseFloat(r.cgst) || 0,
-          sgst: parseFloat(r.sgst) || 0
+          cgst: parseFloat(r.cgst) || 9,
+          sgst: parseFloat(r.sgst) || 9
         };
       }
     }
   }
-  return { cgst: 9, sgst: 9 };
+
+  // Fallback to first configured record or default 9% / 9%
+  const fallback = records[0];
+  return {
+    cgst: parseFloat(fallback?.cgst) || 9,
+    sgst: parseFloat(fallback?.sgst) || 9
+  };
 };
 
 // ── Reactive calculation hooks ──
@@ -224,29 +238,32 @@ export function createFieldHandlers({ setFormData, setSelectedCustomerId, setShi
             }
         }
 
-        if (name === 'payment_mode') {
+        if (name === 'payment_mode' || name === 'bill_type') {
             const newPayMode = value.toUpperCase();
+            newData.payment_mode = newPayMode;
             newData.bill_type = newPayMode;
             
-            setSelectedCustomerId('');
-            setShipperSearch('');
-            newData = {
-                ...newData,
-                shipper_code: '',
-                shipper_company: '',
-                shipper_name: '',
-                shipper_address1: '',
-                shipper_address2: '',
-                shipper_address3: '',
-                shipper_zip: '',
-                shipper_city: '',
-                shipper_state: '',
-                shipper_zone: '',
-                shipper_phone: '',
-                shipper_email: '',
-                shipper_kyc_no: '',
-                account_code: ''
-            };
+            if (newPayMode === 'CASH') {
+              setSelectedCustomerId('');
+              setShipperSearch('');
+              newData = {
+                  ...newData,
+                  shipper_code: '',
+                  shipper_company: '',
+                  shipper_name: '',
+                  shipper_address1: '',
+                  shipper_address2: '',
+                  shipper_address3: '',
+                  shipper_zip: '',
+                  shipper_city: '',
+                  shipper_state: '',
+                  shipper_zone: '',
+                  shipper_phone: '',
+                  shipper_email: '',
+                  shipper_kyc_no: '',
+                  account_code: ''
+              };
+            }
         }
 
         if (name === 'product' && value.toUpperCase() === 'DOCUMENTS') {

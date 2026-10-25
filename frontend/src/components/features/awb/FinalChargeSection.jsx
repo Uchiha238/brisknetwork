@@ -16,11 +16,10 @@ export function FinalChargeSection({
           <label className="text-[10px] font-black text-red-600 uppercase">Pay By*</label>
           <select 
             name="bill_type" 
-            value={(formData.bill_type || '').toUpperCase()} 
+            value={(formData.bill_type || formData.payment_mode || 'CASH').toUpperCase()} 
             onChange={handleChange} 
             className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc] outline-none"
           >
-            <option value="">-Select-</option>
             {masters.billTypes.map(b => <option key={b} value={b}>{b}</option>)}
           </select>
         </div>
@@ -29,11 +28,11 @@ export function FinalChargeSection({
           <input type="number" value={formData.sub_total} readOnly tabIndex={-1} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-slate-100 cursor-not-allowed" />
         </div>
         <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-          <label className="text-[10px] font-black text-slate-700 uppercase">CGST Tax</label>
+          <label className="text-[10px] font-black text-slate-700 uppercase">CGST Tax (9%)</label>
           <input type="number" name="cgst_ch" value={formData.cgst_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
         </div>
         <div className="grid grid-cols-[140px_1fr] items-center gap-1">
-          <label className="text-[10px] font-black text-slate-700 uppercase">SGST Tax</label>
+          <label className="text-[10px] font-black text-slate-700 uppercase">SGST Tax (9%)</label>
           <input type="number" name="sgst_ch" value={formData.sgst_ch} onChange={handleChange} className="h-[22px] px-2 border border-slate-300 text-[11px] font-bold bg-[#fcfcfc]" />
         </div>
 

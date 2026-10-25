@@ -71,4 +71,33 @@ router.delete('/fuel-groups/:id', asyncHandler(async (req, res) => {
   res.json({ success: true });
 }));
 
+// --- GST Master Endpoints ---
+router.get('/gst', asyncHandler(async (req, res) => {
+  const records = await db.allAsync('SELECT * FROM gst_masters ORDER BY sr ASC, id ASC');
+  res.json(records);
+}));
+
+router.post('/gst', asyncHandler(async (req, res) => {
+  const { sr, from_date, to_date, cgst, sgst } = req.body;
+  const result = await db.runAsync(
+    'INSERT INTO gst_masters (sr, from_date, to_date, cgst, sgst) VALUES (?, ?, ?, ?, ?)',
+    [sr || 1, from_date, to_date, parseFloat(cgst) || 9.0, parseFloat(sgst) || 9.0]
+  );
+  res.json({ success: true, id: result.lastID });
+}));
+
+router.put('/gst/:id', asyncHandler(async (req, res) => {
+  const { from_date, to_date, cgst, sgst } = req.body;
+  await db.runAsync(
+    'UPDATE gst_masters SET from_date = ?, to_date = ?, cgst = ?, sgst = ? WHERE id = ?',
+    [from_date, to_date, parseFloat(cgst) || 9.0, parseFloat(sgst) || 9.0, req.params.id]
+  );
+  res.json({ success: true });
+}));
+
+router.delete('/gst/:id', asyncHandler(async (req, res) => {
+  await db.runAsync('DELETE FROM gst_masters WHERE id = ?', [req.params.id]);
+  res.json({ success: true });
+}));
+
 module.exports = router;

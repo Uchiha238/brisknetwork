@@ -31,7 +31,7 @@ import {
 } from './useFormCalculations';
 import { createSubmitHandler, createShipperConsigneeHandlers } from './useFormSubmit';
 
-export function useUnifiedShipmentForm(initialType = 'domestic', editingShipmentId = null) {
+export function useUnifiedShipmentForm(initialType = 'domestic', editingShipmentId = null, onSuccess = null) {
   // ── Core state ──
   const [shipmentType, setShipmentType] = useState(initialType);
   const [customers, setCustomers] = useState([]);
@@ -73,7 +73,8 @@ export function useUnifiedShipmentForm(initialType = 'domestic', editingShipment
   const handleSubmit = createSubmitHandler({
     formData, shipmentType, selectedCustomerId, selectedConsigneeId,
     customers, editingShipmentId,
-    setCustomers, setSelectedCustomerId
+    setCustomers, setSelectedCustomerId,
+    onSuccess
   });
 
   // ── Shipper / Consignee selection ──

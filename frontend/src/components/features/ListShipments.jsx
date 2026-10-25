@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 import { useAsync } from '@/hooks/useAsync';
 import { useConfirmDelete } from '@/hooks/useConfirmDelete';
-import { Search, Download, FileText, Calendar, MapPin, Package, RefreshCw, Layers, Pencil, Trash2 } from "lucide-react";
+import { Search, Plus, Download, FileText, Calendar, MapPin, Package, RefreshCw, Layers, Pencil, Trash2 } from "lucide-react";
 import { Footer } from "@/components/shared/Footer";
 
-export function ListShipments({ onEditShipment }) {
+export function ListShipments({ onEditShipment, onAddShipment }) {
   const { data: shipments, setData: setShipments, loading, refetch: fetchShipments } = useAsync(
     () => api.getShipments()
   );
@@ -110,11 +110,11 @@ export function ListShipments({ onEditShipment }) {
             Refresh
           </button>
           <button 
-            onClick={handleExportCSV}
+            onClick={onAddShipment}
             className="bg-blue-600 hover:bg-blue-700 text-white px-5 h-10 rounded shadow-lg font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
-            <Download className="h-4 w-4 stroke-[3px]" />
-            Export CSV
+            <Plus className="h-4 w-4 stroke-[3px]" />
+            Add Shipment
           </button>
         </div>
       </div>

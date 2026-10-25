@@ -37,7 +37,7 @@ function App() {
   const [isAdminRoute, setIsAdminRoute] = useState(checkIsAdminPath);
   const [user, setUser] = useState(null);
   const [isValidatingAuth, setIsValidatingAuth] = useState(checkIsAdminPath);
-  const [currentPage, setCurrentPage] = useState("dashboard");
+  const [currentPage, setCurrentPage] = useState("list-shipments");
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [editingShipmentId, setEditingShipmentId] = useState(null);
 
@@ -156,7 +156,16 @@ function App() {
   return (
     <DashboardLayout currentPage={currentPage} setCurrentPage={handlePageChange} user={user} onLogout={handleLogout}>
       {currentPage === "dashboard" && <AdminDashboard />}
-      {currentPage === "add-shipment" && <AddUnifiedShipmentForm initialType="domestic" editingShipmentId={editingShipmentId} />}
+      {currentPage === "add-shipment" && (
+        <AddUnifiedShipmentForm 
+          initialType="domestic" 
+          editingShipmentId={editingShipmentId} 
+          onSuccess={() => {
+            setEditingShipmentId(null);
+            setCurrentPage("list-shipments");
+          }} 
+        />
+      )}
       {currentPage === "gst-setting" && <GstSetting />}
       {currentPage === "view-customer" && <CustomerDetails setCurrentPage={handlePageChange} setEditingCustomer={setEditingCustomer} />}
       {currentPage === "courier-master" && <CourierMaster />}
@@ -187,7 +196,15 @@ function App() {
       )}
       {currentPage === "company-setting" && <CompanySetting />}
       {currentPage === "mail-config" && <MailConfig />}
-      {currentPage === "list-shipments" && <ListShipments onEditShipment={handleEditShipment} />}
+      {currentPage === "list-shipments" && (
+        <ListShipments 
+          onEditShipment={handleEditShipment} 
+          onAddShipment={() => {
+            setEditingShipmentId(null);
+            setCurrentPage("add-shipment");
+          }}
+        />
+      )}
       {currentPage === "export-invoice" && (
         <InvoiceManager mode="generate" type="Export" setCurrentPage={handlePageChange} />
       )}

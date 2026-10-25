@@ -14,11 +14,13 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 router.post('/', asyncHandler(async (req, res) => {
-  const reqErr = validate.required(req.body, ['customer_id', 'airway_no']);
+  const reqErr = validate.required(req.body, ['airway_no']);
   if (reqErr) return res.status(400).json({ success: false, error: reqErr });
 
-  const numErr = validate.number(req.body.customer_id, 'customer_id');
-  if (numErr) return res.status(400).json({ success: false, error: numErr });
+  if (req.body.customer_id) {
+    const numErr = validate.number(req.body.customer_id, 'customer_id');
+    if (numErr) return res.status(400).json({ success: false, error: numErr });
+  }
 
   const pcsErr = validate.number(req.body.pcs, 'pcs');
   if (pcsErr) return res.status(400).json({ success: false, error: pcsErr });
@@ -69,6 +71,10 @@ router.post('/', asyncHandler(async (req, res) => {
     packages, items 
   } = req.body;
 
+  const finalCustomerId = (customer_id && !isNaN(parseInt(customer_id))) ? parseInt(customer_id) : null;
+  const finalType = (type || 'domestic').toLowerCase();
+  const finalBillType = (bill_type || req.body.payment_mode || (finalCustomerId ? 'CREDIT' : 'CASH')).toUpperCase();
+
   const result = await db.runAsync(`
     INSERT INTO shipments (
       customer_id, user_id, airway_no, type, status,
@@ -106,7 +112,7 @@ router.post('/', asyncHandler(async (req, res) => {
       ?, ?, ?, ?, ?, ?
     )
   `, [
-    customer_id, user_id, airway_no, type,
+    finalCustomerId, user_id || 1, airway_no, finalType,
     booking_date, booking_time, product, origin_hub, origin_zone,
     destination, dest_zone, usps_number, service, duty,
     ref_no, shipment_value, currency, invoice_date, invoice_no, account_code,
@@ -121,7 +127,7 @@ router.post('/', asyncHandler(async (req, res) => {
     pcs, actual_weight, volumetric_weight, chargeable_weight,
     bill_amount, fuel_amount, gst_amount, freight_ch, total_charges,
     
-    forward_no, forwarder, description, bill_type, type_of_doc, doc_number,
+    forward_no, forwarder, description, finalBillType, type_of_doc, doc_number,
     destination_ch, ess_ch, oda_ch, parseFloat(caf_pct) || 0, transport_ch, clearance_ch, other_ch, ddp_ch,
     charges_date, branch, eway_bill_no
   ]);
@@ -197,11 +203,13 @@ router.delete('/:id', asyncHandler(async (req, res) => {
 
 // Update an existing shipment
 router.put('/:id', asyncHandler(async (req, res) => {
-  const reqErr = validate.required(req.body, ['customer_id', 'airway_no']);
+  const reqErr = validate.required(req.body, ['airway_no']);
   if (reqErr) return res.status(400).json({ success: false, error: reqErr });
 
-  const numErr = validate.number(req.body.customer_id, 'customer_id');
-  if (numErr) return res.status(400).json({ success: false, error: numErr });
+  if (req.body.customer_id) {
+    const numErr = validate.number(req.body.customer_id, 'customer_id');
+    if (numErr) return res.status(400).json({ success: false, error: numErr });
+  }
 
   const pcsErr = validate.number(req.body.pcs, 'pcs');
   if (pcsErr) return res.status(400).json({ success: false, error: pcsErr });
@@ -252,6 +260,10 @@ router.put('/:id', asyncHandler(async (req, res) => {
     packages, items 
   } = req.body;
 
+  const finalCustomerId = (customer_id && !isNaN(parseInt(customer_id))) ? parseInt(customer_id) : null;
+  const finalType = (type || 'domestic').toLowerCase();
+  const finalBillType = (bill_type || req.body.payment_mode || (finalCustomerId ? 'CREDIT' : 'CASH')).toUpperCase();
+
   await db.runAsync(`
     UPDATE shipments SET
       customer_id=?, user_id=?, airway_no=?, type=?,
@@ -274,7 +286,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
       charges_date=?, branch=?, eway_bill_no=?
     WHERE id=?
   `, [
-    customer_id, user_id, airway_no, type,
+    finalCustomerId, user_id || 1, airway_no, finalType,
     booking_date, booking_time, product, origin_hub, origin_zone,
     destination, dest_zone, usps_number, service, duty,
     ref_no, shipment_value, currency, invoice_date, invoice_no, account_code,
@@ -289,7 +301,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
     pcs, actual_weight, volumetric_weight, chargeable_weight,
     bill_amount, fuel_amount, gst_amount, freight_ch, total_charges,
     
-    forward_no, forwarder, description, bill_type, type_of_doc, doc_number,
+    forward_no, forwarder, description, finalBillType, type_of_doc, doc_number,
     destination_ch, ess_ch, oda_ch, parseFloat(caf_pct) || 0, transport_ch, clearance_ch, other_ch, ddp_ch,
     charges_date, branch, eway_bill_no,
     req.params.id

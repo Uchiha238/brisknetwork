@@ -396,6 +396,32 @@ const init = async () => {
       }
     }
 
+    await db.execAsync(`CREATE TABLE IF NOT EXISTS gst_masters (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sr INTEGER,
+      from_date TEXT,
+      to_date TEXT,
+      cgst REAL DEFAULT 9.0,
+      sgst REAL DEFAULT 9.0
+    )`);
+
+    const gstCount = await db.getAsync('SELECT count(*) as c FROM gst_masters');
+    if (!gstCount || gstCount.c === 0) {
+      await db.runAsync(
+        'INSERT INTO gst_masters (sr, from_date, to_date, cgst, sgst) VALUES (?, ?, ?, ?, ?)',
+        [1, '2020-01-01', '2099-12-31', 9.0, 9.0]
+      );
+    }
+
+    // Normalize existing shipments data (lowercase type, ensure bill_type populated)
+    try {
+      await db.runAsync("UPDATE shipments SET type = LOWER(type) WHERE type IS NOT NULL");
+      await db.runAsync("UPDATE shipments SET bill_type = 'CREDIT' WHERE (bill_type IS NULL OR bill_type = '') AND customer_id IS NOT NULL");
+      await db.runAsync("UPDATE shipments SET bill_type = 'CASH' WHERE (bill_type IS NULL OR bill_type = '') AND customer_id IS NULL");
+    } catch (e) {
+      // ignore
+    }
+
     console.log('Database initialized successfully.');
   } catch (err) {
     console.error('Database initialization error:', err);
