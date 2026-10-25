@@ -3,6 +3,7 @@ import { RotateCcw } from 'lucide-react';
 import { FormField, getCountryCallingCode } from '../../shared/FormField';
 import { isDomesticCountry } from '../../../utils/weight';
 import { handleCountryKeyDown, handleCountryBlur } from '../../../utils/countryAutocomplete';
+import { lookupPostalCode } from '../../../utils/postalLookup';
 
 export function ConsigneeInfoSection({
   formData,
@@ -17,6 +18,7 @@ export function ConsigneeInfoSection({
   masters
 }) {
   const [highlightedIndex, setHighlightedIndex] = React.useState(-1);
+  const [isSearchingZip, setIsSearchingZip] = React.useState(false);
   const listRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -47,6 +49,29 @@ export function ConsigneeInfoSection({
         type: 'text'
       }
     });
+  };
+
+  const handleZipSearch = async () => {
+    if (!formData.consignee_zip || isDomestic) return;
+    setIsSearchingZip(true);
+    try {
+      const res = await lookupPostalCode(formData.consignee_zip, formData.consignee_country);
+      if (res && res.success) {
+        if (res.city) {
+          handleChange({ target: { name: 'consignee_city', value: res.city, type: 'text' } });
+        }
+        if (res.state) {
+          handleChange({ target: { name: 'consignee_state', value: res.state, type: 'text' } });
+        }
+        if (res.country && (!formData.consignee_country || formData.consignee_country === 'INDIA')) {
+          handleChange({ target: { name: 'consignee_country', value: res.country, type: 'text' } });
+        }
+      }
+    } catch (err) {
+      console.error('Postal search error:', err);
+    } finally {
+      setIsSearchingZip(false);
+    }
   };
 
 
@@ -138,8 +163,36 @@ export function ConsigneeInfoSection({
         <FormField onChange={handleChange} label="Address 3" name="consignee_address3" labelWidth="105px" value={formData.consignee_address3} inputMaxWidth="320px" />
 
         <div className="grid grid-cols-[1fr_50px] gap-1 max-w-[425px]">
-          <FormField onChange={handleChange} label="Post / Zip Code" name="consignee_zip" isRed labelWidth="105px" value={formData.consignee_zip} inputMaxWidth="320px" readOnly={isDomestic} />
-          <button type="button" className={`text-[8px] font-bold text-white uppercase h-[22px] ${isDomestic ? 'bg-slate-300 cursor-not-allowed' : 'bg-slate-300 cursor-not-allowed'}`} disabled>Search</button>
+          <FormField
+            onChange={handleChange}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleZipSearch();
+              }
+            }}
+            onBlur={handleZipSearch}
+            label="Post / Zip Code"
+            name="consignee_zip"
+            isRed
+            labelWidth="105px"
+            value={formData.consignee_zip}
+            inputMaxWidth="320px"
+            readOnly={isDomestic}
+          />
+          <button
+            type="button"
+            onClick={handleZipSearch}
+            disabled={isDomestic || isSearchingZip}
+            title={isDomestic ? 'Domestic pincode is auto-filled' : 'Search city, state and zone from postal code'}
+            className={`text-[8px] font-bold text-white uppercase h-[22px] transition-colors rounded-xs shadow-xs ${
+              isDomestic
+                ? 'bg-slate-300 cursor-not-allowed'
+                : 'bg-[#1a2f4c] hover:bg-[#253d63] cursor-pointer active:scale-95'
+            }`}
+          >
+            {isSearchingZip ? '...' : 'Search'}
+          </button>
         </div>
 
         <FormField onChange={handleChange} label="City" name="consignee_city" isRed labelWidth="105px" value={formData.consignee_city} inputMaxWidth="320px" readOnly={isDomestic} />

@@ -377,8 +377,23 @@ const init = async () => {
     await db.runAsync(`UPDATE customers SET city = 'MUMBAI' WHERE city IS NULL OR city = ''`);
     await db.runAsync(`UPDATE customers SET domestic_rate_group = 'Domestic 1' WHERE domestic_rate_group IS NULL OR domestic_rate_group = ''`);
     await db.runAsync(`UPDATE customers SET international_rate_group = 'CO COURIER 1' WHERE international_rate_group IS NULL OR international_rate_group = ''`);
-    await db.runAsync(`UPDATE customers SET domestic_fuel_group = 'Group A' WHERE domestic_fuel_group IS NULL OR domestic_fuel_group = ''`);
-    await db.runAsync(`UPDATE customers SET international_fuel_group = 'Group A' WHERE international_fuel_group IS NULL OR international_fuel_group = ''`);
+    await db.execAsync(`CREATE TABLE IF NOT EXISTS local_pincodes (
+      pincode TEXT PRIMARY KEY,
+      area TEXT,
+      state_code TEXT,
+      state_desc TEXT,
+      zone TEXT
+    )`);
+
+    const zoneCount = await db.getAsync('SELECT count(*) as c FROM international_zones');
+    if (zoneCount && zoneCount.c === 0) {
+      try {
+        const importZones = require('./scripts/importInternationalZones');
+        await importZones();
+      } catch (zErr) {
+        console.warn('Auto-import of international zones skipped:', zErr.message);
+      }
+    }
 
     console.log('Database initialized successfully.');
   } catch (err) {

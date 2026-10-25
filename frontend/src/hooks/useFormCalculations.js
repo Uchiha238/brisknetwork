@@ -9,6 +9,7 @@
 import { useEffect } from 'react';
 import { calcVolumetricWt, calcChargeableWt, roundToHalfKg, isDomesticCountry } from '../utils/weight';
 import { getCountryDefaultCurrency } from '../utils/countryData';
+import { lookupPostalCode } from '../utils/postalLookup';
 import { API_BASE_URL } from '../services/api';
 
 // ── GST helpers (module-private) ──
@@ -254,13 +255,17 @@ export function createFieldHandlers({ setFormData, setSelectedCustomerId, setShi
             });
         }
 
-        if ((name === 'shipper_zip' || name === 'consignee_zip') && /^\d{6}$/.test(value)) {
+        const isShipper = name === 'shipper_zip';
+        const currentCountry = isShipper ? prev.shipper_country : prev.consignee_country;
+        const isDomesticField = (shipmentType === 'domestic') || isDomesticCountry(currentCountry);
+
+        // Domestic Indian Pincode Auto-Fill
+        if (isDomesticField && (name === 'shipper_zip' || name === 'consignee_zip') && /^\d{6}$/.test(value)) {
             fetch(`${API_BASE_URL}/pincode/${value}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.success) {
                         setFormData(current => {
-                            const isShipper = name === 'shipper_zip';
                             const updateObj = {
                                 [isShipper ? 'shipper_city' : 'consignee_city']: data.data.city ? data.data.city.toUpperCase() : '',
                                 [isShipper ? 'shipper_state' : 'consignee_state']: data.data.state ? data.data.state.toUpperCase() : '',
@@ -283,33 +288,53 @@ export function createFieldHandlers({ setFormData, setSelectedCustomerId, setShi
                 .catch(err => console.error("Error fetching pincode data:", err));
         }
 
-        if (name === 'shipper_zip' || name === 'consignee_zip') {
-            const isShipper = name === 'shipper_zip';
-            const country = isShipper ? prev.shipper_country : prev.consignee_country;
-            const isUS = country && (
-                country.toUpperCase() === 'UNITED STATES' || 
-                country.toUpperCase() === 'USA' || 
-                country.toUpperCase() === 'US' || 
-                country.toUpperCase() === 'UNITED STATES OF AMERICA'
-            );
-            
-            if (isUS && /^\d{5}$/.test(value)) {
-                fetch(`https://api.zippopotam.us/us/${value}`)
-                    .then(res => {
-                        if (!res.ok) throw new Error("Zip code not found");
-                        return res.json();
-                    })
-                    .then(data => {
-                        if (data && data.places && data.places.length > 0) {
-                            const place = data.places[0];
-                            setFormData(current => ({
-                                ...current,
-                                [isShipper ? 'shipper_city' : 'consignee_city']: place['place name'] ? place['place name'].toUpperCase() : '',
-                                [isShipper ? 'shipper_state' : 'consignee_state']: place['state'] ? place['state'].toUpperCase() : '',
-                            }));
+        // International Postal / Zip Code Auto-Fill (Any Country)
+        if (!isDomesticField && (name === 'shipper_zip' || name === 'consignee_zip')) {
+            const cleanVal = (value || '').trim();
+            if (cleanVal.length >= 3) {
+                lookupPostalCode(cleanVal, currentCountry)
+                    .then(result => {
+                        if (result && result.success) {
+                            const countryToUse = result.country || currentCountry;
+                            setFormData(current => {
+                                const updateObj = {
+                                    ...current,
+                                    [isShipper ? 'shipper_city' : 'consignee_city']: result.city || current[isShipper ? 'shipper_city' : 'consignee_city'],
+                                    [isShipper ? 'shipper_state' : 'consignee_state']: result.state || current[isShipper ? 'shipper_state' : 'consignee_state'],
+                                };
+                                if (!isShipper && countryToUse) {
+                                    updateObj.consignee_country = countryToUse;
+                                    updateObj.destination = countryToUse;
+                                }
+                                return updateObj;
+                            });
+
+                            // Auto-fetch international zone if consignee
+                            if (!isShipper && countryToUse && !isDomesticCountry(countryToUse)) {
+                                let courier = 'DHL';
+                                const serviceUpper = (prev.service || '').toUpperCase();
+                                if (serviceUpper.includes('FEDEX')) courier = 'FEDEX';
+                                else if (serviceUpper.includes('UPS')) courier = 'UPS';
+                                else if (serviceUpper.includes('ARAMEX')) courier = 'ARAMEX';
+
+                                const mode = prev.mode || 'EXPORT';
+                                const bookingDate = prev.booking_date || '';
+
+                                fetch(`/api/international-zone?country=${encodeURIComponent(countryToUse)}&courier=${encodeURIComponent(courier)}&type=${encodeURIComponent(mode)}&booking_date=${encodeURIComponent(bookingDate)}`)
+                                    .then(res => res.json())
+                                    .then(zData => {
+                                        if (zData && zData.success && zData.zone) {
+                                            setFormData(curr => ({
+                                                ...curr,
+                                                consignee_zone: zData.zone.toString()
+                                            }));
+                                        }
+                                    })
+                                    .catch(err => console.error("Error fetching international zone:", err));
+                            }
                         }
                     })
-                    .catch(err => console.error("Error fetching US zip code data:", err));
+                    .catch(err => console.error("Error looking up international postal code:", err));
             }
         }
 

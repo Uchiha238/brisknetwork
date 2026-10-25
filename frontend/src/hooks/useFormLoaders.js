@@ -302,10 +302,13 @@ export function useInternationalZoneLookup({ formData, setFormData }) {
           })
           .then(data => {
             if (data && data.success && data.zone) {
-              setFormData(prev => ({
-                ...prev,
-                consignee_zone: data.zone.toString()
-              }));
+              setFormData(prev => {
+                if (prev.consignee_zone === data.zone.toString()) return prev;
+                return {
+                  ...prev,
+                  consignee_zone: data.zone.toString()
+                };
+              });
             }
           })
           .catch(err => {
@@ -313,7 +316,7 @@ export function useInternationalZoneLookup({ formData, setFormData }) {
           });
       }
     }
-  }, [formData.consignee_country, formData.service, formData.mode, formData.booking_date]);
+  }, [formData.consignee_country, formData.consignee_city, formData.service, formData.mode, formData.booking_date]);
 }
 
 /**

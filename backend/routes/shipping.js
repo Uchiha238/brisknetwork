@@ -48,17 +48,27 @@ router.get('/international-zone', asyncHandler(async (req, res) => {
   const typeUpper = type ? type.toString().trim().toUpperCase() : 'EXPORT';
   const bookingDateVal = (booking_date || new Date().toISOString().split('T')[0]).toString().trim();
   
-  // Exact match
+  // Exact match (by country name or 2-letter country_code)
   let row = await db.getAsync(
-    'SELECT zone FROM international_zones WHERE country = ? AND courier = ? AND type = ? AND (effective_from <= ? AND effective_to >= ?) ORDER BY effective_from DESC LIMIT 1',
-    [countryUpper, courierUpper, typeUpper, bookingDateVal, bookingDateVal]
+    `SELECT zone FROM international_zones 
+     WHERE (country = ? OR country_code = ?) 
+       AND courier = ? 
+       AND (type = ? OR type IS NULL OR type = '') 
+       AND (effective_from IS NULL OR effective_from = '' OR (effective_from <= ? AND effective_to >= ?)) 
+     ORDER BY effective_from DESC LIMIT 1`,
+    [countryUpper, countryUpper, courierUpper, typeUpper, bookingDateVal, bookingDateVal]
   );
   
   // Fuzzy match
   if (!row) {
     row = await db.getAsync(
-      'SELECT zone FROM international_zones WHERE (country LIKE ? OR ? LIKE "%" || country || "%") AND courier = ? AND type = ? AND (effective_from <= ? AND effective_to >= ?) ORDER BY effective_from DESC LIMIT 1',
-      [`%${countryUpper}%`, countryUpper, courierUpper, typeUpper, bookingDateVal, bookingDateVal]
+      `SELECT zone FROM international_zones 
+       WHERE (country LIKE ? OR ? LIKE "%" || country || "%" OR country_code = ?) 
+         AND courier = ? 
+         AND (type = ? OR type IS NULL OR type = '') 
+         AND (effective_from IS NULL OR effective_from = '' OR (effective_from <= ? AND effective_to >= ?)) 
+       ORDER BY effective_from DESC LIMIT 1`,
+      [`%${countryUpper}%`, countryUpper, countryUpper, courierUpper, typeUpper, bookingDateVal, bookingDateVal]
     );
   }
   

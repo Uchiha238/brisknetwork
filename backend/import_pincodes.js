@@ -2,7 +2,7 @@ const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
 
-const db = new sqlite3.Database('./courier.db');
+const db = new sqlite3.Database(path.resolve(__dirname, 'courier.db'));
 
 const parseCSV = (filePath, skipRows = 0) => {
   const content = fs.readFileSync(filePath, 'utf8');
