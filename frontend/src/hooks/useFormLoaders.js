@@ -432,17 +432,15 @@ export function useInternationalRateLookup({ formData, setFormData, lastFetchedR
  */
 export function useFuelPriceLookup({ selectedCustomerId, formData, shipmentType, customers, lastFetchedFuelKey, setLastFetchedFuelKey, setFuelPricePct }) {
   useEffect(() => {
-    if (!selectedCustomerId || !formData.service || !formData.booking_date) {
+    if (!formData.service || !formData.booking_date) {
       setFuelPricePct(0);
       return;
     }
 
-    const customer = customers.find(c => c.id.toString() === selectedCustomerId.toString());
-    if (!customer) return;
-
-    const fuelGroupName = shipmentType === 'domestic' 
-      ? customer.domestic_fuel_group 
-      : customer.international_fuel_group;
+    const customer = customers.find(c => c.id?.toString() === selectedCustomerId?.toString());
+    const fuelGroupName = customer 
+      ? ((shipmentType === 'domestic' ? customer.domestic_fuel_group : customer.international_fuel_group) || 'Group A')
+      : 'Group A';
 
     if (!fuelGroupName) {
       setFuelPricePct(0);

@@ -152,6 +152,7 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic', editingShipme
 
       <WeightsDimensionsSection
         formData={formData}
+        setFormData={setFormData}
         handleChange={handleChange}
         handleArrayChange={handleArrayChange}
         shipmentType={shipmentType}

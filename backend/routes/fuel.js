@@ -29,25 +29,46 @@ router.get('/lookup', asyncHandler(async (req, res) => {
   }
 
   // 1. Find the fuel group ID matching the name and type
-  const group = await db.getAsync(
+  let group = await db.getAsync(
     'SELECT id FROM fuel_groups WHERE LOWER(name) = ? AND LOWER(type) = ?',
     [fuel_group_name.trim().toLowerCase(), company_type.trim().toLowerCase()]
   );
 
-  if (!group) {
-    return res.json({ success: true, fuel_price_pct: 0, reason: 'Fuel group not found' });
+  let entries = [];
+  const courierLower = courier.trim().toLowerCase();
+
+  if (group) {
+    // 2. Find fuel entry for this group and courier that covers booking_date
+    entries = await db.allAsync(
+      `SELECT * FROM fuel_entries 
+       WHERE fuel_group_id = ? 
+         AND (LOWER(fuel_courier) = ? OR LOWER(fuel_courier) = 'all')
+         AND (fuel_from_date <= ? AND fuel_to_date >= ?)
+       ORDER BY CASE WHEN LOWER(fuel_courier) = ? THEN 0 ELSE 1 END ASC, id DESC`,
+      [group.id, courierLower, booking_date, booking_date, courierLower]
+    );
+
+    // Fallback A: Most recent entry for this group and courier
+    if (entries.length === 0) {
+      entries = await db.allAsync(
+        `SELECT * FROM fuel_entries 
+         WHERE fuel_group_id = ? 
+           AND (LOWER(fuel_courier) = ? OR LOWER(fuel_courier) = 'all')
+         ORDER BY CASE WHEN LOWER(fuel_courier) = ? THEN 0 ELSE 1 END ASC, fuel_to_date DESC, id DESC LIMIT 1`,
+        [group.id, courierLower, courierLower]
+      );
+    }
   }
 
-  // 2. Find the fuel entry for this group and courier that covers the booking_date
-  // We check courier match first (case-insensitive), or fallback to 'All'
-  const entries = await db.allAsync(
-    `SELECT * FROM fuel_entries 
-     WHERE fuel_group_id = ? 
-       AND (LOWER(fuel_courier) = ? OR LOWER(fuel_courier) = 'all')
-       AND (fuel_from_date <= ? AND fuel_to_date >= ?)
-     ORDER BY CASE WHEN LOWER(fuel_courier) = ? THEN 0 ELSE 1 END ASC, id DESC`,
-    [group.id, courier.trim().toLowerCase(), booking_date, booking_date, courier.trim().toLowerCase()]
-  );
+  // Fallback B: If still no entry (or group not found), check any active entry for this courier
+  if (entries.length === 0) {
+    entries = await db.allAsync(
+      `SELECT * FROM fuel_entries 
+       WHERE (LOWER(fuel_courier) = ? OR LOWER(fuel_courier) = 'all')
+       ORDER BY CASE WHEN LOWER(fuel_courier) = ? THEN 0 ELSE 1 END ASC, fuel_to_date DESC, id DESC LIMIT 1`,
+      [courierLower, courierLower]
+    );
+  }
 
   if (entries.length > 0) {
     return res.json({

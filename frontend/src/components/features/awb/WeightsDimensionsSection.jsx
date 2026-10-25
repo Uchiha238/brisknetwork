@@ -3,10 +3,80 @@ import { SectionHeader } from '../../shared/FormField';
 
 export function WeightsDimensionsSection({
   formData,
+  setFormData,
   handleChange,
   handleArrayChange,
   shipmentType
 }) {
+  const [isCheckingRate, setIsCheckingRate] = React.useState(false);
+  const [rateFeedback, setRateFeedback] = React.useState(null);
+
+  const handleCheckRate = async () => {
+    setRateFeedback(null);
+    const weight = parseFloat(formData.chargeable_weight) || 0;
+    if (weight <= 0) {
+      setRateFeedback({ type: 'error', message: 'Enter package dimensions or weight first.' });
+      return;
+    }
+
+    if (shipmentType === 'domestic') {
+      setRateFeedback({ type: 'info', message: 'Domestic rates are contract-based. Enter the Bill Amount directly.' });
+      const billInput = document.querySelector('input[name="freight_ch"]');
+      if (billInput) billInput.focus();
+      return;
+    }
+
+    // International rating
+    let courier = 'DHL';
+    const sUpper = (formData.service || '').toUpperCase();
+    if (sUpper.includes('FEDEX')) courier = 'FEDEX';
+    else if (sUpper.includes('UPS')) courier = 'UPS';
+    else if (sUpper.includes('ARAMEX')) courier = 'ARAMEX';
+    else if (sUpper.includes('DHL')) courier = 'DHL';
+    else if (!formData.service) {
+      setRateFeedback({ type: 'error', message: 'Please select a Service (e.g. DHL) in AWB Information.' });
+      return;
+    }
+
+    const zone = (formData.consignee_zone || '').trim();
+    if (!zone) {
+      setRateFeedback({ 
+        type: 'error', 
+        message: formData.consignee_country 
+          ? `Destination Zone not found for "${formData.consignee_country}". Please verify country.` 
+          : 'Please select Consignee Country to resolve destination zone.' 
+      });
+      return;
+    }
+
+    setIsCheckingRate(true);
+    try {
+      const product = weight > 2.0 ? 'PARCEL' : (formData.product || 'DOCUMENTS');
+      const mode = formData.mode || 'EXPORT';
+      const bookingDate = formData.booking_date || new Date().toISOString().split('T')[0];
+
+      const res = await fetch(`/api/international-rate?courier=${encodeURIComponent(courier)}&zone=${encodeURIComponent(zone)}&weight=${encodeURIComponent(weight)}&product=${encodeURIComponent(product)}&mode=${encodeURIComponent(mode)}&booking_date=${encodeURIComponent(bookingDate)}`);
+      const data = await res.json();
+
+      if (data && data.success && data.rate !== undefined) {
+        if (setFormData) {
+          setFormData(prev => ({
+            ...prev,
+            freight_ch: data.rate,
+            product: product
+          }));
+        }
+        setRateFeedback({ type: 'success', message: `${courier} Zone ${zone} Rate: ₹${data.rate}` });
+      } else {
+        setRateFeedback({ type: 'error', message: data.error || `No rate slab found for ${courier} Zone ${zone} (${weight} kg).` });
+      }
+    } catch (err) {
+      setRateFeedback({ type: 'error', message: 'Rate check failed: ' + err.message });
+    } finally {
+      setIsCheckingRate(false);
+    }
+  };
+
   return (
     <div className="mt-1 border border-slate-300 bg-white">
       <SectionHeader title="Weights and Dimensions" isWhite />
@@ -128,7 +198,7 @@ export function WeightsDimensionsSection({
           <label className="text-[9px] font-black text-slate-500 uppercase">Total Amount</label>
           <input 
             type="number" 
-            name="grand_total"
+            name="grand_total" 
             value={formData.grand_total} 
             onChange={handleChange}
             className="w-28 h-[22px] px-2 border border-slate-300 text-[12px] font-bold bg-white text-slate-900 focus:border-blue-500 outline-none" 
@@ -156,8 +226,26 @@ export function WeightsDimensionsSection({
           </div>
         )}
 
-        <button type="button" className="ml-auto bg-[#3b82f6] hover:bg-[#2563eb] text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded shadow-sm transition-all">
-          Check Rate
+        {rateFeedback && (
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1 ${
+            rateFeedback.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+            rateFeedback.type === 'error' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
+            'bg-blue-50 text-blue-700 border border-blue-200'
+          }`}>
+            {rateFeedback.type === 'success' && '✓ '}
+            {rateFeedback.type === 'error' && '⚠ '}
+            {rateFeedback.type === 'info' && 'ℹ '}
+            {rateFeedback.message}
+          </span>
+        )}
+
+        <button 
+          type="button" 
+          onClick={handleCheckRate}
+          disabled={isCheckingRate}
+          className="ml-auto bg-[#3b82f6] hover:bg-[#2563eb] disabled:bg-slate-400 text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded shadow-sm transition-all"
+        >
+          {isCheckingRate ? 'Checking...' : 'Check Rate'}
         </button>
       </div>
     </div>
