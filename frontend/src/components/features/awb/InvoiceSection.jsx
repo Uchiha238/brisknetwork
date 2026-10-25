@@ -1,6 +1,7 @@
 import React from 'react';
 import { FormField } from '../../shared/FormField';
-import { handleCurrencyKeyDown, handleCurrencyBlur } from '../../../utils/countryAutocomplete';
+import { AutocompleteInput } from '../../shared/AutocompleteInput';
+import { CURRENCY_OPTIONS, getBestCurrencyMatch } from '../../../utils/countryAutocomplete';
 
 export function InvoiceSection({
   formData,
@@ -30,13 +31,12 @@ export function InvoiceSection({
             </FormField>
             <FormField onChange={handleChange} label="Note" name="note" value={formData.note} />
             <FormField onChange={handleChange} label="Currency" name="currency">
-              <input
-                list="currencies-list"
+              <AutocompleteInput
                 name="currency"
                 value={formData.currency || ''}
                 onChange={handleChange}
-                onKeyDown={(e) => handleCurrencyKeyDown(e, handleChange)}
-                onBlur={(e) => handleCurrencyBlur(e, handleChange)}
+                options={CURRENCY_OPTIONS}
+                getBestMatch={getBestCurrencyMatch}
                 placeholder="INR"
                 className="w-full h-full px-2 border border-slate-300 text-[11px] font-bold uppercase outline-none"
               />

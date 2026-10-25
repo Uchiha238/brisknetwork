@@ -1,8 +1,9 @@
 import React from 'react';
 import { RotateCcw } from 'lucide-react';
 import { FormField, getCountryCallingCode } from '../../shared/FormField';
+import { AutocompleteInput } from '../../shared/AutocompleteInput';
 import { isDomesticCountry } from '../../../utils/weight';
-import { handleCountryKeyDown, handleCountryBlur } from '../../../utils/countryAutocomplete';
+import { buildCountryList, getBestCountryMatch } from '../../../utils/countryAutocomplete';
 import { lookupPostalCode } from '../../../utils/postalLookup';
 
 export function ConsigneeInfoSection({
@@ -20,6 +21,10 @@ export function ConsigneeInfoSection({
   const [highlightedIndex, setHighlightedIndex] = React.useState(-1);
   const [isSearchingZip, setIsSearchingZip] = React.useState(false);
   const listRef = React.useRef(null);
+
+  const countryOptions = React.useMemo(() => {
+    return buildCountryList(masters?.countries);
+  }, [masters?.countries]);
 
   React.useEffect(() => {
     setHighlightedIndex(-1);
@@ -238,14 +243,15 @@ export function ConsigneeInfoSection({
         </div>
 
         <FormField onChange={handleChange} label="Country" name="consignee_country" isRed labelWidth="105px" inputMaxWidth="320px">
-          <input
-            list="countries-list"
+          <AutocompleteInput
             name="consignee_country"
             value={formData.consignee_country || ''}
             onChange={handleChange}
-            onKeyDown={(e) => handleCountryKeyDown(e, masters?.countries, handleChange)}
-            onBlur={(e) => handleCountryBlur(e, masters?.countries, handleChange)}
+            options={countryOptions}
+            getBestMatch={(q) => getBestCountryMatch(q, masters?.countries)}
             placeholder={isDomestic ? 'INDIA' : 'SELECT...'}
+            disabled={isDomestic}
+            readOnly={isDomestic}
             className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none"
           />
         </FormField>

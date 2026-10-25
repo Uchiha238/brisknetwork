@@ -1,7 +1,8 @@
 import React from 'react';
 import { RotateCcw } from 'lucide-react';
 import { FormField, getCountryCallingCode } from '../../shared/FormField';
-import { handleCountryKeyDown, handleCountryBlur } from '../../../utils/countryAutocomplete';
+import { AutocompleteInput } from '../../shared/AutocompleteInput';
+import { buildCountryList, getBestCountryMatch } from '../../../utils/countryAutocomplete';
 
 export function ShipperInfoSection({
   formData,
@@ -16,6 +17,10 @@ export function ShipperInfoSection({
 }) {
   const [highlightedIndex, setHighlightedIndex] = React.useState(-1);
   const listRef = React.useRef(null);
+
+  const countryOptions = React.useMemo(() => {
+    return buildCountryList(masters?.countries);
+  }, [masters?.countries]);
 
   React.useEffect(() => {
     setHighlightedIndex(-1);
@@ -151,13 +156,12 @@ export function ShipperInfoSection({
         </div>
 
         <FormField onChange={handleChange} label="Country" name="shipper_country" isRed labelWidth="95px">
-          <input
-            list="countries-list"
+          <AutocompleteInput
             name="shipper_country"
             value={formData.shipper_country || ''}
             onChange={handleChange}
-            onKeyDown={(e) => handleCountryKeyDown(e, masters?.countries, handleChange)}
-            onBlur={(e) => handleCountryBlur(e, masters?.countries, handleChange)}
+            options={countryOptions}
+            getBestMatch={(q) => getBestCountryMatch(q, masters?.countries)}
             className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none"
           />
         </FormField>

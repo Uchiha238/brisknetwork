@@ -1,6 +1,7 @@
 import React from 'react';
 import { FormField } from '../../shared/FormField';
-import { handleCountryKeyDown, handleCountryBlur, handleCurrencyKeyDown, handleCurrencyBlur } from '../../../utils/countryAutocomplete';
+import { AutocompleteInput } from '../../shared/AutocompleteInput';
+import { buildCountryList, CURRENCY_OPTIONS, getBestCountryMatch, getBestCurrencyMatch } from '../../../utils/countryAutocomplete';
 
 
 export function AwbInfoSection({
@@ -14,6 +15,10 @@ export function AwbInfoSection({
   masters
 }) {
   const [isAwbEditable, setIsAwbEditable] = React.useState(false);
+
+  const countryOptions = React.useMemo(() => {
+    return buildCountryList(masters?.countries);
+  }, [masters?.countries]);
 
   return (
     <div className="flex flex-col">
@@ -134,13 +139,12 @@ export function AwbInfoSection({
           </div>
         ) : (
           <FormField onChange={handleChange} label="Destination" name="consignee_country" isRed labelWidth="85px">
-            <input
-              list="countries-list"
+            <AutocompleteInput
               name="consignee_country"
               value={formData.consignee_country || ''}
               onChange={handleChange}
-              onKeyDown={(e) => handleCountryKeyDown(e, masters?.countries, handleChange)}
-              onBlur={(e) => handleCountryBlur(e, masters?.countries, handleChange)}
+              options={countryOptions}
+              getBestMatch={(q) => getBestCountryMatch(q, masters?.countries)}
               placeholder="SELECT..."
               className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none"
             />
@@ -262,13 +266,12 @@ export function AwbInfoSection({
             <div className="grid grid-cols-2 gap-1">
               <FormField onChange={handleChange} label="VALUE" name="shipment_value" labelWidth="85px" value={formData.shipment_value} />
               <FormField onChange={handleChange} label="Currency" name="currency" labelWidth="45px">
-                <input
-                  list="currencies-list"
+                <AutocompleteInput
                   name="currency"
                   value={formData.currency || ''}
                   onChange={handleChange}
-                  onKeyDown={(e) => handleCurrencyKeyDown(e, handleChange)}
-                  onBlur={(e) => handleCurrencyBlur(e, handleChange)}
+                  options={CURRENCY_OPTIONS}
+                  getBestMatch={getBestCurrencyMatch}
                   placeholder="INR"
                   className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none"
                 />

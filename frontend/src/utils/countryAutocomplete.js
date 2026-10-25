@@ -1,6 +1,4 @@
-/**
- * countryAutocomplete.js — Utility for smart country and currency matching and tab-completion.
- */
+import { WORLD_CURRENCIES } from './countryData';
 
 export const POPULAR_COUNTRIES = [
   "UNITED STATES",
@@ -253,7 +251,34 @@ export const CURRENCY_ALIASES = {
   'RIYAL': 'SAR'
 };
 
-const POPULAR_CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'CAD', 'AUD', 'SGD', 'JPY', 'CNY', 'SAR'];
+export const buildCountryList = (mastersCountries = []) => {
+  const names = new Set();
+  const list = [];
+  (mastersCountries || []).forEach(c => {
+    const name = typeof c === 'string' ? c : c?.name;
+    if (name && !names.has(name.toUpperCase())) {
+      names.add(name.toUpperCase());
+      list.push(name.toUpperCase());
+    }
+  });
+  WORLD_COUNTRIES.forEach(c => {
+    if (!names.has(c.toUpperCase())) {
+      names.add(c.toUpperCase());
+      list.push(c.toUpperCase());
+    }
+  });
+  if (!names.has('USA')) {
+    names.add('USA');
+    list.push('USA');
+  }
+  list.sort();
+  return list;
+};
+
+export const CURRENCY_OPTIONS = WORLD_CURRENCIES.map(curr => ({
+  value: curr.code,
+  label: `${curr.code} - ${curr.name}`
+}));
 
 export const getBestCurrencyMatch = (query) => {
   if (!query || typeof query !== 'string') return null;
@@ -265,6 +290,15 @@ export const getBestCurrencyMatch = (query) => {
 
   const popPrefix = POPULAR_CURRENCIES.find(c => c.startsWith(q));
   if (popPrefix) return popPrefix;
+
+  const codePrefix = WORLD_CURRENCIES.find(c => c.code.toUpperCase().startsWith(q));
+  if (codePrefix) return codePrefix.code;
+
+  const namePrefix = WORLD_CURRENCIES.find(c => c.name.toUpperCase().startsWith(q));
+  if (namePrefix) return namePrefix.code;
+
+  const nameIncludes = WORLD_CURRENCIES.find(c => c.name.toUpperCase().includes(q));
+  if (nameIncludes) return nameIncludes.code;
 
   return null;
 };
