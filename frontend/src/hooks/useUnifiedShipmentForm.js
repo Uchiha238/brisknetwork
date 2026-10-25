@@ -23,6 +23,7 @@ import {
 } from './useFormLoaders';
 import {
   useFuelSurchargeCalc,
+  useCafCalc,
   useWeightRollup,
   useChargesTotal,
   useGstCalc,
@@ -59,6 +60,7 @@ export function useUnifiedShipmentForm(initialType = 'domestic', editingShipment
 
   // ── Calculations ──
   useFuelSurchargeCalc({ formData, fuelPricePct, setFormData });
+  useCafCalc({ formData, setFormData });
   useWeightRollup({ formData, setFormData });
   useChargesTotal({ formData, setFormData });
   useGstCalc({ formData, selectedCustomerId, customers, setFormData });

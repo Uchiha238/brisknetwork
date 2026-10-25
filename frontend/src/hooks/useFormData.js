@@ -84,6 +84,7 @@ export const createDefaultFormData = (initialType = 'domestic') => ({
   cod_ch: 0,
   other_ch: 0,
   fuel_surcharge: 0,
+  caf_pct: 0,
   transport_ch: 0,
   remote_area_ch: 0,
   awb_ch: 0,

@@ -284,7 +284,7 @@ export function PrintInvoice({ invoiceId }) {
                 if (fuel > 0) charges.push({ label: 'Fuel', val: fuel });
                 if (oda > 0) charges.push({ label: 'ODA', val: oda });
                 if (pickup > 0) charges.push({ label: 'Pickup', val: pickup });
-                if (trans > 0) charges.push({ label: 'Transport', val: trans });
+                if (trans > 0) charges.push({ label: 'CAF', val: trans });
                 if (clear > 0) charges.push({ label: 'Clearance', val: clear });
                 if (ddp > 0) charges.push({ label: 'DDP', val: ddp });
                 if (other > 0) charges.push({ label: 'Other', val: other });

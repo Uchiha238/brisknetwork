@@ -84,6 +84,26 @@ export function useFuelSurchargeCalc({ formData, fuelPricePct, setFormData }) {
 }
 
 /**
+ * Recalculates CAF surcharge (Currency Adjustment Factor) whenever freight charge, fuel surcharge, or caf_pct changes.
+ * Blue Dart CAF formula: CAF Amount = (Base Freight + Fuel Surcharge) * (CAF % / 100)
+ */
+export function useCafCalc({ formData, setFormData }) {
+  useEffect(() => {
+    const freight = parseFloat(formData.freight_ch) || 0;
+    const fuel = parseFloat(formData.fuel_surcharge) || 0;
+    const pct = parseFloat(formData.caf_pct) || 0;
+    const cafAmount = parseFloat((((freight + fuel) * pct) / 100).toFixed(2));
+    
+    setFormData(prev => {
+      if (prev.transport_ch !== cafAmount) {
+        return { ...prev, transport_ch: cafAmount };
+      }
+      return prev;
+    });
+  }, [formData.freight_ch, formData.fuel_surcharge, formData.caf_pct]);
+}
+
+/**
  * Rolls up per-package weights into the top-level totals.
  */
 export function useWeightRollup({ formData, setFormData }) {

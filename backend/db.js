@@ -233,6 +233,7 @@ const init = async () => {
       destination_ch: "REAL",
       ess_ch: "REAL",
       oda_ch: "REAL",
+      caf_pct: "REAL",
       transport_ch: "REAL",
       clearance_ch: "REAL",
       other_ch: "REAL",

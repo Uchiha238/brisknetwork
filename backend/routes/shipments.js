@@ -61,7 +61,7 @@ router.post('/', asyncHandler(async (req, res) => {
     bill_amount, fuel_amount, gst_amount, freight_ch, total_charges,
     
     forward_no, forwarder, description, bill_type, type_of_doc, doc_number,
-    destination_ch, ess_ch, oda_ch, transport_ch, clearance_ch, other_ch, ddp_ch,
+    destination_ch, ess_ch, oda_ch, caf_pct, transport_ch, clearance_ch, other_ch, ddp_ch,
     charges_date,
     branch,
     eway_bill_no,
@@ -87,7 +87,7 @@ router.post('/', asyncHandler(async (req, res) => {
       bill_amount, fuel_amount, gst_amount, freight_charges, total_charges,
       
       forward_no, forwarder, description, bill_type, type_of_doc, doc_number,
-      destination_ch, ess_ch, oda_ch, transport_ch, clearance_ch, other_ch, ddp_ch,
+      destination_ch, ess_ch, oda_ch, caf_pct, transport_ch, clearance_ch, other_ch, ddp_ch,
       charges_date, branch, eway_bill_no
     ) VALUES (
       ?, ?, ?, ?, 'booked',
@@ -103,7 +103,7 @@ router.post('/', asyncHandler(async (req, res) => {
       ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?
     )
   `, [
     customer_id, user_id, airway_no, type,
@@ -122,7 +122,7 @@ router.post('/', asyncHandler(async (req, res) => {
     bill_amount, fuel_amount, gst_amount, freight_ch, total_charges,
     
     forward_no, forwarder, description, bill_type, type_of_doc, doc_number,
-    destination_ch, ess_ch, oda_ch, transport_ch, clearance_ch, other_ch, ddp_ch,
+    destination_ch, ess_ch, oda_ch, parseFloat(caf_pct) || 0, transport_ch, clearance_ch, other_ch, ddp_ch,
     charges_date, branch, eway_bill_no
   ]);
 
@@ -244,7 +244,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
     bill_amount, fuel_amount, gst_amount, freight_ch, total_charges,
     
     forward_no, forwarder, description, bill_type, type_of_doc, doc_number,
-    destination_ch, ess_ch, oda_ch, transport_ch, clearance_ch, other_ch, ddp_ch,
+    destination_ch, ess_ch, oda_ch, caf_pct, transport_ch, clearance_ch, other_ch, ddp_ch,
     charges_date,
     branch,
     eway_bill_no,
@@ -270,7 +270,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
       bill_amount=?, fuel_amount=?, gst_amount=?, freight_charges=?, total_charges=?,
       
       forward_no=?, forwarder=?, description=?, bill_type=?, type_of_doc=?, doc_number=?,
-      destination_ch=?, ess_ch=?, oda_ch=?, transport_ch=?, clearance_ch=?, other_ch=?, ddp_ch=?,
+      destination_ch=?, ess_ch=?, oda_ch=?, caf_pct=?, transport_ch=?, clearance_ch=?, other_ch=?, ddp_ch=?,
       charges_date=?, branch=?, eway_bill_no=?
     WHERE id=?
   `, [
@@ -290,7 +290,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
     bill_amount, fuel_amount, gst_amount, freight_ch, total_charges,
     
     forward_no, forwarder, description, bill_type, type_of_doc, doc_number,
-    destination_ch, ess_ch, oda_ch, transport_ch, clearance_ch, other_ch, ddp_ch,
+    destination_ch, ess_ch, oda_ch, parseFloat(caf_pct) || 0, transport_ch, clearance_ch, other_ch, ddp_ch,
     charges_date, branch, eway_bill_no,
     req.params.id
   ]);

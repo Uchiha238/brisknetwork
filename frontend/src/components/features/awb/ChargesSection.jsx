@@ -133,8 +133,26 @@ export function ChargesSection({
               </div>
               <div className="space-y-2">
                 <div className="grid grid-cols-[115px_1fr] items-center gap-2">
-                  <label className="text-[13px] font-medium text-slate-700">Transport</label>
-                  <input type="number" name="transport_ch" value={formData.transport_ch} onChange={handleChange} className="w-full h-[35px] px-3 border border-slate-300 rounded text-[14px] outline-none focus:border-blue-500" />
+                  <label className="text-[13px] font-medium text-slate-700" title="Currency Adjustment Factor (Blue Dart Calculation)">CAF (%)</label>
+                  <div className="relative flex items-center">
+                    <input
+                      type="number"
+                      step="0.01"
+                      name="caf_pct"
+                      value={formData.caf_pct ?? ''}
+                      onChange={handleChange}
+                      placeholder="0"
+                      className="w-full h-[35px] pl-3 pr-28 border border-slate-300 rounded text-[14px] outline-none focus:border-blue-500 font-bold"
+                    />
+                    <div className="absolute right-2 flex items-center gap-1.5 pointer-events-none select-none text-[12px] font-bold text-slate-500">
+                      <span>%</span>
+                      {(parseFloat(formData.transport_ch) || 0) > 0 && (
+                        <span className="text-blue-700 font-extrabold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                          (₹{Number(formData.transport_ch).toFixed(2)})
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
                 <div className="grid grid-cols-[115px_1fr] items-center gap-2">
                   <label className="text-[13px] font-medium text-slate-700">Clearance</label>

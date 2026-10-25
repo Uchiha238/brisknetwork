@@ -98,48 +98,45 @@ export const getBestCountryMatch = (query, countryList = []) => {
 };
 
 /**
- * Handles Tab and Enter key on country inputs to select top suggestion.
+ * Handles Enter or Tab key on country inputs to resolve known aliases (e.g. USA -> UNITED STATES).
  */
 export const handleCountryKeyDown = (e, countries = [], handleChange) => {
   if (e.key === 'Tab' || e.key === 'Enter') {
-    const query = e.target.value;
-    if (query && query.trim()) {
-      const match = getBestCountryMatch(query, countries);
-      if (match && match.toUpperCase() !== query.trim().toUpperCase()) {
-        e.target.value = match;
-        if (handleChange) {
-          handleChange({
-            target: {
-              name: e.target.name,
-              value: match.toUpperCase()
-            }
-          });
-        }
-        if (e.key === 'Enter') {
-          e.preventDefault();
-        }
+    const query = (e.target.value || '').trim().toUpperCase();
+    if (query && COUNTRY_ALIASES[query]) {
+      const match = COUNTRY_ALIASES[query];
+      e.target.value = match;
+      if (handleChange) {
+        handleChange({
+          target: {
+            name: e.target.name,
+            value: match
+          }
+        });
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
       }
     }
   }
 };
 
 /**
- * Handles blur on country inputs to complete top suggestion if not exact.
+ * Handles blur on country inputs to resolve known aliases (e.g. USA -> UNITED STATES).
+ * Leaves partial queries intact so suggestions can be freely browsed and selected.
  */
 export const handleCountryBlur = (e, countries = [], handleChange) => {
-  const query = e.target.value;
-  if (query && query.trim()) {
-    const match = getBestCountryMatch(query, countries);
-    if (match && match.toUpperCase() !== query.trim().toUpperCase()) {
-      e.target.value = match;
-      if (handleChange) {
-        handleChange({
-          target: {
-            name: e.target.name,
-            value: match.toUpperCase()
-          }
-        });
-      }
+  const query = (e.target.value || '').trim().toUpperCase();
+  if (query && COUNTRY_ALIASES[query]) {
+    const match = COUNTRY_ALIASES[query];
+    e.target.value = match;
+    if (handleChange) {
+      handleChange({
+        target: {
+          name: e.target.name,
+          value: match
+        }
+      });
     }
   }
 };

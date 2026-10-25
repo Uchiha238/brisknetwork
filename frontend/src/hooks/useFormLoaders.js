@@ -190,6 +190,11 @@ export function useEditShipmentLoader({ editingShipmentId, customers, setShipmen
             cod_ch: s.cod_ch || 0,
             other_ch: s.other_ch || 0,
             fuel_surcharge: s.fuel_amount || 0,
+            caf_pct: s.caf_pct !== undefined && s.caf_pct !== null ? s.caf_pct : (
+              (s.freight_charges || 0) + (s.fuel_amount || 0) > 0 && (s.transport_ch || 0) > 0
+                ? parseFloat((((s.transport_ch || 0) / ((s.freight_charges || 0) + (s.fuel_amount || 0))) * 100).toFixed(2))
+                : 0
+            ),
             transport_ch: s.transport_ch || 0,
             remote_area_ch: s.remote_area_ch || 0,
             awb_ch: s.awb_ch || 0,

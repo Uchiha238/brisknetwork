@@ -70,6 +70,10 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic', editingShipme
         list.push(c.toUpperCase());
       }
     });
+    if (!names.has('USA')) {
+      names.add('USA');
+      list.push('USA');
+    }
     list.sort();
     return list;
   }, [masters.countries]);
@@ -77,7 +81,9 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic', editingShipme
   return (
     <div className="bg-white min-h-full p-1 font-sans selection:bg-blue-100">
       <datalist id="countries-list">
-        {datalistCountries.map(name => <option key={name} value={name} />)}
+        {datalistCountries.map(name => (
+          <option key={name} value={name}>{name}</option>
+        ))}
       </datalist>
       <datalist id="currencies-list">
         {WORLD_CURRENCIES.map(curr => (
