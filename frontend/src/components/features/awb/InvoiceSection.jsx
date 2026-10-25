@@ -29,11 +29,14 @@ export function InvoiceSection({
             </FormField>
             <FormField onChange={handleChange} label="Note" name="note" value={formData.note} />
             <FormField onChange={handleChange} label="Currency" name="currency">
-              <select name="currency" value={formData.currency} onChange={handleChange} className="w-full h-full px-2 border border-slate-300 text-[11px] font-bold uppercase">
-                <option>INR</option>
-                <option>USD</option>
-                <option>EUR</option>
-              </select>
+              <input
+                list="currencies-list"
+                name="currency"
+                value={formData.currency || ''}
+                onChange={handleChange}
+                placeholder="INR"
+                className="w-full h-full px-2 border border-slate-300 text-[11px] font-bold uppercase outline-none"
+              />
             </FormField>
             <FormField onChange={handleChange} label="Incoterms" name="incoterms">
               <select className="w-full h-full px-2 border border-slate-300 text-[11px] font-bold uppercase">

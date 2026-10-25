@@ -11,6 +11,7 @@ import { InvoiceItemsTable } from './awb/InvoiceItemsTable';
 import { useUnifiedShipmentForm } from '../../hooks/useUnifiedShipmentForm';
 
 import { WORLD_COUNTRIES } from '../../utils/countryAutocomplete';
+import { WORLD_CURRENCIES } from '../../utils/countryData';
 
 export function AddUnifiedShipmentForm({ initialType = 'domestic', editingShipmentId = null }) {
   const {
@@ -77,6 +78,11 @@ export function AddUnifiedShipmentForm({ initialType = 'domestic', editingShipme
     <div className="bg-white min-h-full p-1 font-sans selection:bg-blue-100">
       <datalist id="countries-list">
         {datalistCountries.map(name => <option key={name} value={name} />)}
+      </datalist>
+      <datalist id="currencies-list">
+        {WORLD_CURRENCIES.map(curr => (
+          <option key={curr.code} value={curr.code}>{curr.code} - {curr.name}</option>
+        ))}
       </datalist>
 
       {/* Top Action Bar */}

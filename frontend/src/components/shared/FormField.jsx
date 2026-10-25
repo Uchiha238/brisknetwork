@@ -29,27 +29,5 @@ export const FormField = ({ label, name, type = "text", value, placeholder, requ
   </div>
 );
 
-export const getCountryCallingCode = (countryName) => {
-  if (!countryName) return '+91'; // default fallback to India
-  const upper = countryName.trim().toUpperCase();
-  if (upper === 'INDIA' || upper === 'IN') return '+91';
-  if (upper === 'UNITED STATES' || upper === 'UNITED STATES OF AMERICA' || upper === 'USA' || upper === 'US') return '+1';
-  if (upper === 'UNITED KINGDOM' || upper === 'UK' || upper === 'GB') return '+44';
-  if (upper === 'UNITED ARAB EMIRATES' || upper === 'UAE' || upper === 'AE') return '+971';
-  if (upper === 'CANADA' || upper === 'CA') return '+1';
-  if (upper === 'AUSTRALIA' || upper === 'AU') return '+61';
-  if (upper === 'GERMANY' || upper === 'DE') return '+49';
-  if (upper === 'FRANCE' || upper === 'FR') return '+33';
-  if (upper === 'JAPAN' || upper === 'JP') return '+81';
-  if (upper === 'SINGAPORE' || upper === 'SG') return '+65';
-  if (upper === 'CHINA' || upper === 'CN') return '+86';
-  if (upper === 'MALAYSIA' || upper === 'MY') return '+60';
-  if (upper === 'HONG KONG' || upper === 'HK') return '+852';
-  if (upper === 'OMAN' || upper === 'OM') return '+968';
-  if (upper === 'QATAR' || upper === 'QA') return '+974';
-  if (upper === 'SAUDI ARABIA' || upper === 'SA') return '+966';
-  if (upper === 'KUWAIT' || upper === 'KW') return '+965';
-  if (upper === 'BAHRAIN' || upper === 'BH') return '+973';
-  if (upper === 'SOUTH AFRICA' || upper === 'ZA') return '+27';
-  return '+1'; // international fallback
-};
+import { getCountryCallingCode } from '../../utils/countryData';
+export { getCountryCallingCode };

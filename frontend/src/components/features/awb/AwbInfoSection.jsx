@@ -262,11 +262,14 @@ export function AwbInfoSection({
             <div className="grid grid-cols-2 gap-1">
               <FormField onChange={handleChange} label="VALUE" name="shipment_value" labelWidth="85px" value={formData.shipment_value} />
               <FormField onChange={handleChange} label="Currency" name="currency" labelWidth="45px">
-                <select name="currency" value={formData.currency} onChange={handleChange} className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold">
-                  <option>SELECT..</option>
-                  <option>INR</option>
-                  <option>USD</option>
-                </select>
+                <input
+                  list="currencies-list"
+                  name="currency"
+                  value={formData.currency || ''}
+                  onChange={handleChange}
+                  placeholder="INR"
+                  className="w-full h-full px-1 border border-slate-300 text-[10px] font-bold uppercase outline-none"
+                />
               </FormField>
             </div>
 

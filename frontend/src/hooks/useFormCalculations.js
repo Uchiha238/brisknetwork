@@ -8,6 +8,7 @@
  */
 import { useEffect } from 'react';
 import { calcVolumetricWt, calcChargeableWt, roundToHalfKg, isDomesticCountry } from '../utils/weight';
+import { getCountryDefaultCurrency } from '../utils/countryData';
 import { API_BASE_URL } from '../services/api';
 
 // ── GST helpers (module-private) ──
@@ -319,6 +320,16 @@ export function createFieldHandlers({ setFormData, setSelectedCustomerId, setShi
             }
             const currentType = (value && value.trim() && !isDomestic) ? 'international' : shipmentType;
             newData.destination = (currentType === 'domestic' ? (prev.consignee_city || 'INDIA') : (value ? value.toUpperCase() : ''));
+            if (!isDomestic && value && value.trim()) {
+                const suggestedCurrency = getCountryDefaultCurrency(value);
+                if (suggestedCurrency && (!prev.currency || prev.currency === 'INR')) {
+                    newData.currency = suggestedCurrency;
+                }
+            } else if (isDomestic) {
+                if (prev.currency !== 'USD') {
+                    newData.currency = 'INR';
+                }
+            }
         }
 
         if (name === 'consignee_city') {
